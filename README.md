@@ -18,6 +18,9 @@ served, which mean a long wait, and which have no night coverage at all.
 - **Stops layer** — click any stop for its lines and per-night frequency.
 - **Lines layer** — the 57 Noctilien routes in their official colors. Click a
   route on the map (or a line badge in any popup) to highlight it and frame it.
+- **Shareable URLs** — map view, night type, highlighted line and searched
+  address all live in the URL hash, so any situation can be linked.
+- **French UI by default**, with an EN toggle (persisted).
 
 ## Stack
 
@@ -29,7 +32,10 @@ basemap. No backend: all data is preprocessed into `src/data/noctilien.json`
 pnpm install
 pnpm dev          # http://localhost:3000
 pnpm build        # production build (what Vercel runs)
+pnpm test         # Playwright smoke suite (hermetic — external services mocked)
 ```
+
+CI runs the smoke suite on every push and pull request.
 
 ## Data
 
