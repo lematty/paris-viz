@@ -48,9 +48,11 @@ function popupHtml(stop: Stop, lineColors: Map<string, string>): string {
 export default function NoctilienMap({ data, night, layers, target }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const heatRef = useRef<L.Layer | null>(null);
-  const stopsRef = useRef<L.LayerGroup | null>(null);
-  const routesRef = useRef<L.LayerGroup | null>(null);
+  const layerSetsRef = useRef<{
+    week: { heat: L.Layer; stops: L.LayerGroup };
+    weekend: { heat: L.Layer; stops: L.LayerGroup };
+    routes: L.LayerGroup;
+  } | null>(null);
   const targetRef = useRef<L.Marker | null>(null);
 
   const lineColors = useMemo(
@@ -70,7 +72,9 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
     return deps[Math.floor(deps.length * 0.95)] ?? 1;
   }, [data]);
 
-  // Map + static route layer, once.
+  // Map and every layer variant, built once. Toggling night type or layer
+  // checkboxes then only swaps prebuilt layers in and out of the map —
+  // rebuilding 1637 markers on each toggle made the UI feel sluggish.
   useEffect(() => {
     const map = L.map(containerRef.current!, {
       center: [48.859, 2.347],
@@ -88,10 +92,15 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
       },
     ).addTo(map);
 
+    // One shared canvas renderer: routes + both stop sets on a single
+    // <canvas> instead of hundreds of SVG nodes.
+    const canvas = L.canvas({ padding: 0.5 });
+
     const routes = L.layerGroup();
     for (const r of data.routes) {
       for (const path of r.paths) {
         L.polyline(path, {
+          renderer: canvas,
           color: r.color,
           weight: 2,
           opacity: 0.55,
@@ -99,81 +108,78 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
         }).addTo(routes);
       }
     }
-    routesRef.current = routes;
+
+    const buildNight = (night: NightType) => {
+      const points = data.stops
+        .filter((s) => s[night].dep > 0)
+        // sqrt compresses the hub/branch dynamic range (~365 vs ~5 dep/night)
+        // so suburban service stays visible next to the big hubs.
+        // The 0.4 factor leaves headroom: neighbouring stops on the same
+        // corridor overlap and sum, so only genuinely frequent corridors
+        // reach the bright end instead of everything saturating.
+        .map(
+          (s) =>
+            [s.lat, s.lon, 0.4 * Math.min(1, Math.sqrt(s[night].dep / capDep))] as [
+              number,
+              number,
+              number,
+            ],
+        );
+      const heat = L.heatLayer(points, {
+        radius: 18,
+        blur: 15,
+        max: 1,
+        // leaflet.heat scales intensity by 2^(zoom - maxZoom); left at the
+        // map's maxZoom (19) the layer is ~1/128 strength at city zoom.
+        maxZoom: 11,
+        gradient: HEAT_GRADIENT,
+      });
+      const stops = L.layerGroup();
+      for (const s of data.stops) {
+        if (s[night].dep <= 0) continue;
+        L.circleMarker([s.lat, s.lon], {
+          renderer: canvas,
+          radius: 2.5 + 4 * Math.min(1, Math.sqrt(s[night].dep / capDep)),
+          color: "#9fd8ff",
+          weight: 1,
+          opacity: 0.7,
+          fillColor: "#9fd8ff",
+          fillOpacity: 0.25,
+        })
+          .bindPopup(popupHtml(s, lineColors), { className: "night-popup" })
+          .addTo(stops);
+      }
+      return { heat, stops };
+    };
+
+    layerSetsRef.current = {
+      week: buildNight("week"),
+      weekend: buildNight("weekend"),
+      routes,
+    };
     mapRef.current = map;
     return () => {
       map.remove();
       mapRef.current = null;
-      heatRef.current = null;
-      stopsRef.current = null;
-      routesRef.current = null;
+      layerSetsRef.current = null;
       targetRef.current = null;
     };
-  }, [data]);
+  }, [data, capDep, lineColors]);
 
-  // Heat + stop layers, rebuilt when the night type changes.
+  // Layer visibility: pure add/remove of the prebuilt layers.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    heatRef.current?.remove();
-    stopsRef.current?.remove();
-
-    const points = data.stops
-      .filter((s) => s[night].dep > 0)
-      // sqrt compresses the hub/branch dynamic range (~365 vs ~5 dep/night)
-      // so suburban service stays visible next to the big hubs.
-      // The 0.4 factor leaves headroom: neighbouring stops on the same
-      // corridor overlap and sum, so only genuinely frequent corridors
-      // reach the bright end instead of everything saturating.
-      .map(
-        (s) =>
-          [s.lat, s.lon, 0.4 * Math.min(1, Math.sqrt(s[night].dep / capDep))] as [
-            number,
-            number,
-            number,
-          ],
-      );
-    heatRef.current = L.heatLayer(points, {
-      radius: 18,
-      blur: 15,
-      max: 1,
-      // leaflet.heat scales intensity by 2^(zoom - maxZoom); left at the
-      // map's maxZoom (19) the layer is ~1/128 strength at city zoom.
-      maxZoom: 11,
-      gradient: HEAT_GRADIENT,
-    });
-
-    const renderer = L.canvas({ padding: 0.5 });
-    const stops = L.layerGroup();
-    for (const s of data.stops) {
-      if (s[night].dep <= 0) continue;
-      L.circleMarker([s.lat, s.lon], {
-        renderer,
-        radius: 2.5 + 4 * Math.min(1, Math.sqrt(s[night].dep / capDep)),
-        color: "#9fd8ff",
-        weight: 1,
-        opacity: 0.7,
-        fillColor: "#9fd8ff",
-        fillOpacity: 0.25,
-      })
-        .bindPopup(popupHtml(s, lineColors), { className: "night-popup" })
-        .addTo(stops);
-    }
-    stopsRef.current = stops;
-  }, [data, night, capDep, lineColors]);
-
-  // Layer visibility.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const sync = (layer: L.Layer | null, on: boolean) => {
-      if (!layer) return;
+    const sets = layerSetsRef.current;
+    if (!map || !sets) return;
+    const sync = (layer: L.Layer, on: boolean) => {
       if (on && !map.hasLayer(layer)) layer.addTo(map);
       if (!on && map.hasLayer(layer)) layer.remove();
     };
-    sync(heatRef.current, layers.heat);
-    sync(stopsRef.current, layers.stops);
-    sync(routesRef.current, layers.routes);
+    for (const n of ["week", "weekend"] as const) {
+      sync(sets[n].heat, layers.heat && night === n);
+      sync(sets[n].stops, layers.stops && night === n);
+    }
+    sync(sets.routes, layers.routes);
   });
 
   // Search target: pin + fly.
