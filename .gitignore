@@ -6,8 +6,9 @@ node_modules/
 out/
 next-env.d.ts
 
-# raw GTFS data (150+ MB, re-downloadable via pnpm build:data)
-data/
+# raw GTFS download at the repo root only (150+ MB, re-downloadable via
+# pnpm build:data) — src/data/ must stay tracked
+/data/
 
 # misc
 *.tsbuildinfo
