@@ -256,6 +256,40 @@ export default function NoctilienMap({
       );
     }
 
+    // Clicking a route line on the map selects it. Hit-testing happens here,
+    // on click only, instead of making the polylines interactive — Leaflet's
+    // canvas hover hit-testing would walk all ~10k path points on every
+    // mousemove, the kind of per-frame work that made the map feel slow.
+    const distToSeg = (p: L.Point, a: L.Point, b: L.Point) => {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+      return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    };
+    map.on("click", (e) => {
+      let best: string | null = null;
+      let bestD = 10; // px tolerance
+      for (const [name, lines] of routeLines) {
+        for (const line of lines) {
+          if (!map.hasLayer(line)) continue;
+          const pts = (line.getLatLngs() as L.LatLng[]).map((ll) =>
+            map.latLngToContainerPoint(ll),
+          );
+          for (let i = 0; i + 1 < pts.length; i++) {
+            const d = distToSeg(e.containerPoint, pts[i], pts[i + 1]);
+            if (d < bestD) {
+              bestD = d;
+              best = name;
+            }
+          }
+        }
+      }
+      if (best) {
+        onSelectLineRef.current(best === selectedLineRef.current ? null : best);
+      }
+    });
+
     // Clicking a line badge inside a stop popup highlights that line
     // (clicking the already-highlighted line clears it).
     map.on("popupopen", (e) => {
@@ -286,6 +320,9 @@ export default function NoctilienMap({
           opacity: 0.7,
           fillColor: "#9fd8ff",
           fillOpacity: 0.25,
+          // stop clicks open the popup only — without this they'd bubble to
+          // the map handler above and also toggle the line under the stop
+          bubblingMouseEvents: false,
         })
           .bindPopup(popupHtml(s, lineColors), { className: "night-popup" })
           .addTo(stops);
@@ -305,6 +342,8 @@ export default function NoctilienMap({
     });
     layerSetsRef.current = sets;
     mapRef.current = map;
+    // debugging/automation handle
+    (window as unknown as Record<string, unknown>).__noctilienMap = map;
     return () => {
       map.remove();
       mapRef.current = null;

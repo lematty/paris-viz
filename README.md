@@ -5,6 +5,8 @@ Interactive map of the **Noctilien** night-bus network of Paris / Île-de-France
 pass near each point per night, so you can see at a glance which areas are well
 served, which mean a long wait, and which have no night coverage at all.
 
+![Noctilien frequency heatmap of Île-de-France](docs/screenshot.png)
+
 ## Features
 
 - **Frequency heatmap** — each stop glows proportionally to its Noctilien
@@ -14,7 +16,8 @@ served, which mean a long wait, and which have no night coverage at all.
   flies there, drops a pin, and lists the 5 nearest stops with walking distance
   and typical wait.
 - **Stops layer** — click any stop for its lines and per-night frequency.
-- **Lines layer** — the 57 Noctilien routes in their official colors.
+- **Lines layer** — the 57 Noctilien routes in their official colors. Click a
+  route on the map (or a line badge in any popup) to highlight it and frame it.
 
 ## Stack
 
