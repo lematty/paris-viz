@@ -38,12 +38,15 @@ pnpm build        # production build (what Vercel runs)
 
 ### Refreshing the data
 
-The feed only covers ~30 days ahead, so regenerate roughly monthly:
+The feed only covers ~30 days ahead. A GitHub Actions workflow
+(`.github/workflows/refresh-data.yml`) regenerates and commits
+`src/data/noctilien.json` on the 1st and 15th of each month (free on public
+repos), which triggers a Vercel redeploy. It can also be run manually from the
+Actions tab, or locally:
 
 ```bash
 rm -rf data/            # drop the cached feed
 pnpm build:data         # downloads ~150 MB, writes src/data/noctilien.json
-git commit -am "Refresh Noctilien data"
 ```
 
 The script (`scripts/build-data.ts`, requires the `unzip` CLI) filters the
