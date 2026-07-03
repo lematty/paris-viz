@@ -43,12 +43,22 @@ export default function SearchBox({
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) return;
         const json: { features: AddressFeature[] } = await res.json();
+        // The API can return several rows with an identical label; they are
+        // indistinguishable in the dropdown (and would collide as React keys),
+        // so keep only the first of each.
+        const seen = new Set<string>();
         setResults(
-          json.features.map((f) => ({
-            label: f.properties.label,
-            lon: f.geometry.coordinates[0],
-            lat: f.geometry.coordinates[1],
-          })),
+          json.features
+            .filter((f) => {
+              if (seen.has(f.properties.label)) return false;
+              seen.add(f.properties.label);
+              return true;
+            })
+            .map((f) => ({
+              label: f.properties.label,
+              lon: f.geometry.coordinates[0],
+              lat: f.geometry.coordinates[1],
+            })),
         );
         setHighlight(0);
         setOpen(true);
