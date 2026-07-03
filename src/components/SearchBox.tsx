@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Strings } from "@/lib/i18n";
 import type { SearchResult } from "./App";
 
 interface AddressFeature {
@@ -10,8 +11,10 @@ interface AddressFeature {
 
 export default function SearchBox({
   onSelect,
+  t,
 }: {
   onSelect: (r: SearchResult) => void;
+  t: Strings;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -100,13 +103,13 @@ export default function SearchBox({
     <div className="searchbox" ref={boxRef}>
       <input
         type="search"
-        placeholder="Search an address… (e.g. 10 rue de Rivoli)"
+        placeholder={t.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={onKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        aria-label="Search an address"
+        aria-label={t.searchAria}
       />
       {open && results.length > 0 && (
         <ul className="search-results" role="listbox">

@@ -1,6 +1,7 @@
 "use client";
 
 import type { StopWithDistance } from "@/lib/geo";
+import type { Strings } from "@/lib/i18n";
 import type { NightType, SearchResult } from "./App";
 
 const WALK_M_PER_MIN = 80;
@@ -11,26 +12,25 @@ export default function NearestStops({
   night,
   onClear,
   onSelectLine,
+  t,
 }: {
   target: SearchResult;
   stops: StopWithDistance[];
   night: NightType;
   onClear: () => void;
   onSelectLine: (line: string) => void;
+  t: Strings;
 }) {
   return (
     <div className="nearest">
       <div className="nearest-header">
-        <strong>Noctilien near “{target.label}”</strong>
-        <button onClick={onClear} aria-label="Clear search result">
+        <strong>{t.nearTitle(target.label)}</strong>
+        <button onClick={onClear} aria-label={t.clearSearch}>
           ✕
         </button>
       </div>
       {stops.length === 0 ? (
-        <p className="nearest-empty">
-          No Noctilien stop within 1.5 km — this area is not covered by the
-          night-bus network.
-        </p>
+        <p className="nearest-empty">{t.noStop}</p>
       ) : (
         <ul>
           {stops.map((s) => {
@@ -41,8 +41,8 @@ export default function NearestStops({
                   {s.name}
                   <span className="nearest-dist">
                     {Math.round(s.distanceM)} m ·{" "}
-                    {Math.max(1, Math.round(s.distanceM / WALK_M_PER_MIN))} min
-                    walk
+                    {Math.max(1, Math.round(s.distanceM / WALK_M_PER_MIN))}{" "}
+                    {t.minWalk}
                   </span>
                 </div>
                 <div className="nearest-stat">
@@ -51,7 +51,7 @@ export default function NearestStops({
                       {i > 0 && " · "}
                       <button
                         className="line-link"
-                        title={`Highlight line ${l}`}
+                        title={t.highlightLine(l)}
                         onClick={() => onSelectLine(l)}
                       >
                         {l}
@@ -60,8 +60,8 @@ export default function NearestStops({
                   ))}{" "}
                   —{" "}
                   {stat.headway
-                    ? `a bus every ~${stat.headway} min`
-                    : `${stat.dep} bus${stat.dep >= 2 ? "es" : ""}/night`}
+                    ? t.busEvery(stat.headway)
+                    : t.busesPerNight(stat.dep)}
                 </div>
               </li>
             );

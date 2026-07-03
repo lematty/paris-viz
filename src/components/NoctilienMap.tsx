@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { NoctilienData, Stop } from "@/lib/types";
+import { STRINGS, type Lang, type Strings } from "@/lib/i18n";
+import type { MapView } from "@/lib/urlState";
 import type { LayerToggles, NightType, SearchResult } from "./App";
 
 interface Props {
@@ -13,6 +15,12 @@ interface Props {
   target: SearchResult | null;
   selectedLine: string | null;
   onSelectLine: (line: string | null) => void;
+  lang: Lang;
+  initialView: MapView | null;
+  /** True when the URL restored an explicit view — the initial target pin
+   * should then not steal the camera. */
+  skipInitialFly: boolean;
+  onViewChange: (view: MapView) => void;
 }
 
 // Perceptually-ordered "night glow" ramp (inferno-like): one ordered scale for
@@ -157,20 +165,24 @@ function heatOpacity(zoom: number): number {
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function popupHtml(stop: Stop, lineColors: Map<string, string>): string {
+function popupHtml(
+  stop: Stop,
+  lineColors: Map<string, string>,
+  t: Strings,
+): string {
   const badges = stop.lines
     .map(
       (l) =>
-        `<button class="line-badge" data-line="${esc(l)}" title="Highlight line ${esc(l)}" style="background:${lineColors.get(l) ?? "#3F2A7E"}">${esc(l)}</button>`,
+        `<button class="line-badge" data-line="${esc(l)}" title="${esc(t.highlightLine(l))}" style="background:${lineColors.get(l) ?? "#3F2A7E"}">${esc(l)}</button>`,
     )
     .join("");
   const row = (label: string, s: Stop["week"]) =>
-    `<tr><td>${label}</td><td><strong>${s.dep}</strong>/night</td>` +
-    `<td>${s.headway ? `every ~${s.headway} min` : "occasional"}</td></tr>`;
+    `<tr><td>${label}</td><td><strong>${s.dep}</strong>${t.popupPerNight}</td>` +
+    `<td>${s.headway ? t.popupEvery(s.headway) : t.popupOccasional}</td></tr>`;
   return (
     `<div class="stop-popup"><strong>${esc(stop.name)}</strong>` +
     `<div class="badge-row">${badges}</div>` +
-    `<table>${row("Sun–Thu", stop.week)}${row("Fri–Sat", stop.weekend)}</table></div>`
+    `<table>${row(t.popupWeek, stop.week)}${row(t.popupWeekend, stop.weekend)}</table></div>`
   );
 }
 
@@ -181,6 +193,10 @@ export default function NoctilienMap({
   target,
   selectedLine,
   onSelectLine,
+  lang,
+  initialView,
+  skipInitialFly,
+  onViewChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -196,6 +212,12 @@ export default function NoctilienMap({
   onSelectLineRef.current = onSelectLine;
   const selectedLineRef = useRef(selectedLine);
   selectedLineRef.current = selectedLine;
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
+  // Consumed by the first run of the target effect (see skipInitialFly).
+  const skipFlyRef = useRef(skipInitialFly);
 
   const lineColors = useMemo(
     () => new Map(data.routes.map((r) => [r.name, r.color])),
@@ -219,11 +241,15 @@ export default function NoctilienMap({
   // rebuilding 1637 markers on each toggle made the UI feel sluggish.
   useEffect(() => {
     const map = L.map(containerRef.current!, {
-      center: [48.859, 2.347],
-      zoom: 12,
+      center: initialView ? [initialView.lat, initialView.lon] : [48.859, 2.347],
+      zoom: initialView?.zoom ?? 12,
       zoomControl: false,
     });
     L.control.zoom({ position: "bottomright" }).addTo(map);
+    map.on("moveend zoomend", () => {
+      const c = map.getCenter();
+      onViewChangeRef.current({ zoom: map.getZoom(), lat: c.lat, lon: c.lng });
+    });
     // Heat sits above tiles (200) but below vector overlays (400).
     map.createPane("heat").style.zIndex = "350";
     L.tileLayer(
@@ -324,7 +350,10 @@ export default function NoctilienMap({
           // the map handler above and also toggle the line under the stop
           bubblingMouseEvents: false,
         })
-          .bindPopup(popupHtml(s, lineColors), { className: "night-popup" })
+          // content is a function so it renders in the current language
+          .bindPopup(() => popupHtml(s, lineColors, STRINGS[langRef.current]), {
+            className: "night-popup",
+          })
           .addTo(stops);
       }
       return { heat, stops };
@@ -350,6 +379,8 @@ export default function NoctilienMap({
       layerSetsRef.current = null;
       targetRef.current = null;
     };
+    // initialView is read once at module load, so it never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, capDep, lineColors]);
 
   // Layer visibility and line highlighting: pure add/remove and restyling of
@@ -397,6 +428,10 @@ export default function NoctilienMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    // On the very first run only: a target restored from the URL must not
+    // fly the camera away from the URL's explicit map view.
+    const skipFly = skipFlyRef.current;
+    skipFlyRef.current = false;
     targetRef.current?.remove();
     targetRef.current = null;
     if (!target) return;
@@ -410,9 +445,11 @@ export default function NoctilienMap({
     })
       .bindTooltip(target.label, { direction: "top", offset: [0, -10] })
       .addTo(map);
-    map.flyTo([target.lat, target.lon], Math.max(map.getZoom(), 15), {
-      duration: 1.2,
-    });
+    if (!skipFly) {
+      map.flyTo([target.lat, target.lon], Math.max(map.getZoom(), 15), {
+        duration: 1.2,
+      });
+    }
   }, [target]);
 
   return <div ref={containerRef} className="map" />;

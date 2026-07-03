@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NoctilienData } from "@/lib/types";
 import { nearestStops } from "@/lib/geo";
+import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/i18n";
+import { buildHash, parseHash, type MapView } from "@/lib/urlState";
 import rawData from "@/data/noctilien.json";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
@@ -26,15 +28,31 @@ export interface LayerToggles {
   routes: boolean;
 }
 
+// Read once at module load (the app is client-only) so first render can
+// restore a shared link.
+const initial = parseHash(
+  typeof window === "undefined" ? "" : window.location.hash,
+);
+
 export default function App() {
-  const [night, setNight] = useState<NightType>("week");
+  const [lang, setLang] = useState<Lang>(loadLang);
+  const [night, setNight] = useState<NightType>(initial.night);
   const [layers, setLayers] = useState<LayerToggles>({
     heat: true,
     stops: true,
-    routes: false,
+    routes: initial.line !== null,
   });
-  const [target, setTarget] = useState<SearchResult | null>(null);
-  const [selectedLine, setSelectedLine] = useState<string | null>(null);
+  const [target, setTarget] = useState<SearchResult | null>(initial.target);
+  const [selectedLine, setSelectedLine] = useState<string | null>(initial.line);
+  const [view, setView] = useState<MapView | null>(initial.view);
+
+  const t = STRINGS[lang];
+
+  // Keep the URL shareable: it always reflects the current situation.
+  useEffect(() => {
+    const hash = buildHash({ view, night, line: selectedLine, target });
+    window.history.replaceState(null, "", hash || window.location.pathname);
+  }, [view, night, selectedLine, target]);
 
   const nearby = useMemo(
     () => (target ? nearestStops(data.stops, target.lat, target.lon) : []),
@@ -47,6 +65,11 @@ export default function App() {
   const toggle = (key: keyof LayerToggles) =>
     setLayers((l) => ({ ...l, [key]: !l[key] }));
 
+  const switchLang = (next: Lang) => {
+    setLang(next);
+    saveLang(next);
+  };
+
   return (
     <div className="app">
       <NoctilienMap
@@ -56,28 +79,43 @@ export default function App() {
         target={target}
         selectedLine={selectedLine}
         onSelectLine={setSelectedLine}
+        lang={lang}
+        initialView={initial.view}
+        skipInitialFly={initial.view !== null}
+        onViewChange={setView}
       />
 
       <div className="panel">
-        <h1>
-          Noctilien <span className="panel-sub">night-bus frequency</span>
-        </h1>
-        <p className="panel-hint">
-          How often a night bus (~00:30–05:30) passes near each point of
-          Île-de-France. Bright = frequent service; dark = long waits or no
-          coverage.
-        </p>
+        <div className="panel-title-row">
+          <h1>
+            Noctilien <span className="panel-sub">{t.subtitle}</span>
+          </h1>
+          <div className="lang-toggle" role="radiogroup" aria-label="Language">
+            {(["fr", "en"] as const).map((l) => (
+              <button
+                key={l}
+                role="radio"
+                aria-checked={lang === l}
+                className={lang === l ? "active" : ""}
+                onClick={() => switchLang(l)}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="panel-hint">{t.hint}</p>
 
-        <SearchBox onSelect={setTarget} />
+        <SearchBox onSelect={setTarget} t={t} />
 
-        <NightToggle value={night} onChange={setNight} />
+        <NightToggle value={night} onChange={setNight} t={t} />
 
         <div className="layer-toggles">
           {(
             [
-              ["heat", "Heatmap"],
-              ["stops", "Stops"],
-              ["routes", "Lines"],
+              ["heat", t.heatmap],
+              ["stops", t.stops],
+              ["routes", t.lines],
             ] as const
           ).map(([key, label]) => (
             <label key={key}>
@@ -91,7 +129,7 @@ export default function App() {
           ))}
         </div>
 
-        <Legend />
+        <Legend t={t} />
 
         {selectedLine && (
           <div className="line-chip">
@@ -101,10 +139,10 @@ export default function App() {
             >
               {selectedLine}
             </span>
-            <span>line highlighted</span>
+            <span>{t.lineHighlighted}</span>
             <button
               onClick={() => setSelectedLine(null)}
-              aria-label="Clear line highlight"
+              aria-label={t.clearLine}
             >
               ✕
             </button>
@@ -120,13 +158,12 @@ export default function App() {
             onSelectLine={(line) =>
               setSelectedLine(line === selectedLine ? null : line)
             }
+            t={t}
           />
         )}
 
         <p className="panel-footer">
-          Schedules: Île-de-France Mobilités open data,{" "}
-          {data.feedWindow.start} → {data.feedWindow.end} · Geocoding:
-          adresse.data.gouv.fr
+          {t.footer(data.feedWindow.start, data.feedWindow.end)}
         </p>
       </div>
     </div>
