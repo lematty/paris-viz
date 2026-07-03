@@ -10,11 +10,13 @@ export default function NearestStops({
   stops,
   night,
   onClear,
+  onSelectLine,
 }: {
   target: SearchResult;
   stops: StopWithDistance[];
   night: NightType;
   onClear: () => void;
+  onSelectLine: (line: string) => void;
 }) {
   return (
     <div className="nearest">
@@ -44,7 +46,19 @@ export default function NearestStops({
                   </span>
                 </div>
                 <div className="nearest-stat">
-                  {s.lines.join(" · ")} —{" "}
+                  {s.lines.map((l, i) => (
+                    <span key={l}>
+                      {i > 0 && " · "}
+                      <button
+                        className="line-link"
+                        title={`Highlight line ${l}`}
+                        onClick={() => onSelectLine(l)}
+                      >
+                        {l}
+                      </button>
+                    </span>
+                  ))}{" "}
+                  —{" "}
                   {stat.headway
                     ? `a bus every ~${stat.headway} min`
                     : `${stat.dep} bus${stat.dep >= 2 ? "es" : ""}/night`}

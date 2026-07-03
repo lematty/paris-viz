@@ -34,18 +34,29 @@ export default function App() {
     routes: false,
   });
   const [target, setTarget] = useState<SearchResult | null>(null);
+  const [selectedLine, setSelectedLine] = useState<string | null>(null);
 
   const nearby = useMemo(
     () => (target ? nearestStops(data.stops, target.lat, target.lon) : []),
     [target],
   );
+  const selectedLineColor = selectedLine
+    ? (data.routes.find((r) => r.name === selectedLine)?.color ?? "#3F2A7E")
+    : null;
 
   const toggle = (key: keyof LayerToggles) =>
     setLayers((l) => ({ ...l, [key]: !l[key] }));
 
   return (
     <div className="app">
-      <NoctilienMap data={data} night={night} layers={layers} target={target} />
+      <NoctilienMap
+        data={data}
+        night={night}
+        layers={layers}
+        target={target}
+        selectedLine={selectedLine}
+        onSelectLine={setSelectedLine}
+      />
 
       <div className="panel">
         <h1>
@@ -82,12 +93,33 @@ export default function App() {
 
         <Legend />
 
+        {selectedLine && (
+          <div className="line-chip">
+            <span
+              className="line-badge"
+              style={{ background: selectedLineColor ?? undefined }}
+            >
+              {selectedLine}
+            </span>
+            <span>line highlighted</span>
+            <button
+              onClick={() => setSelectedLine(null)}
+              aria-label="Clear line highlight"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {target && (
           <NearestStops
             target={target}
             stops={nearby}
             night={night}
             onClear={() => setTarget(null)}
+            onSelectLine={(line) =>
+              setSelectedLine(line === selectedLine ? null : line)
+            }
           />
         )}
 

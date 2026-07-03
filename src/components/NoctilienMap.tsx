@@ -11,6 +11,8 @@ interface Props {
   night: NightType;
   layers: LayerToggles;
   target: SearchResult | null;
+  selectedLine: string | null;
+  onSelectLine: (line: string | null) => void;
 }
 
 // Perceptually-ordered "night glow" ramp (inferno-like): one ordered scale for
@@ -159,7 +161,7 @@ function popupHtml(stop: Stop, lineColors: Map<string, string>): string {
   const badges = stop.lines
     .map(
       (l) =>
-        `<span class="line-badge" style="background:${lineColors.get(l) ?? "#3F2A7E"}">${esc(l)}</span>`,
+        `<button class="line-badge" data-line="${esc(l)}" title="Highlight line ${esc(l)}" style="background:${lineColors.get(l) ?? "#3F2A7E"}">${esc(l)}</button>`,
     )
     .join("");
   const row = (label: string, s: Stop["week"]) =>
@@ -172,15 +174,28 @@ function popupHtml(stop: Stop, lineColors: Map<string, string>): string {
   );
 }
 
-export default function NoctilienMap({ data, night, layers, target }: Props) {
+export default function NoctilienMap({
+  data,
+  night,
+  layers,
+  target,
+  selectedLine,
+  onSelectLine,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerSetsRef = useRef<{
     week: { heat: L.ImageOverlay; stops: L.LayerGroup };
     weekend: { heat: L.ImageOverlay; stops: L.LayerGroup };
-    routes: L.LayerGroup;
+    routeLines: Map<string, L.Polyline[]>;
   } | null>(null);
   const targetRef = useRef<L.Marker | null>(null);
+  // Popup badge clicks are wired through Leaflet's popupopen event (the popup
+  // body is an HTML string, not React); the ref keeps the handler current.
+  const onSelectLineRef = useRef(onSelectLine);
+  onSelectLineRef.current = onSelectLine;
+  const selectedLineRef = useRef(selectedLine);
+  selectedLineRef.current = selectedLine;
 
   const lineColors = useMemo(
     () => new Map(data.routes.map((r) => [r.name, r.color])),
@@ -225,18 +240,37 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
     // <canvas> instead of hundreds of SVG nodes.
     const canvas = L.canvas({ padding: 0.5 });
 
-    const routes = L.layerGroup();
+    const routeLines = new Map<string, L.Polyline[]>();
     for (const r of data.routes) {
-      for (const path of r.paths) {
-        L.polyline(path, {
-          renderer: canvas,
-          color: r.color,
-          weight: 2,
-          opacity: 0.55,
-          interactive: false,
-        }).addTo(routes);
-      }
+      routeLines.set(
+        r.name,
+        r.paths.map((path) =>
+          L.polyline(path, {
+            renderer: canvas,
+            color: r.color,
+            weight: 2,
+            opacity: 0.55,
+            interactive: false,
+          }),
+        ),
+      );
     }
+
+    // Clicking a line badge inside a stop popup highlights that line
+    // (clicking the already-highlighted line clears it).
+    map.on("popupopen", (e) => {
+      e.popup
+        .getElement()
+        ?.querySelectorAll<HTMLElement>(".line-badge")
+        .forEach((el) => {
+          el.onclick = () => {
+            const line = el.dataset.line ?? null;
+            onSelectLineRef.current(
+              line === selectedLineRef.current ? null : line,
+            );
+          };
+        });
+    });
 
     const lut = buildHeatLut();
     const buildNight = (night: NightType) => {
@@ -262,7 +296,7 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
     const sets = {
       week: buildNight("week"),
       weekend: buildNight("weekend"),
-      routes,
+      routeLines,
     };
     map.on("zoomend", () => {
       const o = heatOpacity(map.getZoom());
@@ -279,7 +313,8 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
     };
   }, [data, capDep, lineColors]);
 
-  // Layer visibility: pure add/remove of the prebuilt layers.
+  // Layer visibility and line highlighting: pure add/remove and restyling of
+  // the prebuilt layers.
   useEffect(() => {
     const map = mapRef.current;
     const sets = layerSetsRef.current;
@@ -292,8 +327,32 @@ export default function NoctilienMap({ data, night, layers, target }: Props) {
       sync(sets[n].heat, layers.heat && night === n);
       sync(sets[n].stops, layers.stops && night === n);
     }
-    sync(sets.routes, layers.routes);
+    // A selected line is always shown, even with the Lines layer unchecked;
+    // with it checked, the other lines dim so the selection stands out.
+    for (const [name, lines] of sets.routeLines) {
+      const isSel = name === selectedLine;
+      for (const line of lines) {
+        line.setStyle({
+          weight: isSel ? 4.5 : 2,
+          opacity: selectedLine ? (isSel ? 0.95 : 0.12) : 0.55,
+        });
+        sync(line, layers.routes || isSel);
+        if (isSel) line.bringToFront();
+      }
+    }
   });
+
+  // Selecting a line frames it.
+  useEffect(() => {
+    const map = mapRef.current;
+    const sets = layerSetsRef.current;
+    if (!map || !sets || !selectedLine) return;
+    const lines = sets.routeLines.get(selectedLine);
+    if (!lines?.length) return;
+    const bounds = lines[0].getBounds();
+    for (const line of lines.slice(1)) bounds.extend(line.getBounds());
+    map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 14, duration: 0.8 });
+  }, [selectedLine]);
 
   // Search target: pin + fly.
   useEffect(() => {
