@@ -384,9 +384,9 @@ async function main() {
     pts.push([+get("shape_pt_lat"), +get("shape_pt_lon"), +get("shape_pt_sequence")]);
   });
 
-  // Douglas-Peucker in degree space; ~0.0002° ≈ 20 m keeps shapes accurate
+  // Douglas-Peucker in degree space; ~0.00005° ≈ 5 m keeps shapes accurate
   // at city zoom while cutting the JSON size drastically.
-  function simplify(pts: [number, number][], tol = 2e-4): [number, number][] {
+  function simplify(pts: [number, number][], tol = 5e-5): [number, number][] {
     if (pts.length < 3) return pts;
     const keep = new Uint8Array(pts.length);
     keep[0] = keep[pts.length - 1] = 1;
