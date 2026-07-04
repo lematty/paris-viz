@@ -24,9 +24,10 @@ served, which mean a long wait, and which have no night coverage at all.
 
 ## Stack
 
-Next.js (App Router, TypeScript) + Leaflet with `leaflet.heat`, CARTO dark
-basemap. No backend: all data is preprocessed into `src/data/noctilien.json`
-(~640 KB) and served statically.
+Next.js (App Router, TypeScript) + Leaflet on a CARTO dark basemap; the
+heatmap is precomputed into a Web-Mercator image overlay for smooth pan/zoom.
+No backend: all data is preprocessed into `public/noctilien.json` (~640 KB)
+and fetched by the client.
 
 ```bash
 pnpm install
@@ -49,13 +50,13 @@ CI runs the smoke suite on every push and pull request.
 
 The feed only covers ~30 days ahead. A GitHub Actions workflow
 (`.github/workflows/refresh-data.yml`) regenerates and commits
-`src/data/noctilien.json` on the 1st and 15th of each month (free on public
+`public/noctilien.json` on the 1st and 15th of each month (free on public
 repos), which triggers a Vercel redeploy. It can also be run manually from the
 Actions tab, or locally:
 
 ```bash
 rm -rf data/            # drop the cached feed
-pnpm build:data         # downloads ~150 MB, writes src/data/noctilien.json
+pnpm build:data         # downloads ~150 MB, writes public/noctilien.json
 ```
 
 The script (`scripts/build-data.ts`, requires the `unzip` CLI) filters the

@@ -20,7 +20,7 @@ import type { NoctilienData, Route, Stop } from "../src/lib/types.ts";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DATA_DIR = path.join(ROOT, "data");
 const ZIP_PATH = path.join(DATA_DIR, "IDFM-gtfs.zip");
-const OUT_PATH = path.join(ROOT, "src", "data", "noctilien.json");
+const OUT_PATH = path.join(ROOT, "public", "noctilien.json");
 const GTFS_URL = "https://eu.ftp.opendatasoft.com/stif/GTFS/IDFM-gtfs.zip";
 
 // Noctilien lines are named N01…N162 (two/three digits). Single-digit N1/N2

@@ -5,14 +5,22 @@ import type { NoctilienData } from "@/lib/types";
 import { nearestStops } from "@/lib/geo";
 import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/i18n";
 import { buildHash, parseHash, type MapView } from "@/lib/urlState";
-import rawData from "@/data/noctilien.json";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
 import NightToggle from "./NightToggle";
 import NearestStops from "./NearestStops";
 import Legend from "./Legend";
 
-const data = rawData as unknown as NoctilienData;
+// Fetched, not bundled: keeps ~640 KB out of the JS the browser must parse
+// before anything renders, and lets the data cache separately from code.
+// Kicked off at module load so it runs while React hydrates.
+const dataPromise: Promise<NoctilienData> | null =
+  typeof window === "undefined"
+    ? null
+    : fetch("/noctilien.json").then((r) => {
+        if (!r.ok) throw new Error(`noctilien.json: HTTP ${r.status}`);
+        return r.json();
+      });
 
 export type NightType = "week" | "weekend";
 
@@ -35,6 +43,8 @@ const initial = parseHash(
 );
 
 export default function App() {
+  const [data, setData] = useState<NoctilienData | null>(null);
+  const [dataError, setDataError] = useState(false);
   const [lang, setLang] = useState<Lang>(loadLang);
   const [night, setNight] = useState<NightType>(initial.night);
   const [layers, setLayers] = useState<LayerToggles>({
@@ -48,6 +58,10 @@ export default function App() {
 
   const t = STRINGS[lang];
 
+  useEffect(() => {
+    dataPromise?.then(setData).catch(() => setDataError(true));
+  }, []);
+
   // Keep the URL shareable: it always reflects the current situation.
   useEffect(() => {
     const hash = buildHash({ view, night, line: selectedLine, target });
@@ -55,11 +69,12 @@ export default function App() {
   }, [view, night, selectedLine, target]);
 
   const nearby = useMemo(
-    () => (target ? nearestStops(data.stops, target.lat, target.lon) : []),
-    [target],
+    () =>
+      data && target ? nearestStops(data.stops, target.lat, target.lon) : [],
+    [data, target],
   );
   const selectedLineColor = selectedLine
-    ? (data.routes.find((r) => r.name === selectedLine)?.color ?? "#3F2A7E")
+    ? (data?.routes.find((r) => r.name === selectedLine)?.color ?? "#3F2A7E")
     : null;
 
   const toggle = (key: keyof LayerToggles) =>
@@ -69,6 +84,19 @@ export default function App() {
     setLang(next);
     saveLang(next);
   };
+
+  if (!data) {
+    return (
+      <div className="app-loading">
+        <strong>Noctilien</strong>
+        <span>
+          {dataError
+            ? "Impossible de charger les données / failed to load data"
+            : "chargement de la carte… / loading map…"}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
