@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const TITLE = "Pulse - Paris station ridership through the day";
+const TITLE = "Relief - the ridership landscape of Paris";
 const DESCRIPTION =
-  "Every rail station of Île-de-France pulsing with its hourly ticket validations - watch the morning rush flow in and the evening rush flow out.";
+  "Île-de-France drawn as a living mountain range: every rail station is a peak rising and falling with its hourly ticket validations.";
 
 export const metadata: Metadata = {
   title: TITLE,

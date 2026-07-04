@@ -24,9 +24,9 @@ export const SITE: Record<
     fluxTitle: "Flux - the transit network in motion",
     fluxDesc:
       "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
-    pulseTitle: "Pulse - station ridership",
+    pulseTitle: "Relief - the ridership landscape",
     pulseDesc:
-      "The ridership skyline of Île-de-France: every station rises and falls with its hourly ticket validations, amber where the crowd is right now.",
+      "Île-de-France as a living mountain range: every station is a peak rising and falling with its hourly ticket validations, drawn as pure lines.",
     noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
@@ -42,9 +42,9 @@ export const SITE: Record<
     fluxTitle: "Flux - le réseau en mouvement",
     fluxDesc:
       "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
-    pulseTitle: "Pulse - l'affluence des gares",
+    pulseTitle: "Relief - le paysage de l'affluence",
     pulseDesc:
-      "La skyline de l'affluence francilienne : chaque gare monte et descend au rythme de ses validations horaires, en ambre là où la foule se trouve.",
+      "L'Île-de-France en chaîne de montagnes vivante : chaque gare est un pic qui monte et descend au rythme de ses validations horaires, en lignes pures.",
     noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
@@ -122,24 +122,23 @@ export interface PulseStrings {
 
 export const PULSE: Record<Lang, PulseStrings> = {
   en: {
-    title: "Pulse - station ridership through the day",
+    title: "Relief - the ridership landscape",
     loading: "loading ridership data…",
     subtitle: (n, start, end) =>
       `${n} rail stations · ticket validations ${start} → ${end}`,
     perHour: (n) => `≈ ${n} validations/h`,
     legend:
-      "Column height: validations per hour. Amber: busier than the network right now; blue: quieter. Watch the suburbs light up at 8am and the centre at 6pm.",
-    footer: "Validations: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
+      "Each line is a west-east slice of the region, north at the back. Every peak is a station rising with its validations per hour: a calm sea at 3am, mountain ranges along the RER lines at 8:30, La Défense towering alone at 6pm.",
+    footer: "Validations: Île-de-France Mobilités open data",
   },
   fr: {
-    title: "Pulse - l'affluence des gares heure par heure",
+    title: "Relief - le paysage de l'affluence",
     loading: "chargement des validations…",
     subtitle: (n, start, end) =>
       `${n} gares et stations · validations ${start} → ${end}`,
     perHour: (n) => `≈ ${n} validations/h`,
     legend:
-      "Hauteur : validations par heure. Ambre : plus fréquenté que le réseau à cet instant ; bleu : plus calme. Regardez la banlieue s'allumer à 8h et le centre à 18h.",
-    footer:
-      "Validations : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
+      "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
+    footer: "Validations : données ouvertes Île-de-France Mobilités",
   },
 };

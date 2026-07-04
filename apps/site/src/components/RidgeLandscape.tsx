@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Deck } from "@deck.gl/core";
-import { TileLayer, type GeoBoundingBox } from "@deck.gl/geo-layers";
-import { BitmapLayer, ColumnLayer } from "@deck.gl/layers";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX, PULSE } from "@/lib/siteStrings";
 import LangToggle from "./LangToggle";
@@ -31,6 +28,8 @@ interface PulseData {
 }
 
 const SPEEDS = [120, 300, 600, 1200];
+const ROWS = 70;
+const SAMPLES = 260;
 
 const fmtClock = (s: number) => {
   const h = Math.floor(s / 3600) % 24;
@@ -38,7 +37,6 @@ const fmtClock = (s: number) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-/** Hourly share (fraction of the day) at continuous time t, interpolated. */
 function shareAt(arr: number[], t: number): number {
   const h = (t / 3600) % 24;
   const h0 = Math.floor(h) % 24;
@@ -51,24 +49,6 @@ const tapsPerHour = (st: PulseStation, day: DayKey, t: number) => {
   const arr = st[DAY_FIELD[day]];
   return arr[0] * shareAt(arr, t);
 };
-
-// diverging color: blue (quieter than the network right now) → neutral →
-// amber (busier than the network right now)
-const COLD: [number, number, number] = [64, 130, 224];
-const MID: [number, number, number] = [110, 118, 134];
-const WARM: [number, number, number] = [249, 142, 9];
-
-function divergingColor(logRatio: number): [number, number, number, number] {
-  const t = Math.max(-1.5, Math.min(1.5, logRatio)) / 1.5; // -1..1
-  const [a, b] = t < 0 ? [MID, COLD] : [MID, WARM];
-  const f = Math.abs(t);
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * f),
-    Math.round(a[1] + (b[1] - a[1]) * f),
-    Math.round(a[2] + (b[2] - a[2]) * f),
-    210,
-  ];
-}
 
 function readParams() {
   const p =
@@ -84,11 +64,17 @@ function readParams() {
 }
 const params = readParams();
 
-export default function PulseMap() {
-  const containerRef = useRef<HTMLDivElement>(null);
+/** Station projected into ridge space: fractional row + sample column. */
+interface Placed {
+  st: PulseStation;
+  row: number;
+  col: number;
+}
+
+export default function RidgeLandscape() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const clockRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  const playheadRef = useRef<SVGLineElement>(null);
   const [data, setData] = useState<PulseData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(!params.paused);
@@ -108,28 +94,8 @@ export default function PulseMap() {
   dayRef.current = day;
   const langRef = useRef(lang);
   langRef.current = lang;
-  const dataRef = useRef(data);
-  dataRef.current = data;
   const timeRef = useRef(params.time);
-
-  // network-wide hourly curve for the selected day type: taps/hour totals
-  // (drives both the sparkline and the "busier than the network" coloring)
-  const network = useMemo(() => {
-    if (!data) return null;
-    const field = DAY_FIELD[day];
-    const curve = new Array<number>(24).fill(0);
-    let total = 0;
-    for (const st of data.stations) {
-      const arr = st[field];
-      total += arr[0];
-      for (let h = 0; h < 24; h++) curve[h] += (arr[0] * arr[1 + h]) / 1000;
-    }
-    // share arr shaped like a station's: [total, ...per-mille]
-    const share = [total, ...curve.map((v) => (total ? (v / total) * 1000 : 0))];
-    return { curve, max: Math.max(...curve), share };
-  }, [data, day]);
-  const networkRef = useRef(network);
-  networkRef.current = network;
+  const mouseRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     fetch("/pulse.json")
@@ -141,62 +107,55 @@ export default function PulseMap() {
       .catch((e: Error) => setError(e.message));
   }, []);
 
+  // Stations projected onto the ridge grid. The window is the dense core of
+  // the network (5th–95th percentile of station coordinates, padded) so the
+  // landscape fills the screen instead of being dominated by empty far edges.
+  const placed = useMemo(() => {
+    if (!data) return null;
+    const lats = data.stations.map((s) => s.lat).sort((a, b) => a - b);
+    const lons = data.stations.map((s) => s.lon).sort((a, b) => a - b);
+    const q = (arr: number[], f: number) => arr[Math.floor(arr.length * f)];
+    const latPad = 0.06;
+    const lonPad = 0.1;
+    const minLat = q(lats, 0.04) - latPad;
+    const maxLat = q(lats, 0.96) + latPad;
+    const minLon = q(lons, 0.04) - lonPad;
+    const maxLon = q(lons, 0.96) + lonPad;
+    const list: Placed[] = [];
+    let maxTaps = 0;
+    for (const st of data.stations) {
+      const row = ((maxLat - st.lat) / (maxLat - minLat)) * (ROWS - 1);
+      const col = ((st.lon - minLon) / (maxLon - minLon)) * (SAMPLES - 1);
+      if (row < -2 || row > ROWS + 1 || col < -4 || col > SAMPLES + 3) continue;
+      list.push({ st, row, col });
+      for (const f of ["w", "s", "u"] as const) {
+        const arr = st[f];
+        for (let h = 0; h < 24; h++) {
+          maxTaps = Math.max(maxTaps, (arr[0] * arr[1 + h]) / 1000);
+        }
+      }
+    }
+    return { list, maxTaps, minLat, maxLat, minLon, maxLon };
+  }, [data]);
+  const placedRef = useRef(placed);
+  placedRef.current = placed;
+
   useEffect(() => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
     let raf = 0;
-    const basemap = new TileLayer({
-      id: "basemap",
-      data: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      ],
-      maxZoom: 19,
-      tileSize: 256,
-      renderSubLayers: (props) => {
-        const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
-        return new BitmapLayer(props, {
-          data: undefined,
-          image: props.data,
-          bounds: [west, south, east, north],
-        });
-      },
-    });
-
-    const deck = new Deck({
-      parent: containerRef.current!,
-      initialViewState: {
-        longitude: 2.35,
-        latitude: 48.8,
-        zoom: 10.3,
-        pitch: 52,
-        bearing: -12,
-        minZoom: 8,
-        maxZoom: 15,
-      },
-      controller: true,
-      pickingRadius: 8,
-      getTooltip: ({ object }) => {
-        if (!object) return null;
-        const st = object as PulseStation;
-        const v = tapsPerHour(st, dayRef.current, timeRef.current);
-        const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
-        return {
-          text: `${st.n}\n${PULSE[langRef.current].perHour(Math.round(v).toLocaleString(locale))}`,
-          style: {
-            background: "#101828",
-            color: "#e6e8ee",
-            fontSize: "12px",
-            borderRadius: "6px",
-            padding: "4px 8px",
-          },
-        };
-      },
-      layers: [basemap],
-    });
-
     let last = performance.now();
-    let appliedTime = -1;
-    let appliedSig = "";
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(canvas.clientWidth * dpr);
+      canvas.height = Math.round(canvas.clientHeight * dpr);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const heights = new Float32Array(ROWS * SAMPLES);
+
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = (now - last) / 1000;
@@ -208,44 +167,104 @@ export default function PulseMap() {
       if (clockRef.current) clockRef.current.textContent = fmtClock(t);
       if (sliderRef.current && document.activeElement !== sliderRef.current)
         sliderRef.current.value = String(Math.round(t));
-      if (playheadRef.current) {
-        const x = (t / 86400) * 240;
-        playheadRef.current.setAttribute("x1", String(x));
-        playheadRef.current.setAttribute("x2", String(x));
-      }
-      const sig = `${dayRef.current}|${dataRef.current ? 1 : 0}`;
-      if (t === appliedTime && sig === appliedSig) return;
-      appliedTime = t;
-      appliedSig = sig;
-      const net = networkRef.current;
-      if (!dataRef.current || !net) return;
+
+      const p = placedRef.current;
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.fillStyle = "#06080d";
+      ctx.fillRect(0, 0, W, H);
+      if (!p) return;
+
       const day = dayRef.current;
-      const netShare = shareAt(net.share, t);
-      deck.setProps({
-        layers: [
-          basemap,
-          new ColumnLayer({
-            id: "pulse-columns",
-            data: dataRef.current.stations,
-            diskResolution: 8,
-            extruded: true,
-            getPosition: (d: PulseStation) => [d.lon, d.lat],
-            // footprint hints at overall size; height is the live signal
-            getRadius: (d: PulseStation) => 50 + Math.sqrt(d.w[0]) * 0.35,
-            getElevation: (d: PulseStation) => {
-              const v = tapsPerHour(d, day, t);
-              return v > 0 ? 40 + v * 0.28 : 0;
-            },
-            getFillColor: (d: PulseStation) => {
-              if (netShare < 0.002) return [...MID, 200] as [number, number, number, number];
-              const own = shareAt(d[DAY_FIELD[day]], t);
-              return divergingColor(Math.log2(own / netShare || 1));
-            },
-            pickable: true,
-            updateTriggers: { getElevation: t, getFillColor: t },
-          }),
-        ],
-      });
+      const top = H * 0.1;
+      const spacing = (H * 0.8) / ROWS;
+      const amp = spacing * 7; // tallest peak spans ~7 rows
+      const xStep = W / (SAMPLES - 1);
+
+      // accumulate the landscape: each station is a small gaussian bump
+      // spread over neighbouring rows and columns
+      heights.fill(0);
+      const norm = 1 / Math.sqrt(p.maxTaps || 1);
+      for (const { st, row, col } of p.list) {
+        const v = tapsPerHour(st, day, t);
+        if (v <= 0) continue;
+        const a = Math.sqrt(v) * norm * amp;
+        const r0 = Math.max(0, Math.ceil(row - 1.6));
+        const r1 = Math.min(ROWS - 1, Math.floor(row + 1.6));
+        const c0 = Math.max(0, Math.ceil(col - 7));
+        const c1 = Math.min(SAMPLES - 1, Math.floor(col + 7));
+        for (let r = r0; r <= r1; r++) {
+          const wr = Math.exp(-((r - row) * (r - row)) / 1.1);
+          const base = r * SAMPLES;
+          for (let c = c0; c <= c1; c++) {
+            const wc = Math.exp(-((c - col) * (c - col)) / 9);
+            heights[base + c] += a * wr * wc;
+          }
+        }
+      }
+
+      // draw back (north) to front (south); filled areas occlude what's behind
+      ctx.lineWidth = Math.max(1, W / 1600);
+      for (let r = 0; r < ROWS; r++) {
+        const baseY = top + r * spacing;
+        ctx.beginPath();
+        ctx.moveTo(0, baseY - heights[r * SAMPLES]);
+        for (let c = 1; c < SAMPLES; c++) {
+          ctx.lineTo(c * xStep, baseY - heights[r * SAMPLES + c]);
+        }
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fillStyle = "#06080d";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(230, 232, 238, 0.85)";
+        ctx.beginPath();
+        ctx.moveTo(0, baseY - heights[r * SAMPLES]);
+        for (let c = 1; c < SAMPLES; c++) {
+          ctx.lineTo(c * xStep, baseY - heights[r * SAMPLES + c]);
+        }
+        ctx.stroke();
+      }
+
+      // hover: name the tallest station near the cursor
+      const m = mouseRef.current;
+      if (m) {
+        const dpr = canvas.width / canvas.clientWidth;
+        const mx = m.x * dpr;
+        const my = m.y * dpr;
+        let best: Placed | null = null;
+        let bestD = Infinity;
+        for (const pl of p.list) {
+          const sx = pl.col * xStep;
+          const sy = top + pl.row * spacing;
+          const d = Math.hypot(sx - mx, sy - my);
+          if (d < bestD) {
+            bestD = d;
+            best = pl;
+          }
+        }
+        if (best && bestD < 40 * dpr) {
+          const v = Math.round(tapsPerHour(best.st, day, t));
+          const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
+          const label = `${best.st.n} · ${PULSE[langRef.current].perHour(v.toLocaleString(locale))}`;
+          const sx = best.col * xStep;
+          const sy = top + best.row * spacing;
+          ctx.font = `${13 * dpr}px system-ui, sans-serif`;
+          const w = ctx.measureText(label).width + 16 * dpr;
+          const bx = Math.min(Math.max(sx - w / 2, 8), W - w - 8);
+          const by = Math.max(sy - 46 * dpr, 8);
+          ctx.fillStyle = "rgba(16, 24, 40, 0.92)";
+          ctx.beginPath();
+          ctx.roundRect(bx, by, w, 26 * dpr, 6 * dpr);
+          ctx.fill();
+          ctx.fillStyle = "#e6e8ee";
+          ctx.fillText(label, bx + 8 * dpr, by + 18 * dpr);
+          ctx.fillStyle = "#f98e09";
+          ctx.beginPath();
+          ctx.arc(sx, sy, 3 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     };
     raf = requestAnimationFrame(tick);
     (window as unknown as Record<string, unknown>).__pulse = {
@@ -255,33 +274,25 @@ export default function PulseMap() {
     };
     return () => {
       cancelAnimationFrame(raf);
-      deck.finalize();
+      window.removeEventListener("resize", resize);
     };
   }, []);
 
   const locale = lang === "fr" ? "fr-FR" : "en-GB";
 
-  // area path for the 24h curve sparkline (viewBox 240×48)
-  const curvePath = useMemo(() => {
-    if (!network) return "";
-    const pts = network.curve.map((v, h) => {
-      const x = ((h + 0.5) / 24) * 240;
-      const y = 46 - (v / (network.max || 1)) * 42;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    return `M0,46 L${pts.join(" L")} L240,46 Z`;
-  }, [network]);
-
-  const seek = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (e.buttons === 0 && e.type !== "pointerdown") return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    timeRef.current = f * 86400;
-  };
-
   return (
     <div className="flow">
-      <div ref={containerRef} className="flow-canvas" />
+      <canvas
+        ref={canvasRef}
+        className="ridge-canvas"
+        onPointerMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }}
+        onPointerLeave={() => {
+          mouseRef.current = null;
+        }}
+      />
       <div className={`flow-panel${sheetOpen ? "" : " collapsed"}`}>
         <div className="flow-topbar">
           <a className="home-link" href="/">
@@ -337,26 +348,6 @@ export default function PulseMap() {
             ))}
           </select>
         </div>
-        {network && (
-          <svg
-            className="pulse-curve"
-            viewBox="0 0 240 48"
-            preserveAspectRatio="none"
-            onPointerDown={seek}
-            onPointerMove={seek}
-          >
-            <path d={curvePath} fill="rgba(249, 142, 9, 0.25)" stroke="#f98e09" strokeWidth="1" />
-            <line
-              ref={playheadRef}
-              x1="0"
-              x2="0"
-              y1="0"
-              y2="48"
-              stroke="#9fd8ff"
-              strokeWidth="1.5"
-            />
-          </svg>
-        )}
         <input
           ref={sliderRef}
           className="flow-slider"
