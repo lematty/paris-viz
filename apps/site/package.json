@@ -9,7 +9,7 @@
     "build:flow": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-flow-data.ts",
     "build:noctilien": "tsx scripts/build-noctilien-data.ts",
     "test": "playwright test",
-    "build:pulse": "tsx scripts/build-pulse-data.ts"
+    "build:air": "tsx scripts/build-air-data.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",
@@ -28,6 +28,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "tsx": "^4.23.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "xlsx": "^0.18.5"
   }
 }

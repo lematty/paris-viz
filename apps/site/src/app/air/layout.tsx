@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const TITLE = "Relief - the ridership landscape of Paris";
+const TITLE = "Respire - a year of Paris air, hour by hour";
 const DESCRIPTION =
-  "Île-de-France drawn as a living mountain range: every rail station is a peak rising and falling with its hourly ticket validations.";
+  "Hourly air quality breathing over the Paris region map: winter smog episodes, clean windy days, and the 2020 lockdown clearing the sky.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PulseLayout({
+export default function AirLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return children;

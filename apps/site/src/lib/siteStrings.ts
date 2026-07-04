@@ -24,9 +24,9 @@ export const SITE: Record<
     fluxTitle: "Flux - the transit network in motion",
     fluxDesc:
       "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
-    pulseTitle: "Relief - the ridership landscape",
+    pulseTitle: "Respire - the air you breathe",
     pulseDesc:
-      "Île-de-France as a living mountain range: every station is a peak rising and falling with its hourly ticket validations, drawn as pure lines.",
+      "Seven years of hourly air quality breathing over the map: winter smog, clean windy days, and the 2020 lockdown clearing the sky in a week.",
     noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
@@ -42,9 +42,9 @@ export const SITE: Record<
     fluxTitle: "Flux - le réseau en mouvement",
     fluxDesc:
       "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
-    pulseTitle: "Relief - le paysage de l'affluence",
+    pulseTitle: "Respire - l'air que vous respirez",
     pulseDesc:
-      "L'Île-de-France en chaîne de montagnes vivante : chaque gare est un pic qui monte et descend au rythme de ses validations horaires, en lignes pures.",
+      "Sept ans de qualité de l'air horaire qui respirent sur la carte : smog d'hiver, journées de vent, et le confinement 2020 qui purifie le ciel en une semaine.",
     noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
@@ -140,5 +140,47 @@ export const PULSE: Record<Lang, PulseStrings> = {
     legend:
       "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
     footer: "Validations : données ouvertes Île-de-France Mobilités",
+  },
+};
+
+export interface AirStrings {
+  title: string;
+  loading: string;
+  subtitle: (n: string) => string;
+  legend: string;
+  lockdown: string;
+  yearAria: string;
+  traffic: string;
+  background: string;
+  noData: string;
+  footer: string;
+}
+
+export const AIR: Record<Lang, AirStrings> = {
+  en: {
+    title: "Respire - a year of Paris air, hour by hour",
+    loading: "loading measurements…",
+    subtitle: (n) => `${n} Airparif monitoring stations, hourly measurements`,
+    legend:
+      "The veil interpolates between stations and fades where none are close. Traffic stations run hotter than the neighbourhoods around them; winter evenings glow, windy days wash the map clean.",
+    lockdown: "✦ Watch the 2020 lockdown clear the sky",
+    yearAria: "Year",
+    traffic: "traffic station",
+    background: "background station",
+    noData: "no data at this hour",
+    footer: "Measurements: Airparif open data · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Respire - une année d'air parisien, heure par heure",
+    loading: "chargement des mesures…",
+    subtitle: (n) => `${n} stations Airparif, mesures horaires`,
+    legend:
+      "Le voile interpole entre les stations et s'estompe loin d'elles. Les stations trafic chauffent plus que leurs quartiers ; les soirs d'hiver rougeoient, les jours de vent lavent la carte.",
+    lockdown: "✦ Voir le confinement 2020 purifier le ciel",
+    yearAria: "Année",
+    traffic: "station trafic",
+    background: "station de fond",
+    noData: "pas de donnée à cette heure",
+    footer: "Mesures : données ouvertes Airparif · Fond de carte © OpenStreetMap © CARTO",
   },
 };

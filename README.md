@@ -34,13 +34,15 @@ positions (~4 m grid) and 2-second time steps, one chunk per start hour -
 12 MB for the whole day, of which the page only ever holds a 3-hour sliding
 window (~1.5 MB).
 
-### `/pulse` - station ridership through the day
+### `/air` - a year of Paris air, hour by hour
 
-Every rail station of Île-de-France pulsing with its hourly ticket
-validations (721 stations): watch the morning rush flow in and the evening
-rush flow out, weekday vs Saturday vs Sunday. Sources: IDFM open data -
-daily validation counts + hourly profiles per day type, joined with station
-locations. Data: `public/pulse.json` - 200 KB (`pnpm build:pulse`).
+Hourly air quality (NO2 and PM2.5) from 44 Airparif monitoring stations,
+2019-2025, breathing over the map as an interpolated veil that fades away
+from the stations. Year and pollutant selectors, a scrubbable yearly curve,
+and a one-click story: watch the March 2020 lockdown clear the sky. Sources:
+Airparif hourly station CSVs + the national LCSQA station referential.
+Data: `public/air/` - meta + one ~350 KB binary per pollutant-year
+(`pnpm build:air`).
 
 ### `/noctilien` - night-bus frequency
 

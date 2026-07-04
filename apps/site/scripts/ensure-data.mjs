@@ -23,7 +23,7 @@ const needed = [
     `flow/${day}/bus.json`,
   ]),
   "noctilien.json",
-  "pulse.json",
+  "air/meta.json",
 ];
 const missing = needed.filter((f) => !existsSync(path.join(pub, f)));
 
@@ -35,5 +35,5 @@ if (missing.length === 0) {
   );
   execSync("pnpm run build:flow", { stdio: "inherit", cwd: site });
   execSync("pnpm run build:noctilien", { stdio: "inherit", cwd: site });
-  execSync("pnpm run build:pulse", { stdio: "inherit", cwd: site });
+  execSync("pnpm run build:air", { stdio: "inherit", cwd: site });
 }
