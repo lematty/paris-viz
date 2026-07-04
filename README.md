@@ -16,10 +16,10 @@ into small static files under `apps/site/public/`, and rendered client-side.
 
 | Route | What | Data |
 |---|---|---|
-| `/flux` | Every Métro 1 train moving on the map over a scheduled day (deck.gl TripsLayer, GPU-interpolated). Play/pause, speed, time slider. | `public/flow/metro1.{bin,json}` — 243 KB binary of timestamped waypoints |
+| `/flux` | The ~22,000 daily trains of the Île-de-France rail network (métro, RER/Transilien, tram) moving on the map over a scheduled day — deck.gl TripsLayer, official line colors, real track geometry from shapes.txt. Play/pause, speed, time slider, per-mode toggles. URL params: `?modes=metro,tram&t=30600&paused=1&speed=120`. | `public/flow/{metro,rail,tram}.{bin,json}` — 16 MB of timestamped waypoints total, lazy-loaded per mode |
 
-Planned: all métro/RER/tram lines on `/flux`; Noctilien night-bus frequency
-map (currently a [standalone project](https://github.com/lematty/noctilien)).
+Planned: buses as a fourth (heavy) mode; Noctilien night-bus frequency map
+(currently a [standalone project](https://github.com/lematty/noctilien)).
 
 ## Develop
 

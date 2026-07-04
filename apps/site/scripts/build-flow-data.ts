@@ -1,12 +1,17 @@
 /**
- * Builds the animated flow-map data: every trip of the selected line(s) on
- * one service day, as timestamped waypoints ready for deck.gl's TripsLayer.
+ * Builds the animated flow-map data: every scheduled trip of the Île-de-France
+ * rail network on one service day, as timestamped waypoints for deck.gl's
+ * TripsLayer, split by mode so the page can lazy-load each.
  *
- * Output (apps/site/public/flow/):
- *   <key>.bin   Float32Array: per trip, count × [lon, lat, tSeconds]
- *   <key>.json  meta: trip waypoint counts + display info
+ * Output per mode (apps/site/public/flow/<mode>.{bin,json}):
+ *   .bin   Float32Array: per trip, count × [lon, lat, tSeconds]
+ *   .json  { name, date, minT, maxT, lines: [{name, color}],
+ *            counts: number[], lineIdx: number[] }   (parallel per-trip arrays)
  *
- * Vertical slice: Métro line 1. Adding lines/modes = adding entries to LINES.
+ * Paths follow the real track geometry from shapes.txt: stops are projected
+ * onto the trip's shape, intermediate shape points get timestamps
+ * interpolated by distance along the track, and each inter-stop run is
+ * Douglas-Peucker-simplified (~11 m) to keep the files small.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -14,9 +19,11 @@ import { fileURLToPath } from "node:url";
 import {
   downloadGtfs,
   fmtDate,
+  haversineMeters,
   loadServiceDates,
   parseGtfsDate,
   parseGtfsTime,
+  simplifyPath,
   streamZipCsv,
 } from "@paris-viz/gtfs";
 
@@ -24,45 +31,63 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 const ZIP_PATH = path.join(ROOT, "data", "IDFM-gtfs.zip");
 const OUT_DIR = path.resolve(ROOT, "apps", "site", "public", "flow");
 
-const LINES = [{ key: "metro1", routeId: "IDFM:C01371", name: "Métro 1" }];
+// GTFS route_type → mode file
+const MODES: Record<string, { key: string; name: string }> = {
+  "0": { key: "tram", name: "Tramway" },
+  "1": { key: "metro", name: "Métro" },
+  "2": { key: "rail", name: "RER & Transilien" },
+};
 
 // A representative weekday inside the feed window (a Monday).
 const SERVICE_DATE = "20260706";
+const SIMPLIFY_TOL = 1e-4; // ≈11 m
 
 async function main() {
   await downloadGtfs(ZIP_PATH);
-  const wantedRoutes = new Map(LINES.map((l) => [l.routeId, l]));
 
-  const routeColors = new Map<string, string>();
+  interface RouteInfo {
+    mode: string;
+    name: string;
+    color: string;
+  }
+  const routes = new Map<string, RouteInfo>();
   await streamZipCsv(ZIP_PATH, "routes.txt", (get) => {
-    if (wantedRoutes.has(get("route_id")))
-      routeColors.set(get("route_id"), `#${get("route_color") || "888888"}`);
+    const mode = MODES[get("route_type")];
+    if (!mode) return;
+    routes.set(get("route_id"), {
+      mode: mode.key,
+      name: get("route_short_name") || get("route_long_name"),
+      color: `#${get("route_color") || "888888"}`,
+    });
   });
 
   interface Trip {
     routeId: string;
     serviceId: string;
+    shapeId: string;
   }
   const trips = new Map<string, Trip>();
   const serviceIds = new Set<string>();
   await streamZipCsv(ZIP_PATH, "trips.txt", (get) => {
     const routeId = get("route_id");
-    if (!wantedRoutes.has(routeId)) return;
-    trips.set(get("trip_id"), { routeId, serviceId: get("service_id") });
+    if (!routes.has(routeId)) return;
+    trips.set(get("trip_id"), {
+      routeId,
+      serviceId: get("service_id"),
+      shapeId: get("shape_id"),
+    });
     serviceIds.add(get("service_id"));
   });
 
   const serviceDates = await loadServiceDates(ZIP_PATH, serviceIds);
   const dayTs = parseGtfsDate(SERVICE_DATE);
-  const activeTrips = new Set(
-    [...trips].filter(([, t]) => serviceDates.get(t.serviceId)?.has(dayTs)).map(([id]) => id),
+  const activeTrips = new Map(
+    [...trips].filter(([, t]) => serviceDates.get(t.serviceId)?.has(dayTs)),
   );
-  console.log(
-    `${fmtDate(dayTs)}: ${activeTrips.size} active trips (of ${trips.size} total)`,
-  );
+  console.log(`${fmtDate(dayTs)}: ${activeTrips.size} active rail trips`);
 
-  // stop_times → waypoints per trip (stop positions resolved afterwards)
-  const tripStops = new Map<string, [number, string][]>(); // trip → [t, stopId] (ordered later)
+  // --- stop_times for active trips ------------------------------------------
+  const tripStops = new Map<string, [number, string][]>();
   const stopIds = new Set<string>();
   await streamZipCsv(ZIP_PATH, "stop_times.txt", (get) => {
     const tripId = get("trip_id");
@@ -75,50 +100,158 @@ async function main() {
     stopIds.add(get("stop_id"));
   });
 
-  const stopPos = new Map<string, [number, number]>();
+  const stopPos = new Map<string, [number, number]>(); // [lon, lat]
   await streamZipCsv(ZIP_PATH, "stops.txt", (get) => {
     const id = get("stop_id");
     if (stopIds.has(id)) stopPos.set(id, [+get("stop_lon"), +get("stop_lat")]);
   });
 
+  // --- shapes for active trips ----------------------------------------------
+  const wantedShapes = new Set(
+    [...activeTrips.values()].map((t) => t.shapeId).filter(Boolean),
+  );
+  const shapeRaw = new Map<string, [number, number, number][]>(); // lon,lat,seq
+  await streamZipCsv(ZIP_PATH, "shapes.txt", (get) => {
+    const id = get("shape_id");
+    if (!wantedShapes.has(id)) return;
+    let pts = shapeRaw.get(id);
+    if (!pts) shapeRaw.set(id, (pts = []));
+    pts.push([+get("shape_pt_lon"), +get("shape_pt_lat"), +get("shape_pt_sequence")]);
+  });
+  // per shape: ordered points + cumulative distance (m)
+  const shapes = new Map<
+    string,
+    { pts: [number, number][]; cum: number[] }
+  >();
+  for (const [id, raw] of shapeRaw) {
+    raw.sort((a, b) => a[2] - b[2]);
+    const pts = raw.map(([lon, lat]) => [lon, lat] as [number, number]);
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) {
+      cum.push(
+        cum[i - 1] +
+          haversineMeters(pts[i - 1][1], pts[i - 1][0], pts[i][1], pts[i][0]),
+      );
+    }
+    shapes.set(id, { pts, cum });
+  }
+  console.log(`Shapes: ${shapes.size} used by active trips`);
+
+  /** Waypoints for one trip following its shape; falls back to stop-to-stop
+   * straight lines when there is no usable shape. */
+  function tripWaypoints(
+    stopsArr: [number, string][],
+    shapeId: string,
+  ): [number, number, number][] {
+    const straight = () =>
+      stopsArr
+        .filter(([, sid]) => stopPos.has(sid))
+        .map(([t, sid]) => {
+          const [lon, lat] = stopPos.get(sid)!;
+          return [lon, lat, t] as [number, number, number];
+        });
+    const shape = shapes.get(shapeId);
+    if (!shape || shape.pts.length < 2) return straight();
+    const { pts, cum } = shape;
+
+    // project each stop onto the shape, monotonically advancing
+    const proj: [number, number][] = []; // [shapeIndex, tSeconds]
+    let from = 0;
+    for (const [t, sid] of stopsArr) {
+      const pos = stopPos.get(sid);
+      if (!pos) continue;
+      let best = from;
+      let bestD = Infinity;
+      // bounded look-ahead keeps this O(n) overall and monotonic
+      for (let i = from; i < Math.min(pts.length, from + 400); i++) {
+        const d = Math.hypot(pts[i][0] - pos[0], pts[i][1] - pos[1]);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      // a stop >≈500 m from the shape means the projection went wrong
+      if (bestD > 0.006) return straight();
+      proj.push([best, t]);
+      from = best;
+    }
+    if (proj.length < 2) return straight();
+
+    const out: [number, number, number][] = [];
+    for (let s = 0; s < proj.length - 1; s++) {
+      const [i0, t0] = proj[s];
+      const [i1, t1] = proj[s + 1];
+      if (i1 <= i0) continue;
+      // simplify the inter-stop run in [lat, lon] space, then time by distance
+      const seg = simplifyPath(
+        pts.slice(i0, i1 + 1).map(([lon, lat]) => [lat, lon] as [number, number]),
+        SIMPLIFY_TOL,
+      );
+      const span = cum[i1] - cum[i0] || 1;
+      // walk seg against original indices to recover cumulative distances
+      let k = i0;
+      for (let j = 0; j < seg.length; j++) {
+        if (s > 0 && j === 0) continue; // stop point already emitted
+        while (k < i1 && (pts[k][1] !== seg[j][0] || pts[k][0] !== seg[j][1])) k++;
+        const f = (cum[k] - cum[i0]) / span;
+        out.push([seg[j][1], seg[j][0], t0 + f * (t1 - t0)]);
+      }
+    }
+    return out.length >= 2 ? out : straight();
+  }
+
+  // --- emit per mode ----------------------------------------------------------
   mkdirSync(OUT_DIR, { recursive: true });
-  for (const line of LINES) {
-    const lineTrips = [...tripStops.entries()].filter(
-      ([id]) => trips.get(id)!.routeId === line.routeId,
-    );
+  for (const { key, name } of Object.values(MODES)) {
+    const lineIndex = new Map<string, number>(); // route name → idx
+    const lines: { name: string; color: string }[] = [];
     const counts: number[] = [];
+    const lineIdx: number[] = [];
     const floats: number[] = [];
     let minT = Infinity;
     let maxT = -Infinity;
-    for (const [, stopsArr] of lineTrips) {
+
+    for (const [tripId, trip] of activeTrips) {
+      const route = routes.get(trip.routeId)!;
+      if (route.mode !== key) continue;
+      const stopsArr = tripStops.get(tripId);
+      if (!stopsArr || stopsArr.length < 2) continue;
       stopsArr.sort((a, b) => a[0] - b[0]);
-      const pts = stopsArr.filter(([, sid]) => stopPos.has(sid));
-      if (pts.length < 2) continue;
-      counts.push(pts.length);
-      for (const [t, sid] of pts) {
-        const [lon, lat] = stopPos.get(sid)!;
+      const wps = tripWaypoints(stopsArr, trip.shapeId);
+      if (wps.length < 2) continue;
+      let idx = lineIndex.get(route.name);
+      if (idx === undefined) {
+        idx = lines.length;
+        lineIndex.set(route.name, idx);
+        lines.push({ name: route.name, color: route.color });
+      }
+      counts.push(wps.length);
+      lineIdx.push(idx);
+      for (const [lon, lat, t] of wps) {
         floats.push(lon, lat, t);
         if (t < minT) minT = t;
         if (t > maxT) maxT = t;
       }
     }
+
     const bin = new Float32Array(floats);
-    writeFileSync(path.join(OUT_DIR, `${line.key}.bin`), Buffer.from(bin.buffer));
-    const meta = {
-      name: line.name,
-      color: routeColors.get(line.routeId) ?? "#888888",
-      date: fmtDate(dayTs),
-      trips: counts.length,
-      minT,
-      maxT,
-      counts,
-    };
-    writeFileSync(path.join(OUT_DIR, `${line.key}.json`), JSON.stringify(meta));
-    const fmtT = (s: number) =>
-      `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+    writeFileSync(path.join(OUT_DIR, `${key}.bin`), Buffer.from(bin.buffer));
+    writeFileSync(
+      path.join(OUT_DIR, `${key}.json`),
+      JSON.stringify({
+        name,
+        date: fmtDate(dayTs),
+        minT,
+        maxT,
+        lines,
+        counts,
+        lineIdx,
+      }),
+    );
     console.log(
-      `${line.name}: ${counts.length} trips, ${floats.length / 3} waypoints, ` +
-        `service ${fmtT(minT)}→${fmtT(maxT)}, ${Math.round(bin.byteLength / 1024)} KB`,
+      `${name.padEnd(18)} ${String(counts.length).padStart(6)} trips  ` +
+        `${String(floats.length / 3).padStart(8)} wp  ` +
+        `${lines.length} lines  ${Math.round(bin.byteLength / 1024)} KB`,
     );
   }
 }

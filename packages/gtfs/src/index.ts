@@ -137,6 +137,65 @@ export async function loadServiceDates(
 }
 
 // ---------------------------------------------------------------------------
+// Geometry
+// ---------------------------------------------------------------------------
+
+const EARTH_R = 6_371_000;
+
+export function haversineMeters(
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number,
+): number {
+  const rad = Math.PI / 180;
+  const dLat = (bLat - aLat) * rad;
+  const dLon = (bLon - aLon) * rad;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_R * Math.asin(Math.sqrt(s));
+}
+
+/** Douglas-Peucker in degree space ([lat, lon] pairs); tol in degrees
+ * (~1e-4 ≈ 11 m). Endpoints are always kept. */
+export function simplifyPath(
+  pts: [number, number][],
+  tol: number,
+): [number, number][] {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = keep[pts.length - 1] = 1;
+  const stack: [number, number][] = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    let maxD = 0;
+    let maxI = a;
+    const [ax, ay] = pts[a];
+    const [bx, by] = pts[b];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy || 1e-12;
+    for (let i = a + 1; i < b; i++) {
+      const t = Math.max(
+        0,
+        Math.min(1, ((pts[i][0] - ax) * dx + (pts[i][1] - ay) * dy) / len2),
+      );
+      const d = Math.hypot(pts[i][0] - (ax + t * dx), pts[i][1] - (ay + t * dy));
+      if (d > maxD) {
+        maxD = d;
+        maxI = i;
+      }
+    }
+    if (maxD > tol) {
+      keep[maxI] = 1;
+      stack.push([a, maxI], [maxI, b]);
+    }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+
+// ---------------------------------------------------------------------------
 // Download
 // ---------------------------------------------------------------------------
 

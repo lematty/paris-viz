@@ -10,10 +10,11 @@ export default function Home() {
       </p>
       <div className="cards">
         <Link className="card" href="/flux">
-          <h2>Flux — le métro en mouvement</h2>
+          <h2>Flux — le réseau ferré en mouvement</h2>
           <p>
-            Chaque rame de la ligne 1 se déplace sur la carte au fil d&apos;une
-            journée, d&apos;après les horaires réels.
+            Les 21 000 trajets quotidiens du métro, du RER et du tramway se
+            déplacent sur la carte au fil d&apos;une journée, d&apos;après les
+            horaires réels.
           </p>
         </Link>
         <a className="card" href="https://github.com/lematty/noctilien">
