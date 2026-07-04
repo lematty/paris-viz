@@ -14,12 +14,35 @@ into small static files under `apps/site/public/`, and rendered client-side.
 
 ## Visualizations
 
-| Route | What | Data |
-|---|---|---|
-| `/flux` | The ~22,000 daily trains of the Île-de-France rail network (métro, RER/Transilien, tram) moving on the map over a scheduled day — deck.gl TripsLayer, official line colors, real track geometry from shapes.txt. Play/pause, speed, time slider, per-mode toggles, click a line chip to solo it. URL params: `?modes=metro,tram&t=30600&paused=1&speed=120`. | `public/flow/{metro,rail,tram}.{bin,json}` — 16 MB of timestamped waypoints total, lazy-loaded per mode |
-| `/noctilien` | Heatmap of Noctilien night-bus frequency (~00:30–05:30): departures per night around every stop, weeknight vs Fri–Sat toggle, address search with nearest stops, line highlighting. Migrated from the [standalone repo](https://github.com/lematty/noctilien) with full git history. | `public/noctilien.json` — 641 KB (`pnpm build:noctilien`) |
+### `/flux` — the transit network in motion
 
-Planned: buses as a fourth (heavy) mode on `/flux`.
+![Every métro and tram of Île-de-France moving at 08:45](apps/site/public/og.png)
+
+Every scheduled trip of the Île-de-France network moving on the map over one
+service day: ~20,000 métro / RER / Transilien / tram trips as glowing comets
+(deck.gl TripsLayer, official line colors, real track geometry from
+shapes.txt), plus **90,000 bus trips** as an opt-in fourth mode. Play/pause,
+speed, time slider, hover a train for its line, click a line chip to solo it.
+URL params: `?modes=metro,tram,bus&t=30600&paused=1&speed=120`.
+
+![90,000 daily buses at morning rush](docs/flux-buses.png)
+
+Data: `public/flow/{metro,rail,tram}.{bin,json}` — float32 timestamped
+waypoints, lazy-loaded per mode (~15 MB total). Buses use a tighter format
+(`bus.json` + `bus-<hour>.bin`): straight stop-to-stop paths, uint16-quantized
+positions (~4 m grid) and 2-second time steps, one chunk per start hour —
+12 MB for the whole day, of which the page only ever holds a 3-hour sliding
+window (~1.5 MB).
+
+### `/noctilien` — night-bus frequency
+
+![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)
+
+Heatmap of Noctilien night-bus service (~00:30–05:30): departures per night
+around every stop, weeknight vs Fri–Sat toggle, address search with nearest
+stops and walking times, line highlighting. Migrated from the
+[standalone repo](https://github.com/lematty/noctilien) with its full git
+history. Data: `public/noctilien.json` — 641 KB (`pnpm build:noctilien`).
 
 ## Develop
 

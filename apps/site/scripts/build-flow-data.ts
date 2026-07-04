@@ -32,12 +32,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 const ZIP_PATH = path.join(ROOT, "data", "IDFM-gtfs.zip");
 const OUT_DIR = path.resolve(ROOT, "apps", "site", "public", "flow");
 
-// GTFS route_type → mode file
+// GTFS route_type → mode file. Rail modes ship full-day float32 files with
+// shape-following paths; buses (10× the trips) ship straight stop-to-stop
+// paths, uint16-quantized, in one binary chunk per start hour.
 const MODES: Record<string, { key: string; name: string }> = {
   "0": { key: "tram", name: "Tramway" },
   "1": { key: "metro", name: "Métro" },
   "2": { key: "rail", name: "RER & Transilien" },
 };
+const BUS_ROUTE_TYPE = "3";
 
 // A representative weekday: the next Monday at least 3 days out, so a fresh
 // feed always covers it. FLOW_DATE=YYYYMMDD overrides (e.g. for reproducing
@@ -60,10 +63,11 @@ async function main() {
   }
   const routes = new Map<string, RouteInfo>();
   await streamZipCsv(ZIP_PATH, "routes.txt", (get) => {
-    const mode = MODES[get("route_type")];
-    if (!mode) return;
+    const type = get("route_type");
+    const mode = MODES[type];
+    if (!mode && type !== BUS_ROUTE_TYPE) return;
     routes.set(get("route_id"), {
-      mode: mode.key,
+      mode: mode?.key ?? "bus",
       name: get("route_short_name") || get("route_long_name"),
       color: `#${get("route_color") || "888888"}`,
     });
@@ -92,7 +96,13 @@ async function main() {
   const activeTrips = new Map(
     [...trips].filter(([, t]) => serviceDates.get(t.serviceId)?.has(dayTs)),
   );
-  console.log(`${fmtDate(dayTs)}: ${activeTrips.size} active rail trips`);
+  let busCount = 0;
+  for (const t of activeTrips.values())
+    if (routes.get(t.routeId)!.mode === "bus") busCount++;
+  console.log(
+    `${fmtDate(dayTs)}: ${activeTrips.size} active trips ` +
+      `(${activeTrips.size - busCount} rail, ${busCount} bus)`,
+  );
   if (activeTrips.size === 0) {
     throw new Error(
       `No active trips on ${fmtDate(dayTs)} — date outside the feed window?`,
@@ -119,9 +129,12 @@ async function main() {
     if (stopIds.has(id)) stopPos.set(id, [+get("stop_lon"), +get("stop_lat")]);
   });
 
-  // --- shapes for active trips ----------------------------------------------
+  // --- shapes for active RAIL trips (buses draw stop-to-stop) ----------------
   const wantedShapes = new Set(
-    [...activeTrips.values()].map((t) => t.shapeId).filter(Boolean),
+    [...activeTrips.values()]
+      .filter((t) => routes.get(t.routeId)!.mode !== "bus")
+      .map((t) => t.shapeId)
+      .filter(Boolean),
   );
   const shapeRaw = new Map<string, [number, number, number][]>(); // lon,lat,seq
   await streamZipCsv(ZIP_PATH, "shapes.txt", (get) => {
@@ -279,6 +292,108 @@ async function main() {
         `${String(floats.length / 3).padStart(8)} wp  ` +
         `${lines.length} lines  ${stations.length} stations  ` +
         `${Math.round(bin.byteLength / 1024)} KB`,
+    );
+  }
+
+  // --- Bus: quantized hourly chunks -------------------------------------------
+  // ~10× the rail trip count, so a different diet: straight stop-to-stop
+  // paths, uint16 grid positions (~4 m over the IDF bbox), uint16 2-second
+  // time steps, one chunk per start hour so the page holds a sliding window.
+  {
+    const T0 = 3 * 3600; // quantized time origin (03:00)
+    const lineIndex = new Map<string, number>();
+    const lines: { name: string; color: string }[] = [];
+    interface BusTrip {
+      lineIdx: number;
+      wps: [number, number, number][];
+      hour: number;
+    }
+    const busTrips: BusTrip[] = [];
+    let minLon = 180,
+      maxLon = -180,
+      minLat = 90,
+      maxLat = -90;
+    for (const [tripId, trip] of activeTrips) {
+      const route = routes.get(trip.routeId)!;
+      if (route.mode !== "bus") continue;
+      const stopsArr = tripStops.get(tripId);
+      if (!stopsArr || stopsArr.length < 2) continue;
+      stopsArr.sort((a, b) => a[0] - b[0]);
+      const wps: [number, number, number][] = [];
+      for (const [t, sid] of stopsArr) {
+        const pos = stopPos.get(sid);
+        if (pos) wps.push([pos[0], pos[1], t]);
+      }
+      if (wps.length < 2) continue;
+      for (const [lon, lat] of wps) {
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+      let idx = lineIndex.get(route.name);
+      if (idx === undefined) {
+        idx = lines.length;
+        lineIndex.set(route.name, idx);
+        lines.push({ name: route.name, color: route.color });
+      }
+      const hour = Math.max(3, Math.min(27, Math.floor(wps[0][2] / 3600)));
+      busTrips.push({ lineIdx: idx, wps, hour });
+    }
+
+    const chunks = new Map<number, BusTrip[]>();
+    for (const bt of busTrips) {
+      let list = chunks.get(bt.hour);
+      if (!list) chunks.set(bt.hour, (list = []));
+      list.push(bt);
+    }
+    const qLon = (lon: number) =>
+      Math.round(((lon - minLon) / (maxLon - minLon)) * 65535);
+    const qLat = (lat: number) =>
+      Math.round(((lat - minLat) / (maxLat - minLat)) * 65535);
+    const qT = (t: number) =>
+      Math.max(0, Math.min(65535, Math.round((t - T0) / 2)));
+
+    let totalBytes = 0;
+    let totalWp = 0;
+    const hours = [...chunks.keys()].sort((a, b) => a - b);
+    for (const h of hours) {
+      const list = chunks.get(h)!;
+      const wpCount = list.reduce((s, bt) => s + bt.wps.length, 0);
+      // layout: u32 tripCount | per trip (u16 wpCount, u16 lineIdx) | 3×u16 per wp
+      const buf = Buffer.alloc(4 + list.length * 4 + wpCount * 6);
+      let o = 0;
+      o = buf.writeUInt32LE(list.length, o);
+      for (const bt of list) {
+        o = buf.writeUInt16LE(bt.wps.length, o);
+        o = buf.writeUInt16LE(bt.lineIdx, o);
+      }
+      for (const bt of list) {
+        for (const [lon, lat, t] of bt.wps) {
+          o = buf.writeUInt16LE(qLon(lon), o);
+          o = buf.writeUInt16LE(qLat(lat), o);
+          o = buf.writeUInt16LE(qT(t), o);
+        }
+      }
+      writeFileSync(path.join(OUT_DIR, `bus-${h}.bin`), buf);
+      totalBytes += buf.byteLength;
+      totalWp += wpCount;
+    }
+    writeFileSync(
+      path.join(OUT_DIR, "bus.json"),
+      JSON.stringify({
+        name: "Bus",
+        date: fmtDate(dayTs),
+        lines,
+        bbox: [minLon, minLat, maxLon, maxLat],
+        t0: T0,
+        hours,
+      }),
+    );
+    console.log(
+      `Bus                ${String(busTrips.length).padStart(6)} trips  ` +
+        `${String(totalWp).padStart(8)} wp  ${lines.length} lines  ` +
+        `${hours.length} hourly chunks  ${Math.round(totalBytes / 1024)} KB total`,
     );
   }
 }

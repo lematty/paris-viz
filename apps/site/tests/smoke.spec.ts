@@ -83,6 +83,25 @@ test("clicking a line chip solos it, clicking again restores", async ({
   expect(errors).toEqual([]);
 });
 
+test("bus mode loads meta and the hourly chunks around the clock", async ({
+  page,
+}) => {
+  const errors = await setup(page);
+  const chunkResponse = page.waitForResponse(
+    (r) => r.url().includes("/flow/bus-") && r.status() === 200,
+    { timeout: 60_000 },
+  );
+  await page.goto("/flux?modes=bus&paused=1&t=30600");
+  await expect(page.locator('.flow-mode:has-text("Bus") input')).toBeChecked();
+  await chunkResponse; // at least one hourly chunk fetched
+  // loading indicator eventually clears
+  await page.waitForFunction(
+    () => !document.querySelector(".mode-loading"),
+    { timeout: 120_000 },
+  );
+  expect(errors).toEqual([]);
+});
+
 test("pressing play advances the clock", async ({ page }) => {
   const errors = await setup(page);
   await page.goto(FLUX_URL);

@@ -45,7 +45,7 @@ export interface FluxStrings {
   speed: string;
   time: string;
   footer: string;
-  modes: { metro: string; rail: string; tram: string };
+  modes: { metro: string; rail: string; tram: string; bus: string };
 }
 
 export const FLUX: Record<Lang, FluxStrings> = {
@@ -59,7 +59,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
     speed: "Speed",
     time: "Time",
     footer: "Timetables: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
-    modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tram" },
+    modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tram", bus: "Bus" },
   },
   fr: {
     title: "Flux — le réseau ferré en direct différé",
@@ -72,6 +72,11 @@ export const FLUX: Record<Lang, FluxStrings> = {
     time: "Heure",
     footer:
       "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
-    modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tramway" },
+    modes: {
+      metro: "Métro",
+      rail: "RER & Transilien",
+      tram: "Tramway",
+      bus: "Bus",
+    },
   },
 };
