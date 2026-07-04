@@ -26,7 +26,7 @@ export const SITE: Record<
       "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
     pulseTitle: "Pulse - station ridership",
     pulseDesc:
-      "Every rail station pulsing with its hourly ticket validations - watch the morning rush flow in and the evening rush flow out.",
+      "The ridership skyline of Île-de-France: every station rises and falls with its hourly ticket validations, amber where the crowd is right now.",
     noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
@@ -44,7 +44,7 @@ export const SITE: Record<
       "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
     pulseTitle: "Pulse - l'affluence des gares",
     pulseDesc:
-      "Chaque gare et station pulse au rythme de ses validations horaires - regardez la pointe du matin affluer et celle du soir refluer.",
+      "La skyline de l'affluence francilienne : chaque gare monte et descend au rythme de ses validations horaires, en ambre là où la foule se trouve.",
     noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
@@ -116,6 +116,7 @@ export interface PulseStrings {
   loading: string;
   subtitle: (n: string, start: string, end: string) => string;
   perHour: (n: string) => string;
+  legend: string;
   footer: string;
 }
 
@@ -126,6 +127,8 @@ export const PULSE: Record<Lang, PulseStrings> = {
     subtitle: (n, start, end) =>
       `${n} rail stations · ticket validations ${start} → ${end}`,
     perHour: (n) => `≈ ${n} validations/h`,
+    legend:
+      "Column height: validations per hour. Amber: busier than the network right now; blue: quieter. Watch the suburbs light up at 8am and the centre at 6pm.",
     footer: "Validations: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
@@ -134,6 +137,8 @@ export const PULSE: Record<Lang, PulseStrings> = {
     subtitle: (n, start, end) =>
       `${n} gares et stations · validations ${start} → ${end}`,
     perHour: (n) => `≈ ${n} validations/h`,
+    legend:
+      "Hauteur : validations par heure. Ambre : plus fréquenté que le réseau à cet instant ; bleu : plus calme. Regardez la banlieue s'allumer à 8h et le centre à 18h.",
     footer:
       "Validations : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
   },

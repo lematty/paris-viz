@@ -786,3 +786,19 @@ a {
     padding: 10px 0;
   }
 }
+
+.pulse-curve {
+  display: block;
+  width: 100%;
+  height: 48px;
+  margin-bottom: 4px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.pulse-legend {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}

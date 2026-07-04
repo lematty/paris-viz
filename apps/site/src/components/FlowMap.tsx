@@ -441,21 +441,14 @@ export default function FlowMap() {
             currentTime: t,
             shadowEnabled: false,
           };
+          // single slim layer: the original, calmer look
           return [
             new TripsLayer({
               ...common,
-              id: `tail-${key}`,
-              widthMinPixels: 2.5,
-              opacity: 0.45,
-              trailLength: 150,
-            }),
-            new TripsLayer({
-              ...common,
-              id: `head-${key}`,
-              widthMinPixels: 4,
-              opacity: 0.85,
-              trailLength: 25,
-              // hovering a train head shows its line
+              id: `trips-${key}`,
+              widthMinPixels: 3,
+              trailLength: 120,
+              // hovering a train shows its line
               pickable: true,
             }),
           ];
