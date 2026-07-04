@@ -1,0 +1,41 @@
+name: Refresh Noctilien data
+
+# The IDFM GTFS feed only covers ~30 days of schedules, so the committed
+# JSON goes stale. Twice a month gives margin if one run fails; the push
+# triggers a Vercel redeploy.
+on:
+  schedule:
+    - cron: "0 4 1,15 * *" # 04:00 UTC on the 1st and 15th
+  workflow_dispatch: # manual run from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build:data
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/noctilien.json
+          if git diff --cached --quiet; then
+            echo "Data unchanged, nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore: refresh Noctilien data"
+          git push
