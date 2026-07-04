@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Strings } from "@/lib/i18n";
+import type { Strings } from "@/lib/noctilien/i18n";
 import type { SearchResult } from "./App";
 
 interface AddressFeature {

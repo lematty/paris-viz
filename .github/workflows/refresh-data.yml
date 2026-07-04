@@ -1,7 +1,7 @@
-name: Refresh Noctilien data
+name: Refresh data
 
 # The IDFM GTFS feed only covers ~30 days of schedules, so the committed
-# JSON goes stale. Twice a month gives margin if one run fails; the push
+# artifacts go stale. Twice a month gives margin if one run fails; the push
 # triggers a Vercel redeploy.
 on:
   schedule:
@@ -26,16 +26,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm build:data
+      - run: pnpm build:noctilien # downloads the GTFS zip (shared with next step)
+
+      - run: pnpm build:flow
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/noctilien.json
+          git add apps/site/public/noctilien.json apps/site/public/flow/
           if git diff --cached --quiet; then
             echo "Data unchanged, nothing to commit"
             exit 0
           fi
-          git commit -m "chore: refresh Noctilien data"
+          git commit -m "chore: refresh IDFM data"
           git push

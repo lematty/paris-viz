@@ -1,6 +1,6 @@
 "use client";
 
-import type { Strings } from "@/lib/i18n";
+import type { Strings } from "@/lib/noctilien/i18n";
 import type { NightType } from "./App";
 
 export default function NightToggle({

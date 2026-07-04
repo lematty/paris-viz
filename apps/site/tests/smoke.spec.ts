@@ -48,7 +48,7 @@ test("flux loads tram data, pinned time shows on the clock", async ({
   await expect(page.locator(".flow-clock")).toHaveText("08:30");
   // meta arrived: trip count in the subtitle, line chips rendered
   await expect(page.locator(".sub")).toContainText("trajets");
-  expect(await page.locator(".line-chip").count()).toBeGreaterThan(10);
+  expect(await page.locator(".line-pill").count()).toBeGreaterThan(10);
   // URL params respected: only Tramway checked
   await expect(
     page.locator('.flow-mode:has-text("Tramway") input'),
@@ -64,7 +64,7 @@ test("mode checkbox hides its line chips", async ({ page }) => {
   await page.goto(FLUX_URL);
   await dataReady(page);
   await page.locator('.flow-mode:has-text("Tramway") input').uncheck();
-  await expect(page.locator(".line-chip")).toHaveCount(0);
+  await expect(page.locator(".line-pill")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -74,12 +74,12 @@ test("clicking a line chip solos it, clicking again restores", async ({
   const errors = await setup(page);
   await page.goto(FLUX_URL);
   await dataReady(page);
-  const chip = page.locator('.line-chip:has-text("T1")').first();
+  const chip = page.locator('.line-pill:has-text("T1")').first();
   await chip.click();
   await expect(chip).toHaveClass(/solo/);
-  expect(await page.locator(".line-chip.dimmed").count()).toBeGreaterThan(5);
+  expect(await page.locator(".line-pill.dimmed").count()).toBeGreaterThan(5);
   await chip.click();
-  await expect(page.locator(".line-chip.dimmed")).toHaveCount(0);
+  await expect(page.locator(".line-pill.dimmed")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

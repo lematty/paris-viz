@@ -268,15 +268,15 @@ export default function FlowMap() {
             new TripsLayer({
               ...common,
               id: `tail-${key}`,
-              widthMinPixels: 2,
-              opacity: 0.3,
+              widthMinPixels: 2.5,
+              opacity: 0.45,
               trailLength: 150,
             }),
             new TripsLayer({
               ...common,
               id: `head-${key}`,
-              widthMinPixels: 5,
-              opacity: 0.9,
+              widthMinPixels: 4,
+              opacity: 0.85,
               trailLength: 25,
             }),
           ];
@@ -311,6 +311,9 @@ export default function FlowMap() {
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
       <div className="flow-panel">
+        <a className="home-link" href="/">
+          ← Paris Viz
+        </a>
         <h1>Flux — le réseau ferré en direct différé</h1>
         <p className="sub">
           {error
@@ -371,14 +374,14 @@ export default function FlowMap() {
                 )}
               </label>
               {enabled[key] && loaded[key] && (
-                <div className="line-chips">
+                <div className="line-pills">
                   {loaded[key]!.meta.lines.map((l) => {
                     const isSolo =
                       solo?.mode === key && solo.line === l.name;
                     return (
                       <button
                         key={l.name}
-                        className={`line-chip${isSolo ? " solo" : ""}${solo && !isSolo ? " dimmed" : ""}`}
+                        className={`line-pill${isSolo ? " solo" : ""}${solo && !isSolo ? " dimmed" : ""}`}
                         style={{ background: l.color }}
                         title={
                           isSolo

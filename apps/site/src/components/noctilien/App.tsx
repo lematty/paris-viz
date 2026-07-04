@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { NoctilienData } from "@/lib/types";
-import { nearestStops } from "@/lib/geo";
-import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/i18n";
-import { buildHash, parseHash, type MapView } from "@/lib/urlState";
+import type { NoctilienData } from "@/lib/noctilien/types";
+import { nearestStops } from "@/lib/noctilien/geo";
+import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/noctilien/i18n";
+import { buildHash, parseHash, type MapView } from "@/lib/noctilien/urlState";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
 import NightToggle from "./NightToggle";
@@ -114,6 +114,9 @@ export default function App() {
       />
 
       <div className="panel">
+        <a className="home-link" href="/">
+          ← Paris Viz
+        </a>
         <div className="panel-title-row">
           <h1>
             Noctilien <span className="panel-sub">{t.subtitle}</span>

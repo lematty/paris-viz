@@ -17,6 +17,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DAY_MS,
   downloadGtfs,
   fmtDate,
   haversineMeters,
@@ -38,8 +39,15 @@ const MODES: Record<string, { key: string; name: string }> = {
   "2": { key: "rail", name: "RER & Transilien" },
 };
 
-// A representative weekday inside the feed window (a Monday).
-const SERVICE_DATE = "20260706";
+// A representative weekday: the next Monday at least 3 days out, so a fresh
+// feed always covers it. FLOW_DATE=YYYYMMDD overrides (e.g. for reproducing
+// an old build).
+function defaultServiceDate(): string {
+  const d = new Date(Date.now() + 3 * DAY_MS);
+  while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10).replace(/-/g, "");
+}
+const SERVICE_DATE = process.env.FLOW_DATE ?? defaultServiceDate();
 const SIMPLIFY_TOL = 1e-4; // ≈11 m
 
 async function main() {
@@ -85,6 +93,11 @@ async function main() {
     [...trips].filter(([, t]) => serviceDates.get(t.serviceId)?.has(dayTs)),
   );
   console.log(`${fmtDate(dayTs)}: ${activeTrips.size} active rail trips`);
+  if (activeTrips.size === 0) {
+    throw new Error(
+      `No active trips on ${fmtDate(dayTs)} — date outside the feed window?`,
+    );
+  }
 
   // --- stop_times for active trips ------------------------------------------
   const tripStops = new Map<string, [number, string][]>();

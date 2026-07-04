@@ -1,6 +1,6 @@
 "use client";
 
-import type { Strings } from "@/lib/i18n";
+import type { Strings } from "@/lib/noctilien/i18n";
 
 // Must mirror HEAT_GRADIENT in NoctilienMap.tsx.
 const RAMP =

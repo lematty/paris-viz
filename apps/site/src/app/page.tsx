@@ -17,13 +17,13 @@ export default function Home() {
             horaires réels.
           </p>
         </Link>
-        <a className="card" href="https://github.com/lematty/noctilien">
+        <Link className="card" href="/noctilien">
           <h2>Noctilien — bus de nuit</h2>
           <p>
             Carte de chaleur de la fréquence des bus de nuit : quels quartiers
             sont desservis après minuit, et lesquels ne le sont pas.
           </p>
-        </a>
+        </Link>
       </div>
     </main>
   );

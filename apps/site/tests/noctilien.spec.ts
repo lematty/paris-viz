@@ -1,13 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Hermetic smoke test: all external services (CARTO basemap tiles, the BAN
- * geocoder) are mocked so the suite only exercises our own code and fails
- * only for our own regressions.
+ * Smoke tests for the /noctilien frequency map, migrated from the standalone
+ * repo. External services (CARTO tiles, BAN geocoder) are mocked.
  */
 
 const TILE_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "iVBORw0KGgoAAAABAAAAAQCAYAAAAf8/9hAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
 );
 
@@ -39,15 +38,14 @@ async function setup(page: Page): Promise<string[]> {
 
 test("renders the map with heatmap, stops and French UI", async ({ page }) => {
   const errors = await setup(page);
-  await page.goto("/");
+  await page.goto("/noctilien");
   await expect(page.locator("h1")).toContainText("Noctilien");
   await expect(page.locator(".panel-sub")).toHaveText(
     "fréquence des bus de nuit",
   );
   await expect(page.locator(".leaflet-container")).toBeVisible();
-  // stops render on a canvas; the heat overlay is an <img> in its own pane
   await expect(page.locator(".leaflet-overlay-pane canvas")).toBeVisible();
-  await expect(page.locator(".leaflet-pane.leaflet-heat-pane img, .leaflet-image-layer").first()).toBeVisible();
+  await expect(page.locator(".leaflet-image-layer").first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -55,7 +53,7 @@ test("address search flies to the result and lists nearest stops", async ({
   page,
 }) => {
   const errors = await setup(page);
-  await page.goto("/");
+  await page.goto("/noctilien");
   await page.fill('input[type="search"]', "10 rue de rivoli paris");
   await page.click(".search-results li");
   await expect(page.locator(".target-pin")).toBeVisible();
@@ -68,7 +66,7 @@ test("night toggle switches to weekend and updates the URL", async ({
   page,
 }) => {
   const errors = await setup(page);
-  await page.goto("/");
+  await page.goto("/noctilien");
   const weekend = page.getByRole("radio", { name: "Nuits ven–sam" });
   await weekend.click();
   await expect(weekend).toHaveAttribute("aria-checked", "true");
@@ -80,15 +78,13 @@ test("line highlight from the panel and shareable URL round-trip", async ({
   page,
 }) => {
   const errors = await setup(page);
-  await page.goto("/");
+  await page.goto("/noctilien");
   await page.fill('input[type="search"]', "10 rue de rivoli paris");
   await page.click(".search-results li");
   await page.locator(".nearest .line-link").first().click();
   await expect(page.locator(".line-chip")).toBeVisible();
   await expect(page).toHaveURL(/line=N\d+/);
 
-  // a pasted link must restore the same situation (reload re-parses the hash
-  // from scratch, same as opening the link fresh)
   await page.reload();
   await expect(page.locator(".line-chip")).toBeVisible();
   await expect(page.locator(".nearest li").first()).toBeVisible();
@@ -97,7 +93,7 @@ test("line highlight from the panel and shareable URL round-trip", async ({
 
 test("language toggle switches to English and persists", async ({ page }) => {
   const errors = await setup(page);
-  await page.goto("/");
+  await page.goto("/noctilien");
   await page.getByRole("radio", { name: "EN", exact: true }).click();
   await expect(page.locator(".panel-sub")).toHaveText("night-bus frequency");
   await page.reload();

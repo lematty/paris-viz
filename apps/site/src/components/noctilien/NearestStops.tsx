@@ -1,7 +1,7 @@
 "use client";
 
-import type { StopWithDistance } from "@/lib/geo";
-import type { Strings } from "@/lib/i18n";
+import type { StopWithDistance } from "@/lib/noctilien/geo";
+import type { Strings } from "@/lib/noctilien/i18n";
 import type { NightType, SearchResult } from "./App";
 
 const WALK_M_PER_MIN = 80;

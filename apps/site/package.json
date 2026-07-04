@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "build:flow": "tsx scripts/build-flow-data.ts",
+    "build:noctilien": "tsx scripts/build-noctilien-data.ts",
     "test": "playwright test"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",
     "@deck.gl/geo-layers": "^9.3.6",
     "@deck.gl/layers": "^9.3.6",
+    "leaflet": "^1.9.4",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@paris-viz/gtfs": "workspace:*",
     "@playwright/test": "^1.61.1",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

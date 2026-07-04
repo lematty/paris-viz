@@ -6,6 +6,7 @@
     "dev": "pnpm --filter site dev",
     "build": "pnpm --filter site build",
     "build:flow": "pnpm --filter site build:flow",
+    "build:noctilien": "pnpm --filter site build:noctilien",
     "test": "pnpm --filter site test"
   }
 }

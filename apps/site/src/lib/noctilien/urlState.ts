@@ -1,4 +1,4 @@
-import type { NightType, SearchResult } from "@/components/App";
+import type { NightType, SearchResult } from "@/components/noctilien/App";
 
 export interface MapView {
   zoom: number;

@@ -16,19 +16,23 @@ into small static files under `apps/site/public/`, and rendered client-side.
 
 | Route | What | Data |
 |---|---|---|
-| `/flux` | The ~22,000 daily trains of the Île-de-France rail network (métro, RER/Transilien, tram) moving on the map over a scheduled day — deck.gl TripsLayer, official line colors, real track geometry from shapes.txt. Play/pause, speed, time slider, per-mode toggles. URL params: `?modes=metro,tram&t=30600&paused=1&speed=120`. | `public/flow/{metro,rail,tram}.{bin,json}` — 16 MB of timestamped waypoints total, lazy-loaded per mode |
+| `/flux` | The ~22,000 daily trains of the Île-de-France rail network (métro, RER/Transilien, tram) moving on the map over a scheduled day — deck.gl TripsLayer, official line colors, real track geometry from shapes.txt. Play/pause, speed, time slider, per-mode toggles, click a line chip to solo it. URL params: `?modes=metro,tram&t=30600&paused=1&speed=120`. | `public/flow/{metro,rail,tram}.{bin,json}` — 16 MB of timestamped waypoints total, lazy-loaded per mode |
+| `/noctilien` | Heatmap of Noctilien night-bus frequency (~00:30–05:30): departures per night around every stop, weeknight vs Fri–Sat toggle, address search with nearest stops, line highlighting. Migrated from the [standalone repo](https://github.com/lematty/noctilien) with full git history. | `public/noctilien.json` — 641 KB (`pnpm build:noctilien`) |
 
-Planned: buses as a fourth (heavy) mode; Noctilien night-bus frequency map
-(currently a [standalone project](https://github.com/lematty/noctilien)).
+Planned: buses as a fourth (heavy) mode on `/flux`.
 
 ## Develop
 
 ```bash
 pnpm install
-pnpm build:flow   # regenerate flow data (downloads the IDFM GTFS on first run)
-pnpm dev          # http://localhost:3000
-pnpm test         # Playwright smoke suite (basemap mocked, software-WebGL safe)
+pnpm build:flow        # regenerate flow data (downloads the IDFM GTFS on first run)
+pnpm build:noctilien   # regenerate the Noctilien frequency data
+pnpm dev               # http://localhost:3000
+pnpm test              # Playwright smoke suites (external services mocked)
 ```
+
+A scheduled workflow (`.github/workflows/refresh-data.yml`) regenerates both
+datasets on the 1st and 15th of each month — the feed only covers ~30 days.
 
 CI runs the smoke suite on every push and pull request. Tests pin `/flux` to
 the smallest mode, paused, and assert on DOM state only — CI runners have no

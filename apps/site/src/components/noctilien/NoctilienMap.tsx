@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { NoctilienData, Stop } from "@/lib/types";
-import { STRINGS, type Lang, type Strings } from "@/lib/i18n";
-import type { MapView } from "@/lib/urlState";
+import type { NoctilienData, Stop } from "@/lib/noctilien/types";
+import { STRINGS, type Lang, type Strings } from "@/lib/noctilien/i18n";
+import type { MapView } from "@/lib/noctilien/urlState";
 import type { LayerToggles, NightType, SearchResult } from "./App";
 
 interface Props {
