@@ -1,0 +1,166 @@
+:root {
+  --bg: #0d1117;
+  --panel: rgba(17, 22, 33, 0.92);
+  --panel-border: #2a3244;
+  --text: #e6e8ee;
+  --text-dim: #9aa3b5;
+  --accent: #9fd8ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* ---------- landing gallery ---------- */
+
+.home {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 20px;
+}
+
+.home h1 {
+  font-size: 28px;
+  margin: 0 0 6px;
+}
+
+.home-sub {
+  color: var(--text-dim);
+  margin: 0 0 32px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  display: block;
+  padding: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+/* ---------- flow map ---------- */
+
+.flow,
+.flow-canvas {
+  position: fixed;
+  inset: 0;
+}
+
+.flow-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  width: min(320px, calc(100vw - 24px));
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.flow-panel h1 {
+  margin: 0 0 2px;
+  font-size: 17px;
+}
+
+.flow-panel .sub {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin: 0 0 12px;
+}
+
+.flow-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.flow-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.flow-controls button {
+  width: 38px;
+  height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0d1320;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.flow-controls select {
+  height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0d1320;
+  color: var(--text);
+  padding: 0 6px;
+}
+
+.flow-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.flow-footer {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.85;
+}
+
+.flow-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+}

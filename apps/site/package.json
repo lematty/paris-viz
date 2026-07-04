@@ -1,0 +1,27 @@
+{
+  "name": "site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build:flow": "tsx scripts/build-flow-data.ts"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^9.3.6",
+    "@deck.gl/geo-layers": "^9.3.6",
+    "@deck.gl/layers": "^9.3.6",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@paris-viz/gtfs": "workspace:*",
+    "@types/node": "^26.1.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3"
+  }
+}
