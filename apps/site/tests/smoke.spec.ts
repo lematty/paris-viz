@@ -88,7 +88,7 @@ test("bus mode loads meta and the hourly chunks around the clock", async ({
 }) => {
   const errors = await setup(page);
   const chunkResponse = page.waitForResponse(
-    (r) => r.url().includes("/flow/bus-") && r.status() === 200,
+    (r) => r.url().includes("bus-") && r.status() === 200,
     { timeout: 60_000 },
   );
   await page.goto("/flux?modes=bus&paused=1&t=30600");
@@ -99,6 +99,23 @@ test("bus mode loads meta and the hourly chunks around the clock", async ({
     () => !document.querySelector(".mode-loading"),
     { timeout: 120_000 },
   );
+  expect(errors).toEqual([]);
+});
+
+test("day-type selector reloads data for the chosen day", async ({ page }) => {
+  const errors = await setup(page);
+  await page.goto(FLUX_URL);
+  await dataReady(page);
+  const weekdaySub = await page.locator(".sub").textContent();
+  const sundayData = page.waitForResponse(
+    (r) => r.url().includes("/flow/sunday/tram.json") && r.status() === 200,
+    { timeout: 60_000 },
+  );
+  await page.getByRole("radio", { name: "Sunday" }).click();
+  await sundayData;
+  await dataReady(page);
+  // a different service date (and trip count) shows in the subtitle
+  await expect(page.locator(".sub")).not.toHaveText(weekdaySub!);
   expect(errors).toEqual([]);
 });
 

@@ -46,6 +46,8 @@ export interface FluxStrings {
   time: string;
   footer: string;
   sheetToggle: string;
+  dayAria: string;
+  days: { weekday: string; saturday: string; sunday: string };
   modes: { metro: string; rail: string; tram: string; bus: string };
 }
 
@@ -61,6 +63,8 @@ export const FLUX: Record<Lang, FluxStrings> = {
     time: "Time",
     footer: "Timetables: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
     sheetToggle: "Expand or collapse the panel",
+    dayAria: "Day type",
+    days: { weekday: "Weekday", saturday: "Saturday", sunday: "Sunday" },
     modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tram", bus: "Bus" },
   },
   fr: {
@@ -75,6 +79,8 @@ export const FLUX: Record<Lang, FluxStrings> = {
     footer:
       "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
     sheetToggle: "Déplier ou replier le panneau",
+    dayAria: "Type de jour",
+    days: { weekday: "Semaine", saturday: "Samedi", sunday: "Dimanche" },
     modes: {
       metro: "Métro",
       rail: "RER & Transilien",

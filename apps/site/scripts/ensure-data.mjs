@@ -16,10 +16,12 @@ const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pub = path.join(site, "public");
 
 const needed = [
-  "flow/metro.json",
-  "flow/rail.json",
-  "flow/tram.json",
-  "flow/bus.json",
+  ...["weekday", "saturday", "sunday"].flatMap((day) => [
+    `flow/${day}/metro.json`,
+    `flow/${day}/rail.json`,
+    `flow/${day}/tram.json`,
+    `flow/${day}/bus.json`,
+  ]),
   "noctilien.json",
 ];
 const missing = needed.filter((f) => !existsSync(path.join(pub, f)));

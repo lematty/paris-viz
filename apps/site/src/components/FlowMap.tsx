@@ -96,13 +96,16 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-async function loadMode(key: ModeKey): Promise<ModeData> {
+type DayKey = "weekday" | "saturday" | "sunday";
+const DAY_KEYS: DayKey[] = ["weekday", "saturday", "sunday"];
+
+async function loadMode(key: ModeKey, day: DayKey): Promise<ModeData> {
   const [meta, buf] = await Promise.all([
-    fetch(`/flow/${key}.json`).then((r) => {
+    fetch(`/flow/${day}/${key}.json`).then((r) => {
       if (!r.ok) throw new Error(`${key}.json: HTTP ${r.status}`);
       return r.json() as Promise<FlowMeta>;
     }),
-    fetch(`/flow/${key}.bin`).then((r) => {
+    fetch(`/flow/${day}/${key}.bin`).then((r) => {
       if (!r.ok) throw new Error(`${key}.bin: HTTP ${r.status}`);
       return r.arrayBuffer();
     }),
@@ -140,10 +143,12 @@ function readParams() {
   const enabled = Object.fromEntries(
     MODES.map(({ key }) => [key, modesParam ? modesParam.includes(key) : true]),
   ) as Record<ModeKey, boolean>;
+  const day = p.get("day");
   return {
     enabled,
     // buses are opt-in: heavy, and visually dominant over the rail network
     bus: modesParam ? modesParam.includes("bus") : false,
+    day: DAY_KEYS.includes(day as DayKey) ? (day as DayKey) : "weekday",
     paused: p.get("paused") === "1",
     time: p.get("t") ? +p.get("t")! : 8 * 3600,
     speed: p.get("speed") ? +p.get("speed")! : 60,
@@ -168,6 +173,9 @@ export default function FlowMap() {
   const [busEnabled, setBusEnabled] = useState(params.bus);
   const [busMeta, setBusMeta] = useState<BusMeta | null>(null);
   const [busLoading, setBusLoading] = useState(0);
+  const [day, setDay] = useState<DayKey>(params.day);
+  const dayRef = useRef(day);
+  dayRef.current = day;
   // On small screens the panel is a bottom sheet, collapsed by default —
   // the clock, transport, and slider stay visible; details fold away.
   const [sheetOpen, setSheetOpen] = useState(
@@ -185,17 +193,50 @@ export default function FlowMap() {
   const busChunksRef = useRef(new Map<number, Trip[]>());
   const busPendingRef = useRef(new Set<number>());
 
-  // bus meta loads lazily on first enable
+  // bus meta loads lazily on first enable (and again after a day switch)
   useEffect(() => {
     if (!busEnabled || busMeta) return;
-    fetch("/flow/bus.json")
+    const requestedDay = day;
+    fetch(`/flow/${requestedDay}/bus.json`)
       .then((r) => {
         if (!r.ok) throw new Error(`bus.json: HTTP ${r.status}`);
         return r.json() as Promise<BusMeta>;
       })
-      .then(setBusMeta)
+      .then((meta) => {
+        if (dayRef.current === requestedDay) setBusMeta(meta);
+      })
       .catch((e: Error) => setError(e.message));
-  }, [busEnabled, busMeta]);
+  }, [busEnabled, busMeta, day]);
+
+  // rail modes load per day; a day switch clears everything and reloads
+  useEffect(() => {
+    setLoaded({});
+    setBusMeta(null);
+    busChunksRef.current.clear();
+    dataVersionRef.current++;
+    const requestedDay = day;
+    for (const { key } of MODES) {
+      loadMode(key, requestedDay)
+        .then((data) => {
+          if (dayRef.current !== requestedDay) return;
+          setLoaded((prev) => {
+            const next = { ...prev, [key]: data };
+            const metas = Object.values(next).map((d) => d!.meta);
+            boundsRef.current = [
+              Math.min(...metas.map((m) => m.minT)),
+              Math.max(...metas.map((m) => m.maxT)),
+            ];
+            if (sliderRef.current) {
+              sliderRef.current.min = String(boundsRef.current[0]);
+              sliderRef.current.max = String(boundsRef.current[1]);
+            }
+            return next;
+          });
+        })
+        .catch((e: Error) => setError(e.message));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day]);
   const playingRef = useRef(playing);
   playingRef.current = playing;
   const speedRef = useRef(speed);
@@ -240,12 +281,14 @@ export default function FlowMap() {
         continue;
       busPendingRef.current.add(hour);
       setBusLoading((n) => n + 1);
-      fetch(`/flow/bus-${hour}.bin`)
+      const requestedDay = dayRef.current;
+      fetch(`/flow/${requestedDay}/bus-${hour}.bin`)
         .then((r) => {
           if (!r.ok) throw new Error(`bus-${hour}.bin: HTTP ${r.status}`);
           return r.arrayBuffer();
         })
         .then((buf) => {
+          if (dayRef.current !== requestedDay) return; // day switched mid-fetch
           busChunksRef.current.set(hour, decodeBusChunk(buf, meta));
           dataVersionRef.current++;
         })
@@ -317,28 +360,6 @@ export default function FlowMap() {
       },
     });
 
-    // all modes load in parallel; each appears as soon as it arrives
-    for (const { key } of MODES) {
-      loadMode(key)
-        .then((data) => {
-          if (disposed) return;
-          setLoaded((prev) => {
-            const next = { ...prev, [key]: data };
-            const metas = Object.values(next).map((d) => d!.meta);
-            boundsRef.current = [
-              Math.min(...metas.map((m) => m.minT)),
-              Math.max(...metas.map((m) => m.maxT)),
-            ];
-            if (sliderRef.current) {
-              sliderRef.current.min = String(boundsRef.current[0]);
-              sliderRef.current.max = String(boundsRef.current[1]);
-            }
-            return next;
-          });
-        })
-        .catch((e: Error) => setError(e.message));
-    }
-
     let last = performance.now();
     let appliedTime = -1;
     let appliedSig = "";
@@ -363,7 +384,7 @@ export default function FlowMap() {
         MODES.map(({ key }) =>
           enabledRef.current[key] && loadedRef.current[key] ? key : "",
         ).join(",") +
-        `|v${dataVersionRef.current}|b${busEnabledRef.current ? 1 : 0}|s${soloRef.current ? 1 : 0}`;
+        `|v${dataVersionRef.current}|b${busEnabledRef.current ? 1 : 0}|s${soloRef.current ? 1 : 0}|d${dayRef.current}`;
       if (t === appliedTime && sig === appliedSig) return;
       appliedTime = t;
       appliedSig = sig;
@@ -535,6 +556,23 @@ export default function FlowMap() {
           }}
           aria-label={fx.time}
         />
+        <div
+          className="night-toggle sheet-hide"
+          role="radiogroup"
+          aria-label={fx.dayAria}
+        >
+          {DAY_KEYS.map((d) => (
+            <button
+              key={d}
+              role="radio"
+              aria-checked={day === d}
+              className={day === d ? "active" : ""}
+              onClick={() => setDay(d)}
+            >
+              {fx.days[d]}
+            </button>
+          ))}
+        </div>
         <div className="flow-modes sheet-hide">
           {MODES.map(({ key }) => (
             <div key={key} className="flow-mode">
