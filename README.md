@@ -48,14 +48,19 @@ history. Data: `public/noctilien.json` — 641 KB (`pnpm build:noctilien`).
 
 ```bash
 pnpm install
-pnpm build:flow        # regenerate flow data (downloads the IDFM GTFS on first run)
-pnpm build:noctilien   # regenerate the Noctilien frequency data
-pnpm dev               # http://localhost:3000
+pnpm build             # generates missing data artifacts, then next build
+pnpm dev               # http://localhost:3000 (run `pnpm build:flow` +
+                       # `pnpm build:noctilien` once first to create the data)
 pnpm test              # Playwright smoke suites (external services mocked)
 ```
 
-A scheduled workflow (`.github/workflows/refresh-data.yml`) regenerates both
-datasets on the 1st and 15th of each month — the feed only covers ~30 days.
+**Data artifacts are not committed.** `apps/site/scripts/ensure-data.mjs`
+generates them during the build when missing — on Vercel every deploy
+downloads the IDFM GTFS (~160 MB) and rebuilds everything (~4 min). The
+scheduled workflow (`.github/workflows/refresh-data.yml`) just pings a Vercel
+Deploy Hook on the 1st and 15th — the feed only covers ~30 days. It needs the
+`VERCEL_DEPLOY_HOOK` repository secret (Vercel → Settings → Git → Deploy
+Hooks). CI caches the GTFS zip per month.
 
 CI runs the smoke suite on every push and pull request. Tests pin `/flux` to
 the smallest mode, paused, and assert on DOM state only — CI runners have no

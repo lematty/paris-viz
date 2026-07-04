@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/ensure-data.mjs && next build",
     "start": "next start",
     "build:flow": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-flow-data.ts",
     "build:noctilien": "tsx scripts/build-noctilien-data.ts",

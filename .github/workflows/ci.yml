@@ -20,6 +20,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # data is generated at build time; cache the 160 MB GTFS download
+      # (feed changes continuously, monthly staleness is fine for CI)
+      - id: month
+        run: echo "m=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: data/IDFM-gtfs.zip
+          key: idfm-gtfs-${{ steps.month.outputs.m }}
+
       - run: pnpm build
 
       - run: pnpm --filter site exec playwright install --with-deps chromium

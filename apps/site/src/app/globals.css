@@ -67,6 +67,44 @@ a {
   gap: 8px;
 }
 
+/* ---------- mobile bottom sheets ---------- */
+
+.sheet-toggle {
+  display: none;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0d1320;
+  color: var(--text-dim);
+  width: 34px;
+  height: 30px;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.search-row .searchbox {
+  flex: 1;
+}
+
+.locate-btn {
+  width: 40px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #0d1320;
+  color: var(--accent);
+  font-size: 17px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -685,5 +723,43 @@ a {
 @media (max-width: 640px) {
   .panel {
     max-height: 60vh;
+  }
+}
+
+/* Mobile last: must win over the per-page rules above */
+@media (max-width: 640px) {
+  .sheet-toggle {
+    display: block;
+  }
+
+  .panel,
+  .flow-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 72vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+  }
+
+  .panel.collapsed .sheet-hide,
+  .flow-panel.collapsed .sheet-hide {
+    display: none;
+  }
+
+  /* comfortable touch targets */
+  .flow-controls button,
+  .flow-controls select {
+    height: 40px;
+  }
+
+  .flow-controls button {
+    width: 48px;
+  }
+
+  .night-toggle button {
+    padding: 10px 0;
   }
 }

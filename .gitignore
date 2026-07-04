@@ -9,6 +9,10 @@ next-env.d.ts
 # raw GTFS downloads (150+ MB, re-downloadable)
 /data/
 
+# generated data artifacts (built by scripts/ensure-data.mjs at build time)
+apps/site/public/flow/
+apps/site/public/noctilien.json
+
 # misc
 *.tsbuildinfo
 .DS_Store

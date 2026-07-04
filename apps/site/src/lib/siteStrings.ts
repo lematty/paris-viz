@@ -45,6 +45,7 @@ export interface FluxStrings {
   speed: string;
   time: string;
   footer: string;
+  sheetToggle: string;
   modes: { metro: string; rail: string; tram: string; bus: string };
 }
 
@@ -59,6 +60,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
     speed: "Speed",
     time: "Time",
     footer: "Timetables: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
+    sheetToggle: "Expand or collapse the panel",
     modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tram", bus: "Bus" },
   },
   fr: {
@@ -72,6 +74,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
     time: "Heure",
     footer:
       "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
+    sheetToggle: "Déplier ou replier le panneau",
     modes: {
       metro: "Métro",
       rail: "RER & Transilien",

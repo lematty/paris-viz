@@ -1,43 +1,25 @@
 name: Refresh data
 
-# The IDFM GTFS feed only covers ~30 days of schedules, so the committed
-# artifacts go stale. Twice a month gives margin if one run fails; the push
-# triggers a Vercel redeploy.
+# Data artifacts are generated during the Vercel build (see
+# apps/site/scripts/ensure-data.mjs), so refreshing = redeploying. The IDFM
+# feed only covers ~30 days; twice a month keeps margin if one run fails.
+#
+# Requires the VERCEL_DEPLOY_HOOK repository secret: Vercel dashboard →
+# project → Settings → Git → Deploy Hooks → create one for `main`, then add
+# its URL as a secret here.
 on:
   schedule:
     - cron: "0 4 1,15 * *" # 04:00 UTC on the 1st and 15th
   workflow_dispatch: # manual run from the Actions tab
 
-permissions:
-  contents: write
-
 jobs:
-  refresh:
+  redeploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build:noctilien # downloads the GTFS zip (shared with next step)
-
-      - run: pnpm build:flow
-
-      - name: Commit and push if changed
+      - name: Trigger Vercel deployment
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/site/public/noctilien.json apps/site/public/flow/
-          if git diff --cached --quiet; then
-            echo "Data unchanged, nothing to commit"
-            exit 0
+          if [ -z "${{ secrets.VERCEL_DEPLOY_HOOK }}" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK secret is not set — create a Deploy Hook in Vercel and add it as a repository secret."
+            exit 1
           fi
-          git commit -m "chore: refresh IDFM data"
-          git push
+          curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"

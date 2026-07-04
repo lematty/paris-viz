@@ -86,6 +86,30 @@ export default function App() {
     saveLang(next);
   };
 
+  // On small screens the panel is a bottom sheet, collapsed by default.
+  const [sheetOpen, setSheetOpen] = useState(
+    () => typeof window === "undefined" || window.innerWidth > 640,
+  );
+
+  // Selecting a result must reveal the nearest-stops list on mobile.
+  const selectTarget = (r: SearchResult | null) => {
+    setTarget(r);
+    if (r) setSheetOpen(true);
+  };
+
+  const locate = () => {
+    navigator.geolocation?.getCurrentPosition(
+      (pos) =>
+        selectTarget({
+          label: t.myLocation,
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        }),
+      () => {},
+      { timeout: 8000 },
+    );
+  };
+
   if (!data) {
     return (
       <div className="app-loading">
@@ -114,7 +138,7 @@ export default function App() {
         onViewChange={setView}
       />
 
-      <div className="panel">
+      <div className={`panel${sheetOpen ? "" : " collapsed"}`}>
         <a className="home-link" href="/">
           ← Paris Viz
         </a>
@@ -123,12 +147,26 @@ export default function App() {
             Noctilien <span className="panel-sub">{t.subtitle}</span>
           </h1>
           <LangToggle lang={lang} onChange={switchLang} />
+          <button
+            className="sheet-toggle"
+            aria-label={t.sheetToggle}
+            aria-expanded={sheetOpen}
+            onClick={() => setSheetOpen((o) => !o)}
+          >
+            {sheetOpen ? "⌄" : "⌃"}
+          </button>
         </div>
-        <p className="panel-hint">{t.hint}</p>
+        <div className="search-row">
+          <SearchBox onSelect={selectTarget} t={t} />
+          <button className="locate-btn" title={t.locate} onClick={locate}>
+            ◎
+          </button>
+        </div>
 
-        <SearchBox onSelect={setTarget} t={t} />
+        <div className="sheet-hide">
+          <p className="panel-hint">{t.hint}</p>
 
-        <NightToggle value={night} onChange={setNight} t={t} />
+          <NightToggle value={night} onChange={setNight} t={t} />
 
         <div className="layer-toggles">
           {(
@@ -182,9 +220,10 @@ export default function App() {
           />
         )}
 
-        <p className="panel-footer">
-          {t.footer(data.feedWindow.start, data.feedWindow.end)}
-        </p>
+          <p className="panel-footer">
+            {t.footer(data.feedWindow.start, data.feedWindow.end)}
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -168,6 +168,11 @@ export default function FlowMap() {
   const [busEnabled, setBusEnabled] = useState(params.bus);
   const [busMeta, setBusMeta] = useState<BusMeta | null>(null);
   const [busLoading, setBusLoading] = useState(0);
+  // On small screens the panel is a bottom sheet, collapsed by default —
+  // the clock, transport, and slider stay visible; details fold away.
+  const [sheetOpen, setSheetOpen] = useState(
+    () => typeof window === "undefined" || window.innerWidth > 640,
+  );
   const langRef = useRef(lang);
   langRef.current = lang;
   const fx = FLUX[lang];
@@ -463,7 +468,7 @@ export default function FlowMap() {
   return (
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
-      <div className="flow-panel">
+      <div className={`flow-panel${sheetOpen ? "" : " collapsed"}`}>
         <div className="flow-topbar">
           <a className="home-link" href="/">
             ← Paris Viz
@@ -475,9 +480,17 @@ export default function FlowMap() {
               saveLang(l);
             }}
           />
+          <button
+            className="sheet-toggle"
+            aria-label={fx.sheetToggle}
+            aria-expanded={sheetOpen}
+            onClick={() => setSheetOpen((o) => !o)}
+          >
+            {sheetOpen ? "⌄" : "⌃"}
+          </button>
         </div>
-        <h1>{fx.title}</h1>
-        <p className="sub">
+        <h1 className="sheet-hide">{fx.title}</h1>
+        <p className="sub sheet-hide">
           {error
             ? fx.error(error)
             : date
@@ -522,7 +535,7 @@ export default function FlowMap() {
           }}
           aria-label={fx.time}
         />
-        <div className="flow-modes">
+        <div className="flow-modes sheet-hide">
           {MODES.map(({ key }) => (
             <div key={key} className="flow-mode">
               <label>
@@ -583,7 +596,7 @@ export default function FlowMap() {
             </label>
           </div>
         </div>
-        <p className="flow-footer">{fx.footer}</p>
+        <p className="flow-footer sheet-hide">{fx.footer}</p>
       </div>
     </div>
   );
