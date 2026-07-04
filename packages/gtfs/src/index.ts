@@ -22,8 +22,8 @@ export const DAY_MS = 86_400_000;
 // CSV
 // ---------------------------------------------------------------------------
 
-export function parseCsvLine(line: string): string[] {
-  if (!line.includes('"')) return line.split(",");
+export function parseCsvLine(line: string, delim = ","): string[] {
+  if (!line.includes('"')) return line.split(delim);
   const out: string[] = [];
   let field = "";
   let inQuotes = false;
@@ -42,7 +42,7 @@ export function parseCsvLine(line: string): string[] {
       }
     } else if (c === '"') {
       inQuotes = true;
-    } else if (c === ",") {
+    } else if (c === delim) {
       out.push(field);
       field = "";
     } else {
@@ -198,6 +198,22 @@ export function simplifyPath(
 // ---------------------------------------------------------------------------
 // Download
 // ---------------------------------------------------------------------------
+
+export async function downloadFile(url: string, dest: string): Promise<void> {
+  if (existsSync(dest)) {
+    console.log(`Using cached ${dest}`);
+    return;
+  }
+  console.log(`Downloading ${url} …`);
+  mkdirSync(path.dirname(dest), { recursive: true });
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`Download failed: HTTP ${res.status}`);
+  await finished(
+    Readable.fromWeb(res.body as import("node:stream/web").ReadableStream).pipe(
+      createWriteStream(dest),
+    ),
+  );
+}
 
 export async function downloadGtfs(zipPath: string): Promise<void> {
   if (existsSync(zipPath)) {

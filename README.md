@@ -34,6 +34,14 @@ positions (~4 m grid) and 2-second time steps, one chunk per start hour —
 12 MB for the whole day, of which the page only ever holds a 3-hour sliding
 window (~1.5 MB).
 
+### `/pulse` — station ridership through the day
+
+Every rail station of Île-de-France pulsing with its hourly ticket
+validations (721 stations): watch the morning rush flow in and the evening
+rush flow out, weekday vs Saturday vs Sunday. Sources: IDFM open data —
+daily validation counts + hourly profiles per day type, joined with station
+locations. Data: `public/pulse.json` — 200 KB (`pnpm build:pulse`).
+
 ### `/noctilien` — night-bus frequency
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)

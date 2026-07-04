@@ -34,6 +34,12 @@ export default function Home() {
           <h2>{s.fluxTitle}</h2>
           <p>{s.fluxDesc}</p>
         </Link>
+        <Link className="card" href="/pulse">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="card-thumb" src="/thumbs/pulse.png" alt="" />
+          <h2>{s.pulseTitle}</h2>
+          <p>{s.pulseDesc}</p>
+        </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />
