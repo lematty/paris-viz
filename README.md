@@ -27,7 +27,12 @@ Planned: buses as a fourth (heavy) mode; Noctilien night-bus frequency map
 pnpm install
 pnpm build:flow   # regenerate flow data (downloads the IDFM GTFS on first run)
 pnpm dev          # http://localhost:3000
+pnpm test         # Playwright smoke suite (basemap mocked, software-WebGL safe)
 ```
+
+CI runs the smoke suite on every push and pull request. Tests pin `/flux` to
+the smallest mode, paused, and assert on DOM state only — CI runners have no
+GPU, so painted WebGL pixels are never asserted.
 
 ## Data sources
 

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:flow": "tsx scripts/build-flow-data.ts"
+    "build:flow": "tsx scripts/build-flow-data.ts",
+    "test": "playwright test"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@paris-viz/gtfs": "workspace:*",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

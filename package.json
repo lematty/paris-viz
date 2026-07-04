@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter site dev",
     "build": "pnpm --filter site build",
-    "build:flow": "pnpm --filter site build:flow"
+    "build:flow": "pnpm --filter site build:flow",
+    "test": "pnpm --filter site test"
   }
 }
