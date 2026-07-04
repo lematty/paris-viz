@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Deck } from "@deck.gl/core";
 import { TileLayer, TripsLayer, type GeoBoundingBox } from "@deck.gl/geo-layers";
-import { BitmapLayer } from "@deck.gl/layers";
+import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 
 interface FlowMeta {
   name: string;
@@ -13,12 +13,14 @@ interface FlowMeta {
   lines: { name: string; color: string }[];
   counts: number[];
   lineIdx: number[];
+  stations: [number, number][];
 }
 
 interface Trip {
   path: [number, number][];
   timestamps: number[];
   color: [number, number, number];
+  line: string;
 }
 
 interface ModeData {
@@ -73,7 +75,12 @@ async function loadMode(key: ModeKey): Promise<ModeData> {
       timestamps.push(floats[i + 2]);
       i += 3;
     }
-    trips.push({ path, timestamps, color: colors[meta.lineIdx[k]] });
+    trips.push({
+      path,
+      timestamps,
+      color: colors[meta.lineIdx[k]],
+      line: meta.lines[meta.lineIdx[k]].name,
+    });
   }
   return { meta, trips };
 }
@@ -108,6 +115,8 @@ export default function FlowMap() {
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(!params.paused);
   const [speed, setSpeed] = useState(params.speed);
+  // solo one line: {mode, line} — clicking its chip again returns to all
+  const [solo, setSolo] = useState<{ mode: ModeKey; line: string } | null>(null);
   const playingRef = useRef(playing);
   playingRef.current = playing;
   const speedRef = useRef(speed);
@@ -116,6 +125,25 @@ export default function FlowMap() {
   enabledRef.current = enabled;
   const loadedRef = useRef(loaded);
   loadedRef.current = loaded;
+  // trips actually drawn per mode (full set, or the soloed line's subset)
+  const displayRef = useRef<Partial<Record<ModeKey, Trip[]>>>({});
+  const dataVersionRef = useRef(0);
+
+  useEffect(() => {
+    const display: Partial<Record<ModeKey, Trip[]>> = {};
+    for (const { key } of MODES) {
+      const data = loaded[key];
+      if (!data) continue;
+      display[key] =
+        solo && solo.mode === key
+          ? data.trips.filter((t) => t.line === solo.line)
+          : solo
+            ? [] // solo hides the other modes' trains too
+            : data.trips;
+    }
+    displayRef.current = display;
+    dataVersionRef.current++;
+  }, [loaded, solo]);
   const timeRef = useRef<number>(params.time);
   const boundsRef = useRef<[number, number]>([5 * 3600, 26 * 3600]);
 
@@ -197,32 +225,62 @@ export default function FlowMap() {
       if (sliderRef.current && document.activeElement !== sliderRef.current)
         sliderRef.current.value = String(Math.round(t));
       // while paused (and nothing toggled/loaded), skip the redraw entirely
-      const sig = MODES.map(({ key }) =>
-        enabledRef.current[key] && loadedRef.current[key] ? key : "",
-      ).join(",");
+      const sig =
+        MODES.map(({ key }) =>
+          enabledRef.current[key] && loadedRef.current[key] ? key : "",
+        ).join(",") + `|v${dataVersionRef.current}`;
       if (t === appliedTime && sig === appliedSig) return;
       appliedTime = t;
       appliedSig = sig;
+      const activeModes = MODES.filter(
+        ({ key }) => enabledRef.current[key] && loadedRef.current[key],
+      );
       const layers = [
         basemap,
-        ...MODES.filter(
-          ({ key }) => enabledRef.current[key] && loadedRef.current[key],
-        ).map(
+        // stations: faint fixed dots under the trains
+        ...activeModes.map(
           ({ key }) =>
-            new TripsLayer({
-              id: `trips-${key}`,
-              data: loadedRef.current[key]!.trips,
-              getPath: (d: Trip) => d.path,
-              getTimestamps: (d: Trip) => d.timestamps,
-              getColor: (d: Trip) => d.color,
-              widthMinPixels: 3,
-              capRounded: true,
-              jointRounded: true,
-              trailLength: 120, // seconds of fading trail
-              currentTime: t,
-              shadowEnabled: false,
+            new ScatterplotLayer({
+              id: `stations-${key}`,
+              data: loadedRef.current[key]!.meta.stations,
+              getPosition: (d: [number, number]) => d,
+              getFillColor: [154, 163, 181, 90],
+              radiusMinPixels: 1.1,
+              radiusMaxPixels: 3,
+              getRadius: 25,
+              pickable: false,
             }),
         ),
+        // comet effect: long faint tail + short bright head per mode
+        ...activeModes.flatMap(({ key }) => {
+          const data = displayRef.current[key] ?? [];
+          const common = {
+            data,
+            getPath: (d: Trip) => d.path,
+            getTimestamps: (d: Trip) => d.timestamps,
+            getColor: (d: Trip) => d.color,
+            capRounded: true,
+            jointRounded: true,
+            currentTime: t,
+            shadowEnabled: false,
+          };
+          return [
+            new TripsLayer({
+              ...common,
+              id: `tail-${key}`,
+              widthMinPixels: 2,
+              opacity: 0.3,
+              trailLength: 150,
+            }),
+            new TripsLayer({
+              ...common,
+              id: `head-${key}`,
+              widthMinPixels: 5,
+              opacity: 0.9,
+              trailLength: 25,
+            }),
+          ];
+        }),
       ];
       deck!.setProps({ layers });
     };
@@ -298,17 +356,46 @@ export default function FlowMap() {
         />
         <div className="flow-modes">
           {MODES.map(({ key, label }) => (
-            <label key={key}>
-              <input
-                type="checkbox"
-                checked={enabled[key]}
-                onChange={() =>
-                  setEnabled((prev) => ({ ...prev, [key]: !prev[key] }))
-                }
-              />
-              {label}
-              {!loaded[key] && !error && <span className="mode-loading"> …</span>}
-            </label>
+            <div key={key} className="flow-mode">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={enabled[key]}
+                  onChange={() =>
+                    setEnabled((prev) => ({ ...prev, [key]: !prev[key] }))
+                  }
+                />
+                {label}
+                {!loaded[key] && !error && (
+                  <span className="mode-loading"> …</span>
+                )}
+              </label>
+              {enabled[key] && loaded[key] && (
+                <div className="line-chips">
+                  {loaded[key]!.meta.lines.map((l) => {
+                    const isSolo =
+                      solo?.mode === key && solo.line === l.name;
+                    return (
+                      <button
+                        key={l.name}
+                        className={`line-chip${isSolo ? " solo" : ""}${solo && !isSolo ? " dimmed" : ""}`}
+                        style={{ background: l.color }}
+                        title={
+                          isSolo
+                            ? "Réafficher toutes les lignes"
+                            : `Afficher seulement ${l.name}`
+                        }
+                        onClick={() =>
+                          setSolo(isSolo ? null : { mode: key, line: l.name })
+                        }
+                      >
+                        {l.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ))}
         </div>
         <p className="flow-footer">

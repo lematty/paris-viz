@@ -208,6 +208,9 @@ async function main() {
     const counts: number[] = [];
     const lineIdx: number[] = [];
     const floats: number[] = [];
+    // stations served by this mode, deduped on a ~10 m grid
+    const stationKeys = new Set<string>();
+    const stations: [number, number][] = [];
     let minT = Infinity;
     let maxT = -Infinity;
 
@@ -217,6 +220,15 @@ async function main() {
       const stopsArr = tripStops.get(tripId);
       if (!stopsArr || stopsArr.length < 2) continue;
       stopsArr.sort((a, b) => a[0] - b[0]);
+      for (const [, sid] of stopsArr) {
+        const pos = stopPos.get(sid);
+        if (!pos) continue;
+        const k = `${pos[0].toFixed(4)},${pos[1].toFixed(4)}`;
+        if (!stationKeys.has(k)) {
+          stationKeys.add(k);
+          stations.push([+pos[0].toFixed(5), +pos[1].toFixed(5)]);
+        }
+      }
       const wps = tripWaypoints(stopsArr, trip.shapeId);
       if (wps.length < 2) continue;
       let idx = lineIndex.get(route.name);
@@ -246,12 +258,14 @@ async function main() {
         lines,
         counts,
         lineIdx,
+        stations,
       }),
     );
     console.log(
       `${name.padEnd(18)} ${String(counts.length).padStart(6)} trips  ` +
         `${String(floats.length / 3).padStart(8)} wp  ` +
-        `${lines.length} lines  ${Math.round(bin.byteLength / 1024)} KB`,
+        `${lines.length} lines  ${stations.length} stations  ` +
+        `${Math.round(bin.byteLength / 1024)} KB`,
     );
   }
 }
