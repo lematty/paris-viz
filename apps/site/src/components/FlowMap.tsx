@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Deck } from "@deck.gl/core";
 import { TileLayer, TripsLayer, type GeoBoundingBox } from "@deck.gl/geo-layers";
 import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { loadLang, saveLang, type Lang } from "@/lib/lang";
+import { FLUX } from "@/lib/siteStrings";
+import LangToggle from "./LangToggle";
 
 interface FlowMeta {
   name: string;
@@ -28,11 +31,7 @@ interface ModeData {
   trips: Trip[];
 }
 
-const MODES = [
-  { key: "metro", label: "Métro" },
-  { key: "rail", label: "RER & Transilien" },
-  { key: "tram", label: "Tramway" },
-] as const;
+const MODES = [{ key: "metro" }, { key: "rail" }, { key: "tram" }] as const;
 type ModeKey = (typeof MODES)[number]["key"];
 
 const SPEEDS = [30, 60, 120, 300];
@@ -115,8 +114,12 @@ export default function FlowMap() {
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(!params.paused);
   const [speed, setSpeed] = useState(params.speed);
+  const [lang, setLang] = useState<Lang>(loadLang);
   // solo one line: {mode, line} — clicking its chip again returns to all
   const [solo, setSolo] = useState<{ mode: ModeKey; line: string } | null>(null);
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const fx = FLUX[lang];
   const playingRef = useRef(playing);
   playingRef.current = playing;
   const speedRef = useRef(speed);
@@ -182,6 +185,21 @@ export default function FlowMap() {
       },
       controller: true,
       layers: [basemap],
+      pickingRadius: 6,
+      getTooltip: ({ object, layer }) => {
+        if (!object || !layer) return null;
+        const mode = layer.id.split("-")[1] as ModeKey;
+        return {
+          text: `${FLUX[langRef.current].modes[mode]} ${(object as Trip).line}`,
+          style: {
+            background: "#101828",
+            color: "#e6e8ee",
+            fontSize: "12px",
+            borderRadius: "6px",
+            padding: "4px 8px",
+          },
+        };
+      },
     });
 
     // all modes load in parallel; each appears as soon as it arrives
@@ -278,6 +296,8 @@ export default function FlowMap() {
               widthMinPixels: 4,
               opacity: 0.85,
               trailLength: 25,
+              // hovering a train head shows its line
+              pickable: true,
             }),
           ];
         }),
@@ -311,16 +331,28 @@ export default function FlowMap() {
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
       <div className="flow-panel">
-        <a className="home-link" href="/">
-          ← Paris Viz
-        </a>
-        <h1>Flux — le réseau ferré en direct différé</h1>
+        <div className="flow-topbar">
+          <a className="home-link" href="/">
+            ← Paris Viz
+          </a>
+          <LangToggle
+            lang={lang}
+            onChange={(l) => {
+              setLang(l);
+              saveLang(l);
+            }}
+          />
+        </div>
+        <h1>{fx.title}</h1>
         <p className="sub">
           {error
-            ? `Erreur : ${error}`
+            ? fx.error(error)
             : date
-              ? `${totalTrips.toLocaleString("fr-FR")} trajets d'après l'horaire du ${date}`
-              : "chargement des horaires…"}
+              ? fx.subtitle(
+                  totalTrips.toLocaleString(lang === "fr" ? "fr-FR" : "en-GB"),
+                  date,
+                )
+              : fx.loading}
         </p>
         <div className="flow-clock" ref={clockRef}>
           --:--
@@ -328,14 +360,14 @@ export default function FlowMap() {
         <div className="flow-controls">
           <button
             onClick={() => setPlaying((p) => !p)}
-            aria-label={playing ? "Pause" : "Lecture"}
+            aria-label={playing ? fx.pause : fx.play}
           >
             {playing ? "⏸" : "▶"}
           </button>
           <select
             value={speed}
             onChange={(e) => setSpeed(+e.target.value)}
-            aria-label="Vitesse"
+            aria-label={fx.speed}
           >
             {SPEEDS.map((s) => (
               <option key={s} value={s}>
@@ -355,10 +387,10 @@ export default function FlowMap() {
           onInput={(e) => {
             timeRef.current = +(e.target as HTMLInputElement).value;
           }}
-          aria-label="Heure"
+          aria-label={fx.time}
         />
         <div className="flow-modes">
-          {MODES.map(({ key, label }) => (
+          {MODES.map(({ key }) => (
             <div key={key} className="flow-mode">
               <label>
                 <input
@@ -368,7 +400,7 @@ export default function FlowMap() {
                     setEnabled((prev) => ({ ...prev, [key]: !prev[key] }))
                   }
                 />
-                {label}
+                {fx.modes[key]}
                 {!loaded[key] && !error && (
                   <span className="mode-loading"> …</span>
                 )}
@@ -384,9 +416,13 @@ export default function FlowMap() {
                         className={`line-pill${isSolo ? " solo" : ""}${solo && !isSolo ? " dimmed" : ""}`}
                         style={{ background: l.color }}
                         title={
-                          isSolo
-                            ? "Réafficher toutes les lignes"
-                            : `Afficher seulement ${l.name}`
+                          lang === "fr"
+                            ? isSolo
+                              ? "Réafficher toutes les lignes"
+                              : `Afficher seulement ${l.name}`
+                            : isSolo
+                              ? "Show all lines again"
+                              : `Show only ${l.name}`
                         }
                         onClick={() =>
                           setSolo(isSolo ? null : { mode: key, line: l.name })
@@ -401,10 +437,7 @@ export default function FlowMap() {
             </div>
           ))}
         </div>
-        <p className="flow-footer">
-          Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap ©
-          CARTO
-        </p>
+        <p className="flow-footer">{fx.footer}</p>
       </div>
     </div>
   );

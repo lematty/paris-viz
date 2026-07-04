@@ -38,9 +38,33 @@ a {
   margin: 0 0 6px;
 }
 
+.home-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .home-sub {
   color: var(--text-dim);
   margin: 0 0 32px;
+}
+
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  margin-bottom: 12px;
+  background: #0d1320;
+}
+
+.flow-topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .cards {

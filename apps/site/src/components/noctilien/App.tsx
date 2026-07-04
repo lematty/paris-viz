@@ -5,6 +5,7 @@ import type { NoctilienData } from "@/lib/noctilien/types";
 import { nearestStops } from "@/lib/noctilien/geo";
 import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/noctilien/i18n";
 import { buildHash, parseHash, type MapView } from "@/lib/noctilien/urlState";
+import LangToggle from "../LangToggle";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
 import NightToggle from "./NightToggle";
@@ -121,19 +122,7 @@ export default function App() {
           <h1>
             Noctilien <span className="panel-sub">{t.subtitle}</span>
           </h1>
-          <div className="lang-toggle" role="radiogroup" aria-label="Language">
-            {(["fr", "en"] as const).map((l) => (
-              <button
-                key={l}
-                role="radio"
-                aria-checked={lang === l}
-                className={lang === l ? "active" : ""}
-                onClick={() => switchLang(l)}
-              >
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <LangToggle lang={lang} onChange={switchLang} />
         </div>
         <p className="panel-hint">{t.hint}</p>
 

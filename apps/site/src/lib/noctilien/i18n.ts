@@ -1,4 +1,6 @@
-export type Lang = "fr" | "en";
+export { loadLang, saveLang } from "../lang";
+export type { Lang } from "../lang";
+import type { Lang } from "../lang";
 
 const en = {
   subtitle: "night-bus frequency",
@@ -69,14 +71,3 @@ export const STRINGS: Record<Lang, Strings> = {
   },
 };
 
-const STORAGE_KEY = "noctilien-lang";
-
-export function loadLang(): Lang {
-  if (typeof window === "undefined") return "fr";
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  return stored === "en" || stored === "fr" ? stored : "fr";
-}
-
-export function saveLang(lang: Lang): void {
-  window.localStorage.setItem(STORAGE_KEY, lang);
-}

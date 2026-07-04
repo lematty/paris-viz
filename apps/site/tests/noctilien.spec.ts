@@ -36,12 +36,12 @@ async function setup(page: Page): Promise<string[]> {
   return errors;
 }
 
-test("renders the map with heatmap, stops and French UI", async ({ page }) => {
+test("renders the map with heatmap, stops and English-default UI", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/noctilien");
   await expect(page.locator("h1")).toContainText("Noctilien");
   await expect(page.locator(".panel-sub")).toHaveText(
-    "fréquence des bus de nuit",
+    "night-bus frequency",
   );
   await expect(page.locator(".leaflet-container")).toBeVisible();
   await expect(page.locator(".leaflet-overlay-pane canvas")).toBeVisible();
@@ -67,7 +67,7 @@ test("night toggle switches to weekend and updates the URL", async ({
 }) => {
   const errors = await setup(page);
   await page.goto("/noctilien");
-  const weekend = page.getByRole("radio", { name: "Nuits ven–sam" });
+  const weekend = page.getByRole("radio", { name: "Fri–Sat nights" });
   await weekend.click();
   await expect(weekend).toHaveAttribute("aria-checked", "true");
   await expect(page).toHaveURL(/night=weekend/);
@@ -91,12 +91,12 @@ test("line highlight from the panel and shareable URL round-trip", async ({
   expect(errors).toEqual([]);
 });
 
-test("language toggle switches to English and persists", async ({ page }) => {
+test("language toggle switches to French and persists", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/noctilien");
-  await page.getByRole("radio", { name: "EN", exact: true }).click();
-  await expect(page.locator(".panel-sub")).toHaveText("night-bus frequency");
+  await page.getByRole("radio", { name: "FR", exact: true }).click();
+  await expect(page.locator(".panel-sub")).toHaveText("fréquence des bus de nuit");
   await page.reload();
-  await expect(page.locator(".panel-sub")).toHaveText("night-bus frequency");
+  await expect(page.locator(".panel-sub")).toHaveText("fréquence des bus de nuit");
   expect(errors).toEqual([]);
 });

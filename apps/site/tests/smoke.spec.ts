@@ -47,11 +47,11 @@ test("flux loads tram data, pinned time shows on the clock", async ({
   await dataReady(page);
   await expect(page.locator(".flow-clock")).toHaveText("08:30");
   // meta arrived: trip count in the subtitle, line chips rendered
-  await expect(page.locator(".sub")).toContainText("trajets");
+  await expect(page.locator(".sub")).toContainText("trips");
   expect(await page.locator(".line-pill").count()).toBeGreaterThan(10);
   // URL params respected: only Tramway checked
   await expect(
-    page.locator('.flow-mode:has-text("Tramway") input'),
+    page.locator('.flow-mode:has-text("Tram") input'),
   ).toBeChecked();
   await expect(
     page.locator('.flow-mode:has-text("Métro") input'),
@@ -63,7 +63,7 @@ test("mode checkbox hides its line chips", async ({ page }) => {
   const errors = await setup(page);
   await page.goto(FLUX_URL);
   await dataReady(page);
-  await page.locator('.flow-mode:has-text("Tramway") input').uncheck();
+  await page.locator('.flow-mode:has-text("Tram") input').uncheck();
   await expect(page.locator(".line-pill")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -88,7 +88,7 @@ test("pressing play advances the clock", async ({ page }) => {
   await page.goto(FLUX_URL);
   await dataReady(page);
   await expect(page.locator(".flow-clock")).toHaveText("08:30");
-  await page.click('button[aria-label="Lecture"]');
+  await page.click('button[aria-label="Play"]');
   // ×60: one real second ≈ one simulated minute
   await expect(page.locator(".flow-clock")).not.toHaveText("08:30", {
     timeout: 15_000,
