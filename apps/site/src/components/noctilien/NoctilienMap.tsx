@@ -17,14 +17,14 @@ interface Props {
   onSelectLine: (line: string | null) => void;
   lang: Lang;
   initialView: MapView | null;
-  /** True when the URL restored an explicit view — the initial target pin
+  /** True when the URL restored an explicit view - the initial target pin
    * should then not steal the camera. */
   skipInitialFly: boolean;
   onViewChange: (view: MapView) => void;
 }
 
 // Perceptually-ordered "night glow" ramp (inferno-like): one ordered scale for
-// one magnitude — buses per night. Low end fades into the dark basemap.
+// one magnitude - buses per night. Low end fades into the dark basemap.
 const HEAT_GRADIENT = {
   0.1: "#160b39",
   0.3: "#56106e",
@@ -34,7 +34,7 @@ const HEAT_GRADIENT = {
   1.0: "#fcffa4",
 };
 
-// Geographic glow radius per stop — roughly comfortable walking range.
+// Geographic glow radius per stop - roughly comfortable walking range.
 const HEAT_RADIUS_M = 600;
 
 /** 256-entry RGBA lookup table interpolated from HEAT_GRADIENT. */
@@ -75,7 +75,7 @@ function buildHeatLut(): Uint8ClampedArray {
 
 /**
  * Renders the whole heatmap once into a Web-Mercator-aligned image overlay.
- * Panning/zooming then only transforms a texture on the GPU — unlike a
+ * Panning/zooming then only transforms a texture on the GPU - unlike a
  * live heat layer, which re-stamps every point and runs a per-pixel colorize
  * loop on the main thread after every map movement.
  */
@@ -237,7 +237,7 @@ export default function NoctilienMap({
   }, [data]);
 
   // Map and every layer variant, built once. Toggling night type or layer
-  // checkboxes then only swaps prebuilt layers in and out of the map —
+  // checkboxes then only swaps prebuilt layers in and out of the map -
   // rebuilding 1637 markers on each toggle made the UI feel sluggish.
   useEffect(() => {
     const map = L.map(containerRef.current!, {
@@ -283,7 +283,7 @@ export default function NoctilienMap({
     }
 
     // Clicking a route line on the map selects it. Hit-testing happens here,
-    // on click only, instead of making the polylines interactive — Leaflet's
+    // on click only, instead of making the polylines interactive - Leaflet's
     // canvas hover hit-testing would walk all ~10k path points on every
     // mousemove, the kind of per-frame work that made the map feel slow.
     const distToSeg = (p: L.Point, a: L.Point, b: L.Point) => {
@@ -346,7 +346,7 @@ export default function NoctilienMap({
           opacity: 0.7,
           fillColor: "#9fd8ff",
           fillOpacity: 0.25,
-          // stop clicks open the popup only — without this they'd bubble to
+          // stop clicks open the popup only - without this they'd bubble to
           // the map handler above and also toggle the line under the stop
           bubblingMouseEvents: false,
         })

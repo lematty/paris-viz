@@ -67,6 +67,29 @@ a {
   gap: 8px;
 }
 
+.about {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.about h2 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.about p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  max-width: 640px;
+}
+
+.about-links {
+  font-size: 12.5px;
+}
+
 /* ---------- mobile bottom sheets ---------- */
 
 .sheet-toggle {
@@ -302,7 +325,7 @@ a {
 }
 
 /* ==========================================================================
-   Noctilien (/noctilien) — migrated from the standalone app
+   Noctilien (/noctilien) - migrated from the standalone app
    ========================================================================== */
 .app,
 .map {

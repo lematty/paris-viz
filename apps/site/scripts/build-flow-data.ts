@@ -4,8 +4,8 @@
  * timestamped waypoints for deck.gl's TripsLayer.
  *
  * Output: apps/site/public/flow/<day>/… for day ∈ weekday|saturday|sunday
- *   <mode>.{bin,json}   rail modes — float32 waypoints, shape-following paths
- *   bus.json, bus-<h>.bin  buses — uint16-quantized, one chunk per start hour
+ *   <mode>.{bin,json}   rail modes - float32 waypoints, shape-following paths
+ *   bus.json, bus-<h>.bin  buses - uint16-quantized, one chunk per start hour
  *
  * The expensive pass (stop_times.txt, >1 GB) runs ONCE over the union of the
  * three days' trips; emission then filters per day.
@@ -108,7 +108,7 @@ async function main() {
     activeByDay.set(key, set);
     console.log(`${key} (${fmtDate(dayTs)}): ${set.size} active trips`);
     if (set.size === 0) {
-      throw new Error(`No active trips for ${key} — date outside feed window?`);
+      throw new Error(`No active trips for ${key} - date outside feed window?`);
     }
   }
   console.log(`Union across days: ${union.size} trips`);

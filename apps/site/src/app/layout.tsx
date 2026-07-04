@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const TITLE = "Paris Viz — Paris open-data visualizations";
+const TITLE = "Paris Viz - Paris open-data visualizations";
 const DESCRIPTION =
   "Interactive visualizations of open data from Paris and Île-de-France: transit, mobility, the city itself.";
 

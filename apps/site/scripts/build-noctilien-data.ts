@@ -77,7 +77,7 @@ async function main() {
 
   // A departure belongs to "the night of day X". GTFS encodes an
   // after-midnight trip either on the previous service day with times >24:00
-  // or on the same calendar day with small times — so times before noon count
+  // or on the same calendar day with small times - so times before noon count
   // toward the previous day's night. The window of nights is
   // [first service date, last service date]; the partial night before the
   // window is excluded from both counts.

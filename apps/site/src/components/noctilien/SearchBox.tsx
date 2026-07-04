@@ -66,7 +66,7 @@ export default function SearchBox({
         setHighlight(0);
         setOpen(true);
       } catch {
-        // aborted or offline — keep whatever is shown
+        // aborted or offline - keep whatever is shown
       }
     }, 250);
     return () => {

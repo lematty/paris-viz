@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-const TITLE = "Flux — the Paris rail network in motion";
+const TITLE = "Flux - the Paris transit network in motion";
 const DESCRIPTION =
-  "Every scheduled métro, RER and tram trip of Île-de-France moving across the map through a full day. Play, scrub, and solo a line.";
+  "Every scheduled métro, RER, tram and bus trip of Île-de-France moving across the map through a full day. Play, scrub, and solo a line.";
 
 export const metadata: Metadata = {
   title: TITLE,

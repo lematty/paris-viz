@@ -19,7 +19,7 @@ jobs:
       - name: Trigger Vercel deployment
         run: |
           if [ -z "${{ secrets.VERCEL_DEPLOY_HOOK }}" ]; then
-            echo "::error::VERCEL_DEPLOY_HOOK secret is not set — create a Deploy Hook in Vercel and add it as a repository secret."
+            echo "::error::VERCEL_DEPLOY_HOOK secret is not set - create a Deploy Hook in Vercel and add it as a repository secret."
             exit 1
           fi
           curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"

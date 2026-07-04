@@ -58,7 +58,7 @@ export default function NearestStops({
                       </button>
                     </span>
                   ))}{" "}
-                  —{" "}
+                  -{" "}
                   {stat.headway
                     ? t.busEvery(stat.headway)
                     : t.busesPerNight(stat.dep)}

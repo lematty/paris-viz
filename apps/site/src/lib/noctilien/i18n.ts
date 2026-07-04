@@ -24,7 +24,7 @@ const en = {
   nearTitle: (q: string) => `Noctilien near “${q}”`,
   clearSearch: "Clear search result",
   noStop:
-    "No Noctilien stop within 1.5 km — this area is not covered by the night-bus network.",
+    "No Noctilien stop within 1.5 km - this area is not covered by the night-bus network.",
   minWalk: "min walk",
   busEvery: (n: number) => `a bus every ~${n} min`,
   busesPerNight: (n: number) => `${n} bus${n >= 2 ? "es" : ""}/night`,
@@ -63,7 +63,7 @@ export const STRINGS: Record<Lang, Strings> = {
     nearTitle: (q: string) => `Noctilien près de « ${q} »`,
     clearSearch: "Effacer la recherche",
     noStop:
-      "Aucun arrêt Noctilien à moins de 1,5 km — cette zone n'est pas desservie par le réseau de nuit.",
+      "Aucun arrêt Noctilien à moins de 1,5 km - cette zone n'est pas desservie par le réseau de nuit.",
     minWalk: "min à pied",
     busEvery: (n: number) => `un bus toutes les ~${n} min`,
     busesPerNight: (n: number) => `${n} bus/nuit`,

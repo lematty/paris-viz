@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const TITLE = "Noctilien — fréquence des bus de nuit";
+const TITLE = "Noctilien - fréquence des bus de nuit";
 const DESCRIPTION =
   "Carte interactive de la fréquence des bus Noctilien à Paris et en Île-de-France : quels quartiers sont bien desservis la nuit, et lesquels ne le sont pas.";
 

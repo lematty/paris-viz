@@ -47,6 +47,24 @@ export default function Home() {
           <p>{s.noctDesc}</p>
         </Link>
       </div>
+      <section className="about">
+        <h2>{s.aboutTitle}</h2>
+        <p>{s.aboutBody}</p>
+        <p>{s.aboutRefresh}</p>
+        <p className="about-links">
+          <a href="https://data.iledefrance-mobilites.fr">
+            data.iledefrance-mobilites.fr
+          </a>
+          {" · "}
+          <a href="https://transport.data.gouv.fr/datasets/reseau-urbain-et-interurbain-dile-de-france-mobilites">
+            IDFM GTFS
+          </a>
+          {" · "}
+          <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
+          {" · "}
+          <a href="https://github.com/lematty/paris-viz">GitHub</a>
+        </p>
+      </section>
     </main>
   );
 }

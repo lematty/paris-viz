@@ -4,7 +4,7 @@ import { test, expect, type Page } from "@playwright/test";
  * Smoke tests for the flux animated map. CARTO basemap tiles are mocked
  * (hermetic); the flow data comes from our own public/ directory. Tests pin
  * the page to the smallest mode (tram), paused at a fixed time, and assert
- * on DOM/app state — CI runners rasterize WebGL in software, so painted
+ * on DOM/app state - CI runners rasterize WebGL in software, so painted
  * pixels are deliberately never asserted.
  */
 

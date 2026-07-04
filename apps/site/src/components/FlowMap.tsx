@@ -41,7 +41,7 @@ interface BusMeta {
 }
 
 /** Chunk layout: u32 tripCount | per trip (u16 wpCount, u16 lineIdx) |
- * per waypoint (u16 qLon, u16 qLat, u16 qT — 2-second steps from t0). */
+ * per waypoint (u16 qLon, u16 qLat, u16 qT - 2-second steps from t0). */
 function decodeBusChunk(buf: ArrayBuffer, meta: BusMeta): Trip[] {
   const dv = new DataView(buf);
   const [minLon, minLat, maxLon, maxLat] = meta.bbox;
@@ -168,7 +168,7 @@ export default function FlowMap() {
   const [playing, setPlaying] = useState(!params.paused);
   const [speed, setSpeed] = useState(params.speed);
   const [lang, setLang] = useState<Lang>(loadLang);
-  // solo one line: {mode, line} — clicking its chip again returns to all
+  // solo one line: {mode, line} - clicking its chip again returns to all
   const [solo, setSolo] = useState<{ mode: ModeKey; line: string } | null>(null);
   const [busEnabled, setBusEnabled] = useState(params.bus);
   const [busMeta, setBusMeta] = useState<BusMeta | null>(null);
@@ -176,7 +176,7 @@ export default function FlowMap() {
   const [day, setDay] = useState<DayKey>(params.day);
   const dayRef = useRef(day);
   dayRef.current = day;
-  // On small screens the panel is a bottom sheet, collapsed by default —
+  // On small screens the panel is a bottom sheet, collapsed by default -
   // the clock, transport, and slider stay visible; details fold away.
   const [sheetOpen, setSheetOpen] = useState(
     () => typeof window === "undefined" || window.innerWidth > 640,
@@ -374,7 +374,7 @@ export default function FlowMap() {
         timeRef.current = t;
       }
       const t = timeRef.current;
-      // DOM updated directly — re-rendering React 60×/s buys nothing here
+      // DOM updated directly - re-rendering React 60×/s buys nothing here
       if (clockRef.current) clockRef.current.textContent = fmtClock(t);
       if (sliderRef.current && document.activeElement !== sliderRef.current)
         sliderRef.current.value = String(Math.round(t));

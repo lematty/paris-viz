@@ -13,33 +13,46 @@ export const SITE: Record<
     pulseDesc: string;
     noctTitle: string;
     noctDesc: string;
+    aboutTitle: string;
+    aboutBody: string;
+    aboutRefresh: string;
   }
 > = {
   en: {
     tagline:
       "Interactive visualizations of open data from Paris and Île-de-France.",
-    fluxTitle: "Flux — the rail network in motion",
+    fluxTitle: "Flux - the transit network in motion",
     fluxDesc:
-      "The 21,000 daily métro, RER and tram trips move across the map through a full day, straight from the real timetables.",
-    pulseTitle: "Pulse — station ridership",
+      "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
+    pulseTitle: "Pulse - station ridership",
     pulseDesc:
-      "Every rail station pulsing with its hourly ticket validations — watch the morning rush flow in and the evening rush flow out.",
-    noctTitle: "Noctilien — night buses",
+      "Every rail station pulsing with its hourly ticket validations - watch the morning rush flow in and the evening rush flow out.",
+    noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
+    aboutTitle: "About the data",
+    aboutBody:
+      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, station and stop locations from the same portal, and the national address base for geocoding. Nothing is tracked and there is no backend: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+    aboutRefresh:
+      "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
   fr: {
     tagline:
       "Visualisations interactives des données ouvertes de Paris et d'Île-de-France.",
-    fluxTitle: "Flux — le réseau ferré en mouvement",
+    fluxTitle: "Flux - le réseau en mouvement",
     fluxDesc:
-      "Les 21 000 trajets quotidiens du métro, du RER et du tramway se déplacent sur la carte au fil d'une journée, d'après les horaires réels.",
-    pulseTitle: "Pulse — l'affluence des gares",
+      "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
+    pulseTitle: "Pulse - l'affluence des gares",
     pulseDesc:
-      "Chaque gare et station pulse au rythme de ses validations horaires — regardez la pointe du matin affluer et celle du soir refluer.",
-    noctTitle: "Noctilien — bus de nuit",
+      "Chaque gare et station pulse au rythme de ses validations horaires - regardez la pointe du matin affluer et celle du soir refluer.",
+    noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
+    aboutTitle: "À propos des données",
+    aboutBody:
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les emplacements des gares et arrêts du même portail, et la Base Adresse Nationale pour le géocodage. Aucun suivi, aucun backend : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+    aboutRefresh:
+      "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
 };
 
@@ -61,7 +74,7 @@ export interface FluxStrings {
 
 export const FLUX: Record<Lang, FluxStrings> = {
   en: {
-    title: "Flux — the rail network, replayed",
+    title: "Flux - the transit network, replayed",
     loading: "loading timetables…",
     subtitle: (n, date) => `${n} trips from the ${date} timetable`,
     error: (msg) => `Error: ${msg}`,
@@ -76,7 +89,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
     modes: { metro: "Métro", rail: "RER & Transilien", tram: "Tram", bus: "Bus" },
   },
   fr: {
-    title: "Flux — le réseau ferré en direct différé",
+    title: "Flux - le réseau en direct différé",
     loading: "chargement des horaires…",
     subtitle: (n, date) => `${n} trajets d'après l'horaire du ${date}`,
     error: (msg) => `Erreur : ${msg}`,
@@ -108,7 +121,7 @@ export interface PulseStrings {
 
 export const PULSE: Record<Lang, PulseStrings> = {
   en: {
-    title: "Pulse — station ridership through the day",
+    title: "Pulse - station ridership through the day",
     loading: "loading ridership data…",
     subtitle: (n, start, end) =>
       `${n} rail stations · ticket validations ${start} → ${end}`,
@@ -116,7 +129,7 @@ export const PULSE: Record<Lang, PulseStrings> = {
     footer: "Validations: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
-    title: "Pulse — l'affluence des gares heure par heure",
+    title: "Pulse - l'affluence des gares heure par heure",
     loading: "chargement des validations…",
     subtitle: (n, start, end) =>
       `${n} gares et stations · validations ${start} → ${end}`,

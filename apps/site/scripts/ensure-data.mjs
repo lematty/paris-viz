@@ -28,10 +28,10 @@ const needed = [
 const missing = needed.filter((f) => !existsSync(path.join(pub, f)));
 
 if (missing.length === 0) {
-  console.log("[ensure-data] artifacts present — skipping generation");
+  console.log("[ensure-data] artifacts present - skipping generation");
 } else {
   console.log(
-    `[ensure-data] missing: ${missing.join(", ")} — generating (this downloads the IDFM GTFS)…`,
+    `[ensure-data] missing: ${missing.join(", ")} - generating (this downloads the IDFM GTFS)…`,
   );
   execSync("pnpm run build:flow", { stdio: "inherit", cwd: site });
   execSync("pnpm run build:noctilien", { stdio: "inherit", cwd: site });

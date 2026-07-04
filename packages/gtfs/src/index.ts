@@ -1,6 +1,6 @@
 /**
  * Shared utilities for working with the IDFM (Île-de-France Mobilités) GTFS
- * feed. Consumed by per-visualization build scripts run with tsx — never by
+ * feed. Consumed by per-visualization build scripts run with tsx - never by
  * the web app at runtime.
  *
  * Streaming is non-negotiable: stop_times.txt is >1 GB uncompressed, so
