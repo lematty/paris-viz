@@ -65,8 +65,11 @@ pnpm test              # Playwright smoke suites (external services mocked)
 ```
 
 **Data artifacts are not committed.** `apps/site/scripts/ensure-data.mjs`
-generates them during the build when missing - on Vercel every deploy
-downloads the IDFM GTFS (~160 MB) and rebuilds everything (~4 min). The
+generates them during the build when missing. On Vercel the source downloads
+(IDFM GTFS ~160 MB, Airparif CSVs) are cached in `.next/cache` between
+builds, so ordinary deploys skip the downloads and survive upstream outages;
+cached sources older than 5 days are re-fetched, which is what makes the
+twice-monthly refresh pick up new data. The
 scheduled workflow (`.github/workflows/refresh-data.yml`) just pings a Vercel
 Deploy Hook on the 1st and 15th - the feed only covers ~30 days. It needs the
 `VERCEL_DEPLOY_HOOK` repository secret (Vercel → Settings → Git → Deploy

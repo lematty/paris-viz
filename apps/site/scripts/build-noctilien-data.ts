@@ -20,7 +20,13 @@ import {
 import type { NoctilienData, Route, Stop } from "../src/lib/noctilien/types";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const ZIP_PATH = path.join(ROOT, "data", "IDFM-gtfs.zip");
+// Downloads land in a configurable cache: on Vercel, ensure-data points
+// this at .next/cache (persisted between builds) so deploys survive
+// upstream outages and skip re-downloading.
+const DATA_ROOT = process.env.DATA_CACHE_DIR
+  ? path.resolve(process.env.DATA_CACHE_DIR)
+  : path.join(ROOT, "data");
+const ZIP_PATH = path.join(DATA_ROOT, "IDFM-gtfs.zip");
 const OUT_PATH = path.resolve(ROOT, "apps", "site", "public", "noctilien.json");
 
 // Noctilien lines are named N01…N162 (two/three digits). Single-digit N1/N2

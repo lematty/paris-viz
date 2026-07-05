@@ -17,7 +17,13 @@ import { fileURLToPath } from "node:url";
 import { downloadFile, parseCsvLine } from "@paris-viz/gtfs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const DATA_DIR = path.join(ROOT, "data", "air");
+// Downloads land in a configurable cache: on Vercel, ensure-data points
+// this at .next/cache (persisted between builds) so deploys survive
+// upstream outages and skip re-downloading.
+const DATA_ROOT = process.env.DATA_CACHE_DIR
+  ? path.resolve(process.env.DATA_CACHE_DIR)
+  : path.join(ROOT, "data");
+const DATA_DIR = path.join(DATA_ROOT, "air");
 const OUT_DIR = path.resolve(ROOT, "apps", "site", "public", "air");
 
 const ITEM = (id: string) =>
