@@ -9,8 +9,8 @@ export const SITE: Record<
     tagline: string;
     fluxTitle: string;
     fluxDesc: string;
-    pulseTitle: string;
-    pulseDesc: string;
+    airTitle: string;
+    airDesc: string;
     noctTitle: string;
     noctDesc: string;
     aboutTitle: string;
@@ -24,15 +24,15 @@ export const SITE: Record<
     fluxTitle: "Flux - the transit network in motion",
     fluxDesc:
       "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
-    pulseTitle: "Respire - the air you breathe",
-    pulseDesc:
+    airTitle: "Respire - the air you breathe",
+    airDesc:
       "Seven years of hourly air quality breathing over the map: winter smog, clean windy days, and the 2020 lockdown clearing the sky in a week.",
     noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, station and stop locations from the same portal, and the national address base for geocoding. Nothing is tracked and there is no backend: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, and the national address base for geocoding. Nothing is tracked and there is no backend: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -42,15 +42,15 @@ export const SITE: Record<
     fluxTitle: "Flux - le réseau en mouvement",
     fluxDesc:
       "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
-    pulseTitle: "Respire - l'air que vous respirez",
-    pulseDesc:
+    airTitle: "Respire - l'air que vous respirez",
+    airDesc:
       "Sept ans de qualité de l'air horaire qui respirent sur la carte : smog d'hiver, journées de vent, et le confinement 2020 qui purifie le ciel en une semaine.",
     noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les emplacements des gares et arrêts du même portail, et la Base Adresse Nationale pour le géocodage. Aucun suivi, aucun backend : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, et la Base Adresse Nationale pour le géocodage. Aucun suivi, aucun backend : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },

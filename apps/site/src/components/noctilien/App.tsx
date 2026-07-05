@@ -37,13 +37,11 @@ export interface LayerToggles {
   routes: boolean;
 }
 
-// Read once at module load (the app is client-only) so first render can
-// restore a shared link.
-const initial = parseHash(
-  typeof window === "undefined" ? "" : window.location.hash,
-);
-
 export default function App() {
+  // read once per mount (module-level reads go stale across client navs)
+  const [initial] = useState(() =>
+    parseHash(typeof window === "undefined" ? "" : window.location.hash),
+  );
   const [data, setData] = useState<NoctilienData | null>(null);
   const [dataError, setDataError] = useState(false);
   const [lang, setLang] = useState<Lang>(loadLang);

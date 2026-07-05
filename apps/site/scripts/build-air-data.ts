@@ -145,6 +145,7 @@ async function main() {
     poll: string;
     year: number;
     hours: number;
+    start: number; // epoch ms of the first hourly row (UTC)
     values: Uint8Array; // hours × stations, filled after master is complete
     columns: (number | null)[]; // csv column → master idx
     raw: string[][];
@@ -183,10 +184,15 @@ async function main() {
       if (dataRows.length < 1000 || matched < 10) {
         throw new Error(`${poll} ${year}: implausible data, aborting`);
       }
+      const start = Date.parse(String(dataRows[0][0]).replace(" ", "T"));
+      if (!Number.isFinite(start)) {
+        throw new Error(`${poll} ${year}: unparseable first timestamp`);
+      }
       files.push({
         poll,
         year,
         hours: dataRows.length,
+        start,
         values: new Uint8Array(0),
         columns,
         raw: dataRows,
@@ -197,7 +203,10 @@ async function main() {
   // --- encode: uint8 per station per hour --------------------------------------
   const meta = {
     stations: master,
-    pollutants: {} as Record<string, { years: Record<number, number> }>,
+    pollutants: {} as Record<
+      string,
+      { years: Record<number, { hours: number; start: number }> }
+    >,
   };
   for (const f of files) {
     const n = master.length;
@@ -214,7 +223,7 @@ async function main() {
     }
     writeFileSync(path.join(OUT_DIR, `${f.poll}-${f.year}.bin`), out);
     meta.pollutants[f.poll] ??= { years: {} };
-    meta.pollutants[f.poll].years[f.year] = f.hours;
+    meta.pollutants[f.poll].years[f.year] = { hours: f.hours, start: f.start };
   }
   if (unmatched.size) console.log("Unmatched labels:", [...unmatched].join(" | "));
   writeFileSync(path.join(OUT_DIR, "meta.json"), JSON.stringify(meta));

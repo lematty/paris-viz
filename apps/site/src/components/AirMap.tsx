@@ -21,7 +21,10 @@ interface AirStation {
 
 interface AirMeta {
   stations: AirStation[];
-  pollutants: Record<string, { years: Record<string, number> }>;
+  pollutants: Record<
+    string,
+    { years: Record<string, { hours: number; start: number }> }
+  >;
 }
 
 // playback speeds: simulated hours per real second
@@ -78,9 +81,9 @@ function readParams() {
     time: p.get("t") ? +p.get("t")! : 8, // hours since Jan 1
   };
 }
-const params = readParams();
-
 export default function AirMap() {
+  // read once per mount (module-level reads go stale across client navs)
+  const [params] = useState(readParams);
   const containerRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
@@ -90,6 +93,7 @@ export default function AirMap() {
     poll: Poll;
     year: number;
     hours: number;
+    start: number;
     values: Uint8Array;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +136,8 @@ export default function AirMap() {
   // load the selected pollutant/year series
   useEffect(() => {
     if (!meta) return;
-    const hours = meta.pollutants[poll]?.years[year];
-    if (!hours) return;
+    const info = meta.pollutants[poll]?.years[year];
+    if (!info) return;
     setSeries(null);
     const requested = { poll, year };
     fetch(`/air/${poll}-${year}.bin`)
@@ -144,8 +148,14 @@ export default function AirMap() {
       .then((buf) => {
         if (pollRef.current !== requested.poll || yearRef.current !== requested.year)
           return;
-        setSeries({ poll, year, hours, values: new Uint8Array(buf) });
-        timeRef.current = Math.min(timeRef.current, hours - 2);
+        setSeries({
+          poll,
+          year,
+          hours: info.hours,
+          start: info.start,
+          values: new Uint8Array(buf),
+        });
+        timeRef.current = Math.min(timeRef.current, info.hours - 2);
       })
       .catch((e: Error) => setError(e.message));
   }, [meta, poll, year]);
@@ -287,16 +297,18 @@ export default function AirMap() {
       }
       const t = timeRef.current;
       if (clockRef.current) {
-        const date = new Date(
-          Date.UTC(yearRef.current, 0, 1) + Math.floor(t) * 3600e3,
-        );
+        const start = seriesRef.current?.start;
         const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
-        clockRef.current.textContent =
-          date.toLocaleDateString(locale, {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          }) + ` · ${String(date.getUTCHours()).padStart(2, "0")}:00`;
+        clockRef.current.textContent = start
+          ? new Date(start + Math.floor(t) * 3600e3).toLocaleString(locale, {
+              timeZone: "Europe/Paris",
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "--";
       }
       if (sliderRef.current && document.activeElement !== sliderRef.current)
         sliderRef.current.value = String(Math.round(t));
@@ -415,13 +427,15 @@ export default function AirMap() {
     timeRef.current = f * hours;
   };
 
-  // lockdown story: 17 March 2020, 08:00 (NO2 collapses within days)
+  // lockdown story: 17 March 2020, 08:00 Paris (NO2 collapses within days)
   const lockdown = () => {
+    const start = meta?.pollutants.no2?.years[2020]?.start;
+    if (!start) return;
     setPoll("no2");
     setYear(2020);
     setPlaying(true);
     setSpeed(24);
-    timeRef.current = (31 + 29 + 16) * 24 + 8;
+    timeRef.current = Math.max(0, (Date.UTC(2020, 2, 17, 7) - start) / 3600e3);
   };
 
   return (

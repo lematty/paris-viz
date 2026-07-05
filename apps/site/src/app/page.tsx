@@ -37,8 +37,8 @@ export default function Home() {
         <Link className="card" href="/air">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/air.png" alt="" />
-          <h2>{s.pulseTitle}</h2>
-          <p>{s.pulseDesc}</p>
+          <h2>{s.airTitle}</h2>
+          <p>{s.airDesc}</p>
         </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -59,6 +59,8 @@ export default function Home() {
           <a href="https://transport.data.gouv.fr/datasets/reseau-urbain-et-interurbain-dile-de-france-mobilites">
             IDFM GTFS
           </a>
+          {" · "}
+          <a href="https://www.airparif.fr">airparif.fr</a>
           {" · "}
           <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
           {" · "}

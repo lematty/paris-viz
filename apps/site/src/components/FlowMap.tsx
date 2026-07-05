@@ -154,9 +154,11 @@ function readParams() {
     speed: p.get("speed") ? +p.get("speed")! : 60,
   };
 }
-const params = readParams();
-
 export default function FlowMap() {
+  // read once per MOUNT, not per module load: Next keeps modules alive
+  // across client-side navigations, so a module-level read would serve
+  // stale params on later visits to this page
+  const [params] = useState(readParams);
   const containerRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
