@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Deck } from "@deck.gl/core";
-import { TileLayer, TripsLayer, type GeoBoundingBox } from "@deck.gl/geo-layers";
-import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { TripsLayer } from "@deck.gl/geo-layers";
+import { ScatterplotLayer } from "@deck.gl/layers";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX } from "@/lib/siteStrings";
-import LangToggle from "./LangToggle";
+import { currentSearchParams, fmtClock, hexToRgb } from "@/lib/viz";
+import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { useAnimationClock } from "./viz/useAnimationClock";
+import VizPanel from "./viz/VizPanel";
 
 interface FlowMeta {
   name: string;
@@ -82,20 +85,6 @@ type ModeKey = (typeof MODES)[number]["key"];
 
 const SPEEDS = [30, 60, 120, 300];
 
-const fmtClock = (s: number) => {
-  const h = Math.floor(s / 3600) % 24;
-  const m = Math.floor((s % 3600) / 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-};
-
-function hexToRgb(hex: string): [number, number, number] {
-  return [
-    parseInt(hex.slice(1, 3), 16),
-    parseInt(hex.slice(3, 5), 16),
-    parseInt(hex.slice(5, 7), 16),
-  ];
-}
-
 type DayKey = "weekday" | "saturday" | "sunday";
 const DAY_KEYS: DayKey[] = ["weekday", "saturday", "sunday"];
 
@@ -135,10 +124,7 @@ async function loadMode(key: ModeKey, day: DayKey): Promise<ModeData> {
 
 /** Initial state can come from the URL: ?modes=metro,tram&t=30600&paused=1&speed=120 */
 function readParams() {
-  const p =
-    typeof window === "undefined"
-      ? new URLSearchParams()
-      : new URLSearchParams(window.location.search);
+  const p = currentSearchParams();
   const modesParam = p.get("modes")?.split(",");
   const enabled = Object.fromEntries(
     MODES.map(({ key }) => [key, modesParam ? modesParam.includes(key) : true]),
@@ -167,8 +153,6 @@ export default function FlowMap() {
     params.enabled,
   );
   const [error, setError] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(!params.paused);
-  const [speed, setSpeed] = useState(params.speed);
   const [lang, setLang] = useState<Lang>(loadLang);
   // solo one line: {mode, line} - clicking its chip again returns to all
   const [solo, setSolo] = useState<{ mode: ModeKey; line: string } | null>(null);
@@ -178,11 +162,6 @@ export default function FlowMap() {
   const [day, setDay] = useState<DayKey>(params.day);
   const dayRef = useRef(day);
   dayRef.current = day;
-  // On small screens the panel is a bottom sheet, collapsed by default -
-  // the clock, transport, and slider stay visible; details fold away.
-  const [sheetOpen, setSheetOpen] = useState(
-    () => typeof window === "undefined" || window.innerWidth > 640,
-  );
   const langRef = useRef(lang);
   langRef.current = lang;
   const fx = FLUX[lang];
@@ -239,10 +218,6 @@ export default function FlowMap() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
-  const playingRef = useRef(playing);
-  playingRef.current = playing;
-  const speedRef = useRef(speed);
-  speedRef.current = speed;
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
   const loadedRef = useRef(loaded);
@@ -266,7 +241,6 @@ export default function FlowMap() {
     displayRef.current = display;
     dataVersionRef.current++;
   }, [loaded, solo]);
-  const timeRef = useRef<number>(params.time);
   const boundsRef = useRef<[number, number]>([5 * 3600, 26 * 3600]);
 
   // Sliding window: keep only the chunks for [h-1, h, h+1] loaded; called
@@ -310,31 +284,104 @@ export default function FlowMap() {
   const ensureBusChunksRef = useRef(ensureBusChunks);
   ensureBusChunksRef.current = ensureBusChunks;
 
-  useEffect(() => {
-    let deck: Deck | null = null;
-    let raf = 0;
-    let disposed = false;
+  const deckRef = useRef<Deck | null>(null);
+  const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
+  const appliedRef = useRef({ t: -1, sig: "" });
 
-    const basemap = new TileLayer({
-      id: "basemap",
-      data: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      ],
-      maxZoom: 19,
-      tileSize: 256,
-      renderSubLayers: (props) => {
-        const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
-        return new BitmapLayer(props, {
-          data: undefined,
-          image: props.data,
-          bounds: [west, south, east, north],
+  const onFrame = (t: number) => {
+    // DOM updated directly - re-rendering React 60×/s buys nothing here
+    if (clockRef.current) clockRef.current.textContent = fmtClock(t);
+    if (sliderRef.current && document.activeElement !== sliderRef.current)
+      sliderRef.current.value = String(Math.round(t));
+    if (busEnabledRef.current) ensureBusChunksRef.current(t);
+    const deck = deckRef.current;
+    const basemap = basemapRef.current;
+    if (!deck || !basemap) return;
+    // while paused (and nothing toggled/loaded), skip the redraw entirely
+    const sig =
+      MODES.map(({ key }) =>
+        enabledRef.current[key] && loadedRef.current[key] ? key : "",
+      ).join(",") +
+      `|v${dataVersionRef.current}|b${busEnabledRef.current ? 1 : 0}|s${soloRef.current ? 1 : 0}|d${dayRef.current}`;
+    if (t === appliedRef.current.t && sig === appliedRef.current.sig) return;
+    appliedRef.current = { t, sig };
+    const activeModes = MODES.filter(
+      ({ key }) => enabledRef.current[key] && loadedRef.current[key],
+    );
+    const layers = [
+      basemap,
+      // buses: one stable layer per loaded hourly chunk, hidden while a
+      // rail line is soloed
+      ...(busEnabledRef.current && !soloRef.current
+        ? [...busChunksRef.current.entries()].map(
+            ([hour, trips]) =>
+              new TripsLayer({
+                id: `bus-${hour}`,
+                data: trips,
+                getPath: (d: Trip) => d.path,
+                getTimestamps: (d: Trip) => d.timestamps,
+                getColor: (d: Trip) => d.color,
+                widthMinPixels: 2,
+                capRounded: true,
+                jointRounded: true,
+                trailLength: 90,
+                currentTime: t,
+                opacity: 0.5,
+                shadowEnabled: false,
+              }),
+          )
+        : []),
+      // stations: faint fixed dots under the trains
+      ...activeModes.map(
+        ({ key }) =>
+          new ScatterplotLayer({
+            id: `stations-${key}`,
+            data: loadedRef.current[key]!.meta.stations,
+            getPosition: (d: [number, number]) => d,
+            getFillColor: [154, 163, 181, 90],
+            radiusMinPixels: 1.1,
+            radiusMaxPixels: 3,
+            getRadius: 25,
+            pickable: false,
+          }),
+      ),
+      ...activeModes.map(({ key }) => {
+        // single slim layer: the original, calmer look
+        return new TripsLayer({
+          id: `trips-${key}`,
+          data: displayRef.current[key] ?? [],
+          getPath: (d: Trip) => d.path,
+          getTimestamps: (d: Trip) => d.timestamps,
+          getColor: (d: Trip) => d.color,
+          capRounded: true,
+          jointRounded: true,
+          currentTime: t,
+          shadowEnabled: false,
+          widthMinPixels: 3,
+          trailLength: 120,
+          // hovering a train shows its line
+          pickable: true,
         });
-      },
-    });
+      }),
+    ];
+    deck.setProps({ layers });
+  };
 
-    deck = new Deck({
+  const clock = useAnimationClock({
+    initialTime: params.time,
+    autoplay: !params.paused,
+    initialSpeed: params.speed,
+    normalize: (t) => {
+      const [minT, maxT] = boundsRef.current;
+      return t > maxT ? minT : t; // loop the day
+    },
+    onFrame,
+  });
+  const { timeRef } = clock;
+
+  useEffect(() => {
+    basemapRef.current = createBasemapLayer();
+    const deck = new Deck({
       parent: containerRef.current!,
       initialViewState: {
         longitude: 2.35,
@@ -344,122 +391,18 @@ export default function FlowMap() {
         maxZoom: 17,
       },
       controller: true,
-      layers: [basemap],
+      layers: [basemapRef.current],
       pickingRadius: 6,
       getTooltip: ({ object, layer }) => {
         if (!object || !layer) return null;
         const mode = layer.id.split("-")[1] as ModeKey;
         return {
           text: `${FLUX[langRef.current].modes[mode]} ${(object as Trip).line}`,
-          style: {
-            background: "#101828",
-            color: "#e6e8ee",
-            fontSize: "12px",
-            borderRadius: "6px",
-            padding: "4px 8px",
-          },
+          style: DECK_TOOLTIP_STYLE,
         };
       },
     });
-
-    let last = performance.now();
-    let appliedTime = -1;
-    let appliedSig = "";
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      const dt = (now - last) / 1000;
-      last = now;
-      const [minT, maxT] = boundsRef.current;
-      if (playingRef.current) {
-        let t = timeRef.current + dt * speedRef.current;
-        if (t > maxT) t = minT; // loop the day
-        timeRef.current = t;
-      }
-      const t = timeRef.current;
-      // DOM updated directly - re-rendering React 60×/s buys nothing here
-      if (clockRef.current) clockRef.current.textContent = fmtClock(t);
-      if (sliderRef.current && document.activeElement !== sliderRef.current)
-        sliderRef.current.value = String(Math.round(t));
-      if (busEnabledRef.current) ensureBusChunksRef.current(t);
-      // while paused (and nothing toggled/loaded), skip the redraw entirely
-      const sig =
-        MODES.map(({ key }) =>
-          enabledRef.current[key] && loadedRef.current[key] ? key : "",
-        ).join(",") +
-        `|v${dataVersionRef.current}|b${busEnabledRef.current ? 1 : 0}|s${soloRef.current ? 1 : 0}|d${dayRef.current}`;
-      if (t === appliedTime && sig === appliedSig) return;
-      appliedTime = t;
-      appliedSig = sig;
-      const activeModes = MODES.filter(
-        ({ key }) => enabledRef.current[key] && loadedRef.current[key],
-      );
-      const layers = [
-        basemap,
-        // buses: one stable layer per loaded hourly chunk, hidden while a
-        // rail line is soloed
-        ...(busEnabledRef.current && !soloRef.current
-          ? [...busChunksRef.current.entries()].map(
-              ([hour, trips]) =>
-                new TripsLayer({
-                  id: `bus-${hour}`,
-                  data: trips,
-                  getPath: (d: Trip) => d.path,
-                  getTimestamps: (d: Trip) => d.timestamps,
-                  getColor: (d: Trip) => d.color,
-                  widthMinPixels: 2,
-                  capRounded: true,
-                  jointRounded: true,
-                  trailLength: 90,
-                  currentTime: t,
-                  opacity: 0.5,
-                  shadowEnabled: false,
-                }),
-            )
-          : []),
-        // stations: faint fixed dots under the trains
-        ...activeModes.map(
-          ({ key }) =>
-            new ScatterplotLayer({
-              id: `stations-${key}`,
-              data: loadedRef.current[key]!.meta.stations,
-              getPosition: (d: [number, number]) => d,
-              getFillColor: [154, 163, 181, 90],
-              radiusMinPixels: 1.1,
-              radiusMaxPixels: 3,
-              getRadius: 25,
-              pickable: false,
-            }),
-        ),
-        // comet effect: long faint tail + short bright head per mode
-        ...activeModes.flatMap(({ key }) => {
-          const data = displayRef.current[key] ?? [];
-          const common = {
-            data,
-            getPath: (d: Trip) => d.path,
-            getTimestamps: (d: Trip) => d.timestamps,
-            getColor: (d: Trip) => d.color,
-            capRounded: true,
-            jointRounded: true,
-            currentTime: t,
-            shadowEnabled: false,
-          };
-          // single slim layer: the original, calmer look
-          return [
-            new TripsLayer({
-              ...common,
-              id: `trips-${key}`,
-              widthMinPixels: 3,
-              trailLength: 120,
-              // hovering a train shows its line
-              pickable: true,
-            }),
-          ];
-        }),
-      ];
-      deck!.setProps({ layers });
-    };
-    raf = requestAnimationFrame(tick);
-
+    deckRef.current = deck;
     // automation/debug handle
     (window as unknown as Record<string, unknown>).__flow = {
       setTime: (t: number) => {
@@ -467,13 +410,13 @@ export default function FlowMap() {
       },
       getTime: () => timeRef.current,
     };
-
     return () => {
-      disposed = true;
-      cancelAnimationFrame(raf);
-      deck?.finalize();
+      deckRef.current = null;
+      deck.finalize();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const totalTrips = Object.values(loaded).reduce(
     (s, d) => s + (d?.meta.counts.length ?? 0),
@@ -484,73 +427,48 @@ export default function FlowMap() {
   return (
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
-      <div className={`flow-panel${sheetOpen ? "" : " collapsed"}`}>
-        <div className="flow-topbar">
-          <a className="home-link" href="/">
-            ← Paris Viz
-          </a>
-          <LangToggle
-            lang={lang}
-            onChange={(l) => {
-              setLang(l);
-              saveLang(l);
-            }}
-          />
-          <button
-            className="sheet-toggle"
-            aria-label={fx.sheetToggle}
-            aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen((o) => !o)}
-          >
-            {sheetOpen ? "⌄" : "⌃"}
-          </button>
-        </div>
-        <h1 className="sheet-hide">{fx.title}</h1>
-        <p className="sub sheet-hide">
-          {error
+      <VizPanel
+        lang={lang}
+        onLang={(l) => {
+          setLang(l);
+          saveLang(l);
+        }}
+        title={fx.title}
+        subtitle={
+          error
             ? fx.error(error)
             : date
               ? fx.subtitle(
                   totalTrips.toLocaleString(lang === "fr" ? "fr-FR" : "en-GB"),
                   date,
                 )
-              : fx.loading}
-        </p>
-        <div className="flow-clock" ref={clockRef}>
-          --:--
-        </div>
-        <div className="flow-controls">
-          <button
-            onClick={() => setPlaying((p) => !p)}
-            aria-label={playing ? fx.pause : fx.play}
-          >
-            {playing ? "⏸" : "▶"}
-          </button>
-          <select
-            value={speed}
-            onChange={(e) => setSpeed(+e.target.value)}
-            aria-label={fx.speed}
-          >
-            {SPEEDS.map((s) => (
-              <option key={s} value={s}>
-                ×{s}
-              </option>
-            ))}
-          </select>
-        </div>
-        <input
-          ref={sliderRef}
-          className="flow-slider"
-          type="range"
-          min={5 * 3600}
-          max={26 * 3600}
-          step={60}
-          defaultValue={params.time}
-          onInput={(e) => {
-            timeRef.current = +(e.target as HTMLInputElement).value;
-          }}
-          aria-label={fx.time}
-        />
+              : fx.loading
+        }
+        clockRef={clockRef}
+        playing={clock.playing}
+        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        speed={clock.speed}
+        speeds={SPEEDS.map((s) => ({ value: s, label: `×${s}` }))}
+        onSpeed={clock.setSpeed}
+        labels={{
+          play: fx.play,
+          pause: fx.pause,
+          speed: fx.speed,
+          time: fx.time,
+          sheetToggle: fx.sheetToggle,
+        }}
+        slider={{
+          ref: sliderRef,
+          min: 5 * 3600,
+          max: 26 * 3600,
+          step: 60,
+          defaultValue: params.time,
+          onInput: (v) => {
+            timeRef.current = v;
+          },
+        }}
+        footer={fx.footer}
+      >
         <div
           className="night-toggle sheet-hide"
           role="radiogroup"
@@ -629,8 +547,7 @@ export default function FlowMap() {
             </label>
           </div>
         </div>
-        <p className="flow-footer sheet-hide">{fx.footer}</p>
-      </div>
+      </VizPanel>
     </div>
   );
 }

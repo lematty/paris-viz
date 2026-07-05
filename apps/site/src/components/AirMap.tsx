@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Deck } from "@deck.gl/core";
-import { TileLayer, type GeoBoundingBox } from "@deck.gl/geo-layers";
 import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { AIR, FLUX } from "@/lib/siteStrings";
-import LangToggle from "./LangToggle";
+import { currentSearchParams } from "@/lib/viz";
+import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { useAnimationClock } from "./viz/useAnimationClock";
+import VizPanel from "./viz/VizPanel";
 
 type Poll = "no2" | "pm25";
 const POLLS: Poll[] = ["no2", "pm25"];
@@ -68,10 +70,7 @@ const GRID_W = 150;
 const GRID_H = 100;
 
 function readParams() {
-  const p =
-    typeof window === "undefined"
-      ? new URLSearchParams()
-      : new URLSearchParams(window.location.search);
+  const p = currentSearchParams();
   const year = p.get("year");
   const poll = p.get("poll");
   return {
@@ -97,20 +96,11 @@ export default function AirMap() {
     values: Uint8Array;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(!params.paused);
-  const [speed, setSpeed] = useState(24);
   const [year, setYear] = useState(params.year);
   const [poll, setPoll] = useState<Poll>(params.poll);
   const [lang, setLang] = useState<Lang>(loadLang);
-  const [sheetOpen, setSheetOpen] = useState(
-    () => typeof window === "undefined" || window.innerWidth > 640,
-  );
   const fx = FLUX[lang];
   const ar = AIR[lang];
-  const playingRef = useRef(playing);
-  playingRef.current = playing;
-  const speedRef = useRef(speed);
-  speedRef.current = speed;
   const langRef = useRef(lang);
   langRef.current = lang;
   const metaRef = useRef(meta);
@@ -121,7 +111,6 @@ export default function AirMap() {
   pollRef.current = poll;
   const yearRef = useRef(year);
   yearRef.current = year;
-  const timeRef = useRef(params.time);
 
   useEffect(() => {
     fetch("/air/meta.json")
@@ -204,48 +193,159 @@ export default function AirMap() {
     return { path: `M0,46 L${pts.join(" L")} L240,46 Z`, days };
   }, [series, meta]);
 
+  const deckRef = useRef<Deck | null>(null);
+  const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
+  const veilCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const appliedRef = useRef({ t: -1, sig: "" });
+
+  const valueAt = (stationIdx: number, t: number): number | null => {
+    const s = seriesRef.current;
+    const m = metaRef.current;
+    if (!s || !m) return null;
+    const n = m.stations.length;
+    const h0 = Math.max(0, Math.min(s.hours - 1, Math.floor(t)));
+    const h1 = Math.min(s.hours - 1, h0 + 1);
+    const a = s.values[h0 * n + stationIdx];
+    const b = s.values[h1 * n + stationIdx];
+    if (a === 255 && b === 255) return null;
+    const va = a === 255 ? b : a;
+    const vb = b === 255 ? a : b;
+    return va + (vb - va) * (t - h0);
+  };
+  const valueAtRef = useRef(valueAt);
+  valueAtRef.current = valueAt;
+
+  const onFrame = (t: number) => {
+    const s = seriesRef.current;
+    const hours = s?.hours ?? 8760;
+    if (clockRef.current) {
+      const start = s?.start;
+      const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
+      clockRef.current.textContent = start
+        ? new Date(start + Math.floor(t) * 3600e3).toLocaleString(locale, {
+            timeZone: "Europe/Paris",
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "--";
+    }
+    if (sliderRef.current && document.activeElement !== sliderRef.current)
+      sliderRef.current.value = String(Math.round(t));
+    if (playheadRef.current) {
+      const x = (t / hours) * 240;
+      playheadRef.current.setAttribute("x1", String(x));
+      playheadRef.current.setAttribute("x2", String(x));
+    }
+    const deck = deckRef.current;
+    const basemap = basemapRef.current;
+    const vctx = veilCtxRef.current;
+    if (!deck || !basemap || !vctx) return;
+    const sig = `${pollRef.current}|${yearRef.current}|${s ? 1 : 0}`;
+    if (Math.abs(t - appliedRef.current.t) < 0.02 && sig === appliedRef.current.sig)
+      return;
+    appliedRef.current = { t, sig };
+    const m = metaRef.current;
+    const box = bboxRef.current;
+    if (!s || !m || !box) return;
+
+    // current value per station
+    const n = m.stations.length;
+    const vals = new Float32Array(n).fill(-1);
+    for (let i = 0; i < n; i++) {
+      const v = valueAtRef.current(i, t);
+      if (v !== null) vals[i] = v;
+    }
+
+    // IDW veil onto the grid; alpha fades away from the nearest station
+    const img = vctx.createImageData(GRID_W, GRID_H);
+    const domain = DOMAIN[pollRef.current];
+    const lonSpan = box.maxLon - box.minLon;
+    const latSpan = box.maxLat - box.minLat;
+    for (let gy = 0; gy < GRID_H; gy++) {
+      const lat = box.maxLat - (gy / (GRID_H - 1)) * latSpan;
+      for (let gx = 0; gx < GRID_W; gx++) {
+        const lon = box.minLon + (gx / (GRID_W - 1)) * lonSpan;
+        let num = 0;
+        let den = 0;
+        let dmin = Infinity;
+        for (let i = 0; i < n; i++) {
+          if (vals[i] < 0) continue;
+          const st = m.stations[i];
+          const dx = (st.lon - lon) * 0.66; // ≈cos(48.8°), degrees→comparable
+          const dy = st.lat - lat;
+          const d2 = dx * dx + dy * dy + 1e-6;
+          if (d2 < dmin) dmin = d2;
+          const w = 1 / (d2 * d2); // IDW power 4: crisper local structure
+          num += w * vals[i];
+          den += w;
+        }
+        const o = (gy * GRID_W + gx) * 4;
+        if (!den) continue;
+        const v = num / den;
+        const [r, g, b] = rampColor(v / domain);
+        // fade the veil where the nearest station is far (no information)
+        const dist = Math.sqrt(dmin);
+        const conf = Math.max(0, 1 - dist / 0.35);
+        img.data[o] = r;
+        img.data[o + 1] = g;
+        img.data[o + 2] = b;
+        img.data[o + 3] = Math.round(150 * Math.pow(conf, 0.8));
+      }
+    }
+
+    deck.setProps({
+      layers: [
+        basemap,
+        new BitmapLayer({
+          id: "air-veil",
+          image: img, // fresh ImageData each frame → texture updates
+          bounds: [box.minLon, box.minLat, box.maxLon, box.maxLat],
+          opacity: 1,
+        }),
+        new ScatterplotLayer({
+          id: "air-stations",
+          data: m.stations,
+          getPosition: (d: AirStation) => [d.lon, d.lat],
+          getRadius: 700,
+          radiusMinPixels: 3,
+          radiusMaxPixels: 14,
+          stroked: true,
+          getLineColor: [230, 232, 238, 200],
+          lineWidthMinPixels: 1,
+          getFillColor: (d: AirStation, { index }) => {
+            const v = vals[index];
+            if (v < 0) return [80, 86, 100, 120];
+            const [r, g, b] = rampColor(v / domain);
+            return [r, g, b, 235];
+          },
+          pickable: true,
+          updateTriggers: { getFillColor: [t, pollRef.current] },
+        }),
+      ],
+    });
+  };
+
+  const clock = useAnimationClock({
+    initialTime: params.time,
+    autoplay: !params.paused,
+    initialSpeed: 24,
+    normalize: (t) => {
+      const h = seriesRef.current?.hours ?? 8760;
+      return ((t % h) + h) % h;
+    },
+    onFrame,
+  });
+  const { timeRef } = clock;
+
   useEffect(() => {
-    let raf = 0;
-    let last = performance.now();
     const veil = document.createElement("canvas");
     veil.width = GRID_W;
     veil.height = GRID_H;
-    const vctx = veil.getContext("2d")!;
-
-    const basemap = new TileLayer({
-      id: "basemap",
-      data: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      ],
-      maxZoom: 19,
-      tileSize: 256,
-      renderSubLayers: (props) => {
-        const { west, south, east, north } = props.tile.bbox as GeoBoundingBox;
-        return new BitmapLayer(props, {
-          data: undefined,
-          image: props.data,
-          bounds: [west, south, east, north],
-        });
-      },
-    });
-
-    const valueAt = (stationIdx: number, t: number): number | null => {
-      const s = seriesRef.current;
-      const m = metaRef.current;
-      if (!s || !m) return null;
-      const n = m.stations.length;
-      const h0 = Math.max(0, Math.min(s.hours - 1, Math.floor(t)));
-      const h1 = Math.min(s.hours - 1, h0 + 1);
-      const a = s.values[h0 * n + stationIdx];
-      const b = s.values[h1 * n + stationIdx];
-      if (a === 255 && b === 255) return null;
-      const va = a === 255 ? b : a;
-      const vb = b === 255 ? a : b;
-      return va + (vb - va) * (t - h0);
-    };
-
+    veilCtxRef.current = veil.getContext("2d");
+    basemapRef.current = createBasemapLayer();
     const deck = new Deck({
       parent: containerRef.current!,
       initialViewState: {
@@ -257,12 +357,9 @@ export default function AirMap() {
       },
       controller: true,
       pickingRadius: 10,
-      getTooltip: ({ object, layer }) => {
-        if (!object || layer?.id !== "air-stations") return null;
-        const m = metaRef.current;
-        if (!m) return null;
-        const idx = m.stations.indexOf(object as AirStation);
-        const v = valueAt(idx, timeRef.current);
+      getTooltip: ({ object, index, layer }) => {
+        if (!object || index < 0 || layer?.id !== "air-stations") return null;
+        const v = valueAtRef.current(index, timeRef.current);
         const st = object as AirStation;
         const a = AIR[langRef.current];
         return {
@@ -272,146 +369,22 @@ export default function AirMap() {
               ? a.noData
               : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}`) +
             `\n${st.traffic ? a.traffic : a.background}`,
-          style: {
-            background: "#101828",
-            color: "#e6e8ee",
-            fontSize: "12px",
-            borderRadius: "6px",
-            padding: "4px 8px",
-          },
+          style: DECK_TOOLTIP_STYLE,
         };
       },
-      layers: [basemap],
+      layers: [basemapRef.current],
     });
-
-    let appliedTime = -1;
-    let appliedSig = "";
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      const dt = (now - last) / 1000;
-      last = now;
-      const s = seriesRef.current;
-      const hours = s?.hours ?? 8760;
-      if (playingRef.current) {
-        timeRef.current = (timeRef.current + dt * speedRef.current) % hours;
-      }
-      const t = timeRef.current;
-      if (clockRef.current) {
-        const start = seriesRef.current?.start;
-        const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
-        clockRef.current.textContent = start
-          ? new Date(start + Math.floor(t) * 3600e3).toLocaleString(locale, {
-              timeZone: "Europe/Paris",
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "--";
-      }
-      if (sliderRef.current && document.activeElement !== sliderRef.current)
-        sliderRef.current.value = String(Math.round(t));
-      if (playheadRef.current) {
-        const x = (t / hours) * 240;
-        playheadRef.current.setAttribute("x1", String(x));
-        playheadRef.current.setAttribute("x2", String(x));
-      }
-      const sig = `${pollRef.current}|${yearRef.current}|${s ? 1 : 0}`;
-      if (Math.abs(t - appliedTime) < 0.02 && sig === appliedSig) return;
-      appliedTime = t;
-      appliedSig = sig;
-      const m = metaRef.current;
-      const box = bboxRef.current;
-      if (!s || !m || !box) return;
-
-      // current value per station
-      const n = m.stations.length;
-      const vals = new Float32Array(n).fill(-1);
-      for (let i = 0; i < n; i++) {
-        const v = valueAt(i, t);
-        if (v !== null) vals[i] = v;
-      }
-
-      // IDW veil onto the grid; alpha fades away from the nearest station
-      const img = vctx.createImageData(GRID_W, GRID_H);
-      const domain = DOMAIN[pollRef.current];
-      const lonSpan = box.maxLon - box.minLon;
-      const latSpan = box.maxLat - box.minLat;
-      for (let gy = 0; gy < GRID_H; gy++) {
-        const lat = box.maxLat - (gy / (GRID_H - 1)) * latSpan;
-        for (let gx = 0; gx < GRID_W; gx++) {
-          const lon = box.minLon + (gx / (GRID_W - 1)) * lonSpan;
-          let num = 0;
-          let den = 0;
-          let dmin = Infinity;
-          for (let i = 0; i < n; i++) {
-            if (vals[i] < 0) continue;
-            const st = m.stations[i];
-            const dx = (st.lon - lon) * 0.66; // ≈cos(48.8°), degrees→comparable
-            const dy = st.lat - lat;
-            const d2 = dx * dx + dy * dy + 1e-6;
-            if (d2 < dmin) dmin = d2;
-            const w = 1 / (d2 * d2); // IDW power 4: crisper local structure
-            num += w * vals[i];
-            den += w;
-          }
-          const o = (gy * GRID_W + gx) * 4;
-          if (!den) continue;
-          const v = num / den;
-          const [r, g, b] = rampColor(v / domain);
-          // fade the veil where the nearest station is far (no information)
-          const dist = Math.sqrt(dmin);
-          const conf = Math.max(0, 1 - dist / 0.35);
-          img.data[o] = r;
-          img.data[o + 1] = g;
-          img.data[o + 2] = b;
-          img.data[o + 3] = Math.round(150 * Math.pow(conf, 0.8));
-        }
-      }
-
-      deck.setProps({
-        layers: [
-          basemap,
-          new BitmapLayer({
-            id: "air-veil",
-            image: img, // fresh ImageData each frame → texture updates
-            bounds: [box.minLon, box.minLat, box.maxLon, box.maxLat],
-            opacity: 1,
-          }),
-          new ScatterplotLayer({
-            id: "air-stations",
-            data: m.stations,
-            getPosition: (d: AirStation) => [d.lon, d.lat],
-            getRadius: 700,
-            radiusMinPixels: 3,
-            radiusMaxPixels: 14,
-            stroked: true,
-            getLineColor: [230, 232, 238, 200],
-            lineWidthMinPixels: 1,
-            getFillColor: (d: AirStation) => {
-              const i = m.stations.indexOf(d);
-              const v = vals[i];
-              if (v < 0) return [80, 86, 100, 120];
-              const [r, g, b] = rampColor(v / domain);
-              return [r, g, b, 235];
-            },
-            pickable: true,
-            updateTriggers: { getFillColor: [t, pollRef.current] },
-          }),
-        ],
-      });
-    };
-    raf = requestAnimationFrame(tick);
+    deckRef.current = deck;
     (window as unknown as Record<string, unknown>).__air = {
       setTime: (t: number) => {
         timeRef.current = t;
       },
     };
     return () => {
-      cancelAnimationFrame(raf);
+      deckRef.current = null;
       deck.finalize();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const locale = lang === "fr" ? "fr-FR" : "en-GB";
@@ -433,67 +406,51 @@ export default function AirMap() {
     if (!start) return;
     setPoll("no2");
     setYear(2020);
-    setPlaying(true);
-    setSpeed(24);
+    clock.setPlaying(true);
+    clock.setSpeed(24);
     timeRef.current = Math.max(0, (Date.UTC(2020, 2, 17, 7) - start) / 3600e3);
   };
 
   return (
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
-      <div className={`flow-panel${sheetOpen ? "" : " collapsed"}`}>
-        <div className="flow-topbar">
-          <a className="home-link" href="/">
-            ← Paris Viz
-          </a>
-          <LangToggle
-            lang={lang}
-            onChange={(l) => {
-              setLang(l);
-              saveLang(l);
-            }}
-          />
-          <button
-            className="sheet-toggle"
-            aria-label={fx.sheetToggle}
-            aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen((o) => !o)}
-          >
-            {sheetOpen ? "⌄" : "⌃"}
-          </button>
-        </div>
-        <h1 className="sheet-hide">{ar.title}</h1>
-        <p className="sub sheet-hide">
-          {error
-            ? fx.error(error)
-            : meta
-              ? ar.subtitle(meta.stations.length.toLocaleString(locale))
-              : ar.loading}
-          {meta && !series && !error && (
-            <span className="mode-loading"> …</span>
-          )}
-        </p>
-        <div className="flow-clock" ref={clockRef}>
-          --
-        </div>
-        <div className="flow-controls">
-          <button
-            onClick={() => setPlaying((p) => !p)}
-            aria-label={playing ? fx.pause : fx.play}
-          >
-            {playing ? "⏸" : "▶"}
-          </button>
-          <select
-            value={speed}
-            onChange={(e) => setSpeed(+e.target.value)}
-            aria-label={fx.speed}
-          >
-            {SPEEDS.map((s) => (
-              <option key={s.v} value={s.v}>
-                {lang === "fr" ? s.label : s.label.replace("j/s", "d/s")}
-              </option>
-            ))}
-          </select>
+      <VizPanel
+        lang={lang}
+        onLang={(l) => {
+          setLang(l);
+          saveLang(l);
+        }}
+        title={ar.title}
+        subtitle={
+          <>
+            {error
+              ? fx.error(error)
+              : meta
+                ? ar.subtitle(meta.stations.length.toLocaleString(locale))
+                : ar.loading}
+            {meta && !series && !error && (
+              <span className="mode-loading"> …</span>
+            )}
+          </>
+        }
+        clockRef={clockRef}
+        clockInitial="--"
+        playing={clock.playing}
+        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        speed={clock.speed}
+        speeds={SPEEDS.map((s) => ({
+          value: s.v,
+          label: lang === "fr" ? s.label : s.label.replace("j/s", "d/s"),
+        }))}
+        onSpeed={clock.setSpeed}
+        labels={{
+          play: fx.play,
+          pause: fx.pause,
+          speed: fx.speed,
+          time: fx.time,
+          sheetToggle: fx.sheetToggle,
+        }}
+        controlsExtra={
           <div className="poll-toggle" role="radiogroup" aria-label="Polluant">
             {POLLS.map((p) => (
               <button
@@ -507,46 +464,51 @@ export default function AirMap() {
               </button>
             ))}
           </div>
-        </div>
-        {curve && (
-          <svg
-            className="pulse-curve"
-            viewBox="0 0 240 48"
-            preserveAspectRatio="none"
-            onPointerDown={seek}
-            onPointerMove={seek}
-          >
-            <path
-              d={curve.path}
-              fill="rgba(235, 100, 40, 0.25)"
-              stroke="#eb6428"
-              strokeWidth="1"
-            />
-            <line
-              ref={playheadRef}
-              x1="0"
-              x2="0"
-              y1="0"
-              y2="48"
-              stroke="#9fd8ff"
-              strokeWidth="1.5"
-            />
-          </svg>
-        )}
-        <input
-          ref={sliderRef}
-          className="flow-slider"
-          type="range"
-          min={0}
-          max={hours - 1}
-          step={1}
-          defaultValue={params.time}
-          onInput={(e) => {
-            timeRef.current = +(e.target as HTMLInputElement).value;
-          }}
-          aria-label={fx.time}
-        />
-        <div className="year-row sheet-hide" role="radiogroup" aria-label={ar.yearAria}>
+        }
+        beforeSlider={
+          curve ? (
+            <svg
+              className="pulse-curve"
+              viewBox="0 0 240 48"
+              preserveAspectRatio="none"
+              onPointerDown={seek}
+              onPointerMove={seek}
+            >
+              <path
+                d={curve.path}
+                fill="rgba(235, 100, 40, 0.25)"
+                stroke="#eb6428"
+                strokeWidth="1"
+              />
+              <line
+                ref={playheadRef}
+                x1="0"
+                x2="0"
+                y1="0"
+                y2="48"
+                stroke="#9fd8ff"
+                strokeWidth="1.5"
+              />
+            </svg>
+          ) : undefined
+        }
+        slider={{
+          ref: sliderRef,
+          min: 0,
+          max: hours - 1,
+          step: 1,
+          defaultValue: params.time,
+          onInput: (v) => {
+            timeRef.current = v;
+          },
+        }}
+        footer={ar.footer}
+      >
+        <div
+          className="year-row sheet-hide"
+          role="radiogroup"
+          aria-label={ar.yearAria}
+        >
           {years.map((y) => (
             <button
               key={y}
@@ -576,8 +538,7 @@ export default function AirMap() {
           </div>
           <p className="pulse-legend">{ar.legend}</p>
         </div>
-        <p className="flow-footer sheet-hide">{ar.footer}</p>
-      </div>
+      </VizPanel>
     </div>
   );
 }
