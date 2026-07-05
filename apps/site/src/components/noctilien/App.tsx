@@ -6,6 +6,7 @@ import { nearestStops } from "@/lib/noctilien/geo";
 import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/noctilien/i18n";
 import { buildHash, parseHash, type MapView } from "@/lib/noctilien/urlState";
 import LangToggle from "../LangToggle";
+import VizLinks from "../viz/VizLinks";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
 import NightToggle from "./NightToggle";
@@ -93,6 +94,13 @@ export default function App() {
   const selectTarget = (r: SearchResult | null) => {
     setTarget(r);
     if (r) setSheetOpen(true);
+  };
+
+  // story: it's a weekend night at Châtelet and the métro is closed -
+  // these are your night buses home
+  const story = () => {
+    setNight("weekend");
+    selectTarget({ label: "Châtelet", lat: 48.8587, lon: 2.3469 });
   };
 
   const locate = () => {
@@ -187,6 +195,10 @@ export default function App() {
 
         <Legend t={t} />
 
+        <button className="story-btn" onClick={story}>
+          {t.story}
+        </button>
+
         {selectedLine && (
           <div className="line-chip">
             <span
@@ -218,6 +230,7 @@ export default function App() {
           />
         )}
 
+          <VizLinks current="noctilien" lang={lang} />
           <p className="panel-footer">
             {t.footer(data.feedWindow.start, data.feedWindow.end)}
           </p>

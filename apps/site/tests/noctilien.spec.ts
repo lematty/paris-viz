@@ -91,6 +91,22 @@ test("line highlight from the panel and shareable URL round-trip", async ({
   expect(errors).toEqual([]);
 });
 
+test("story button switches to weekend night at Châtelet", async ({ page }) => {
+  const errors = await setup(page);
+  await page.goto("/noctilien");
+  await page.locator(".story-btn").click();
+  await expect(
+    page.getByRole("radio", { name: "Fri–Sat nights" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".nearest li").first()).toBeVisible();
+  await expect(page.locator(".nearest-header")).toContainText("Châtelet");
+  await expect(page).toHaveURL(/night=weekend/);
+  // cross-links to the sibling visualizations are present
+  await expect(page.locator('.viz-links a[href="/flux"]')).toHaveCount(1);
+  await expect(page.locator('.viz-links a[href="/air"]')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
 test("language toggle switches to French and persists", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/noctilien");

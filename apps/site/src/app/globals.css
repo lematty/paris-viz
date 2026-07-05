@@ -881,3 +881,9 @@ a {
 .air-legend {
   margin-top: 12px;
 }
+
+.viz-links {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}

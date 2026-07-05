@@ -9,6 +9,7 @@ import { FLUX } from "@/lib/siteStrings";
 import { currentSearchParams, fmtClock, hexToRgb } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
 import { useAnimationClock } from "./viz/useAnimationClock";
+import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
 
 interface FlowMeta {
@@ -547,6 +548,7 @@ export default function FlowMap() {
             </label>
           </div>
         </div>
+        <VizLinks current="flux" lang={lang} />
       </VizPanel>
     </div>
   );

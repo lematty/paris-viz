@@ -8,6 +8,7 @@ import { AIR, FLUX } from "@/lib/siteStrings";
 import { currentSearchParams } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
 import { useAnimationClock } from "./viz/useAnimationClock";
+import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
 
 type Poll = "no2" | "pm25";
@@ -538,6 +539,7 @@ export default function AirMap() {
           </div>
           <p className="pulse-legend">{ar.legend}</p>
         </div>
+        <VizLinks current="air" lang={lang} />
       </VizPanel>
     </div>
   );

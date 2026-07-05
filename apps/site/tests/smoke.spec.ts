@@ -49,6 +49,7 @@ test("flux loads tram data, pinned time shows on the clock", async ({
   // meta arrived: trip count in the subtitle, line chips rendered
   await expect(page.locator(".sub")).toContainText("trips");
   expect(await page.locator(".line-pill").count()).toBeGreaterThan(10);
+  await expect(page.locator('.viz-links a[href="/air"]')).toHaveCount(1);
   // URL params respected: only Tramway checked
   await expect(
     page.locator('.flow-mode:has-text("Tram") input'),
