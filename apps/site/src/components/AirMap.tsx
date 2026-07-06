@@ -30,12 +30,15 @@ interface AirMeta {
   >;
 }
 
-// playback speeds: simulated hours per real second
+// playback speeds (simulated hours per real second) and the rolling-mean
+// window displayed at each: raw hourly values strobe once the diurnal cycle
+// plays at 1 Hz or more, so every speed averages about what passes in one
+// real second and the eye gets one readable value per second instead
 const SPEEDS = [
-  { v: 6, label: "6 h/s" },
-  { v: 24, label: "1 j/s" },
-  { v: 72, label: "3 j/s" },
-  { v: 168, label: "7 j/s" },
+  { v: 6, w: 1, wLabel: "", label: "6 h/s" },
+  { v: 24, w: 24, wLabel: "24 h", label: "1 j/s" },
+  { v: 72, w: 72, wLabel: "3 j", label: "3 j/s" },
+  { v: 168, w: 168, wLabel: "7 j", label: "7 j/s" },
 ];
 
 // color ramps anchored per pollutant (µg/m³): calm teal → amber → red → violet
@@ -95,6 +98,10 @@ export default function AirMap() {
     hours: number;
     start: number;
     values: Uint8Array;
+    // per-station prefix sums over hours (row h = hours before h), so a
+    // rolling mean over any window is O(1) to sample during playback
+    sums: Uint32Array;
+    counts: Uint16Array;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(params.year);
@@ -138,12 +145,27 @@ export default function AirMap() {
       .then((buf) => {
         if (pollRef.current !== requested.poll || yearRef.current !== requested.year)
           return;
+        const values = new Uint8Array(buf);
+        const n = meta.stations.length;
+        const sums = new Uint32Array((info.hours + 1) * n);
+        const counts = new Uint16Array((info.hours + 1) * n);
+        for (let h = 0; h < info.hours; h++) {
+          const row = h * n;
+          for (let s = 0; s < n; s++) {
+            const v = values[row + s];
+            const ok = v !== 255;
+            sums[row + n + s] = sums[row + s] + (ok ? v : 0);
+            counts[row + n + s] = counts[row + s] + (ok ? 1 : 0);
+          }
+        }
         setSeries({
           poll,
           year,
           hours: info.hours,
           start: info.start,
-          values: new Uint8Array(buf),
+          values,
+          sums,
+          counts,
         });
         timeRef.current = Math.min(timeRef.current, info.hours - 2);
       })
@@ -199,22 +221,36 @@ export default function AirMap() {
   const veilCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const appliedRef = useRef({ t: -1, sig: "" });
 
-  const valueAt = (stationIdx: number, t: number): number | null => {
+  // mean over a w-hour window centered on hour h; w = 1 is the raw hourly
+  // value, and 255-coded gaps just shrink the window instead of poking holes
+  const meanAt = (stationIdx: number, h: number, w: number): number | null => {
     const s = seriesRef.current;
     const m = metaRef.current;
     if (!s || !m) return null;
     const n = m.stations.length;
+    const a = Math.max(0, h - (w >> 1));
+    const b = Math.min(s.hours, a + w);
+    const cnt = s.counts[b * n + stationIdx] - s.counts[a * n + stationIdx];
+    if (!cnt) return null;
+    return (s.sums[b * n + stationIdx] - s.sums[a * n + stationIdx]) / cnt;
+  };
+
+  const valueAt = (stationIdx: number, t: number, w = 1): number | null => {
+    const s = seriesRef.current;
+    if (!s) return null;
     const h0 = Math.max(0, Math.min(s.hours - 1, Math.floor(t)));
     const h1 = Math.min(s.hours - 1, h0 + 1);
-    const a = s.values[h0 * n + stationIdx];
-    const b = s.values[h1 * n + stationIdx];
-    if (a === 255 && b === 255) return null;
-    const va = a === 255 ? b : a;
-    const vb = b === 255 ? a : b;
+    const a = meanAt(stationIdx, h0, w);
+    const b = meanAt(stationIdx, h1, w);
+    if (a === null && b === null) return null;
+    const va = a === null ? (b as number) : a;
+    const vb = b === null ? (a as number) : b;
     return va + (vb - va) * (t - h0);
   };
   const valueAtRef = useRef(valueAt);
   valueAtRef.current = valueAt;
+  // rolling-mean window in hours, follows the selected playback speed
+  const winRef = useRef(24);
 
   const onFrame = (t: number) => {
     const s = seriesRef.current;
@@ -244,7 +280,8 @@ export default function AirMap() {
     const basemap = basemapRef.current;
     const vctx = veilCtxRef.current;
     if (!deck || !basemap || !vctx) return;
-    const sig = `${pollRef.current}|${yearRef.current}|${s ? 1 : 0}`;
+    const w = winRef.current;
+    const sig = `${pollRef.current}|${yearRef.current}|${w}|${s ? 1 : 0}`;
     if (Math.abs(t - appliedRef.current.t) < 0.02 && sig === appliedRef.current.sig)
       return;
     appliedRef.current = { t, sig };
@@ -252,11 +289,11 @@ export default function AirMap() {
     const box = bboxRef.current;
     if (!s || !m || !box) return;
 
-    // current value per station
+    // current value per station (rolling mean sized to the playback speed)
     const n = m.stations.length;
     const vals = new Float32Array(n).fill(-1);
     for (let i = 0; i < n; i++) {
-      const v = valueAtRef.current(i, t);
+      const v = valueAtRef.current(i, t, w);
       if (v !== null) vals[i] = v;
     }
 
@@ -323,7 +360,7 @@ export default function AirMap() {
             return [r, g, b, 235];
           },
           pickable: true,
-          updateTriggers: { getFillColor: [t, pollRef.current] },
+          updateTriggers: { getFillColor: [t, pollRef.current, w] },
         }),
       ],
     });
@@ -340,6 +377,14 @@ export default function AirMap() {
     onFrame,
   });
   const { timeRef } = clock;
+  const speedDef = SPEEDS.find((s) => s.v === clock.speed) ?? SPEEDS[1];
+  winRef.current = speedDef.w;
+  const meanNote =
+    speedDef.w > 1
+      ? ar.mean(lang === "fr" ? speedDef.wLabel : speedDef.wLabel.replace("j", "d"))
+      : null;
+  const meanNoteRef = useRef(meanNote);
+  meanNoteRef.current = meanNote;
 
   useEffect(() => {
     const veil = document.createElement("canvas");
@@ -360,15 +405,17 @@ export default function AirMap() {
       pickingRadius: 10,
       getTooltip: ({ object, index, layer }) => {
         if (!object || index < 0 || layer?.id !== "air-stations") return null;
-        const v = valueAtRef.current(index, timeRef.current);
+        const v = valueAtRef.current(index, timeRef.current, winRef.current);
         const st = object as AirStation;
         const a = AIR[langRef.current];
+        const note = meanNoteRef.current;
         return {
           text:
             `${st.name}\n` +
             (v === null
               ? a.noData
-              : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}`) +
+              : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}` +
+                (note ? ` (${note})` : "")) +
             `\n${st.traffic ? a.traffic : a.background}`,
           style: DECK_TOOLTIP_STYLE,
         };
@@ -436,6 +483,7 @@ export default function AirMap() {
         }
         clockRef={clockRef}
         clockInitial="--"
+        clockNote={<div className="clock-note">{meanNote ?? ar.hourly}</div>}
         playing={clock.playing}
         onTogglePlay={() => clock.setPlaying((p) => !p)}
         speed={clock.speed}

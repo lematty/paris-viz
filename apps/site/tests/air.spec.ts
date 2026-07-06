@@ -31,6 +31,12 @@ test("air loads stations and a year series", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toContainText("Jan", {
     timeout: 15_000,
   });
+  // the displayed rolling-mean window follows the playback speed
+  await expect(page.locator(".clock-note")).toHaveText("24 h mean");
+  await page.getByLabel("Speed").selectOption("168");
+  await expect(page.locator(".clock-note")).toHaveText("7 d mean");
+  await page.getByLabel("Speed").selectOption("6");
+  await expect(page.locator(".clock-note")).toHaveText("hourly values");
   expect(errors).toEqual([]);
 });
 

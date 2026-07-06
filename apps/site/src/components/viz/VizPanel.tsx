@@ -26,6 +26,7 @@ export default function VizPanel({
   subtitle,
   clockRef,
   clockInitial = "--:--",
+  clockNote,
   playing,
   onTogglePlay,
   speed,
@@ -44,6 +45,8 @@ export default function VizPanel({
   subtitle: ReactNode;
   clockRef: RefObject<HTMLDivElement | null>;
   clockInitial?: string;
+  /** Small caption under the clock, e.g. what temporal aggregation is shown. */
+  clockNote?: ReactNode;
   playing: boolean;
   onTogglePlay: () => void;
   speed: number;
@@ -90,6 +93,7 @@ export default function VizPanel({
       <div className="flow-clock" ref={clockRef}>
         {clockInitial}
       </div>
+      {clockNote}
       <div className="flow-controls">
         <button
           onClick={onTogglePlay}

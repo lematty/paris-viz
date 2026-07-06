@@ -153,6 +153,8 @@ export interface AirStrings {
   traffic: string;
   background: string;
   noData: string;
+  hourly: string;
+  mean: (w: string) => string;
   footer: string;
 }
 
@@ -168,6 +170,8 @@ export const AIR: Record<Lang, AirStrings> = {
     traffic: "traffic station",
     background: "background station",
     noData: "no data at this hour",
+    hourly: "hourly values",
+    mean: (w) => `${w} mean`,
     footer: "Measurements: Airparif open data · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
@@ -181,6 +185,8 @@ export const AIR: Record<Lang, AirStrings> = {
     traffic: "station trafic",
     background: "station de fond",
     noData: "pas de donnée à cette heure",
+    hourly: "valeurs horaires",
+    mean: (w) => `moyenne ${w}`,
     footer: "Mesures : données ouvertes Airparif · Fond de carte © OpenStreetMap © CARTO",
   },
 };
