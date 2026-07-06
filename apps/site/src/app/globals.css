@@ -208,10 +208,20 @@ a {
 
 .flow-clock {
   font-variant-numeric: tabular-nums;
-  font-size: 34px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.03em;
+  line-height: 1.3;
   margin-bottom: 8px;
+  color: var(--text-dim);
+  white-space: pre-line;
+}
+
+/* first line (flux's whole clock, air's date) big and bright; air's time
+   line below stays small and dim */
+.flow-clock::first-line {
+  font-size: 34px;
+  color: var(--text);
 }
 
 .clock-note {

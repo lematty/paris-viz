@@ -73,6 +73,24 @@ function rampColor(t: number): [number, number, number] {
 const GRID_W = 150;
 const GRID_H = 100;
 
+// clock formatters cached per locale; date and time render as two fixed
+// lines so the panel never reflows as label widths change during playback
+const CLOCK_FMT: Record<string, Intl.DateTimeFormat[]> = {};
+const clockFormats = (locale: string) =>
+  (CLOCK_FMT[locale] ??= [
+    new Intl.DateTimeFormat(locale, {
+      timeZone: "Europe/Paris",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }),
+    new Intl.DateTimeFormat(locale, {
+      timeZone: "Europe/Paris",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  ]);
+
 function readParams() {
   const p = currentSearchParams();
   const year = p.get("year");
@@ -257,17 +275,14 @@ export default function AirMap() {
     const hours = s?.hours ?? 8760;
     if (clockRef.current) {
       const start = s?.start;
-      const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
-      clockRef.current.textContent = start
-        ? new Date(start + Math.floor(t) * 3600e3).toLocaleString(locale, {
-            timeZone: "Europe/Paris",
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "--";
+      if (start) {
+        const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
+        const [dateFmt, timeFmt] = clockFormats(locale);
+        const d = new Date(start + Math.floor(t) * 3600e3);
+        clockRef.current.textContent = `${dateFmt.format(d)}\n${timeFmt.format(d)}`;
+      } else {
+        clockRef.current.textContent = "--";
+      }
     }
     if (sliderRef.current && document.activeElement !== sliderRef.current)
       sliderRef.current.value = String(Math.round(t));
