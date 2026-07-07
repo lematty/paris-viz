@@ -2,7 +2,7 @@
 
 Live: [paris-viz.vercel.app/air](https://paris-viz.vercel.app/air)
 
-![NO2 veil over Île-de-France on a December evening](air-veil.png)
+![NO2 veil over Île-de-France on a December evening](images/air-veil.png)
 
 Hourly air quality (NO2 and PM2.5) from 44 Airparif monitoring stations,
 2019-2025, breathing over the map as an interpolated veil that fades away

@@ -9,7 +9,7 @@ service day: ~20,000 métro / RER / Transilien / tram trips as glowing comets
 (deck.gl TripsLayer, official line colors, real track geometry from
 `shapes.txt`), plus **90,000 bus trips** as an opt-in fourth mode.
 
-![90,000 daily buses at morning rush](flux-buses.png)
+![90,000 daily buses at morning rush](images/flux-buses.png)
 
 ## Using it
 

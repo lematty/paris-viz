@@ -28,7 +28,7 @@ métro, RER and tram runs as glowing comets on real track geometry, plus
 
 ### [`/air` - a year of Paris air, hour by hour](docs/air.md)
 
-![NO2 veil over Île-de-France on a December evening](docs/air-veil.png)
+![NO2 veil over Île-de-France on a December evening](docs/images/air-veil.png)
 
 Seven years of hourly Airparif measurements breathing over the map as an
 interpolated veil: winter smog, clean windy days, and the March 2020
