@@ -57,6 +57,23 @@ Data: `public/horizon/` - a station list plus an all-pairs travel-time
 matrix (943×943 uint8 minutes, ~870 KB) built by one Dijkstra per station
 over a frequency-based graph (`pnpm build:horizon`).
 
+### `/vertige` - the heights of Paris
+
+![Every building of Paris intra-muros extruded to its measured height](apps/site/public/vertige-og.png)
+
+Every building inside the périphérique (~110,000) extruded in 3D to its
+IGN-measured rooftop height, colored from dark bronze sheds to golden towers
+(deck.gl SolidPolygonLayer). Press play and a ceiling rises through the city:
+courtyard sheds first, the Haussmann wave between 15 and 21 m, then the
+towers climbing alone. A mode select flips to "only what rises above", and a
+story button pins that at 37 m - the 1977 height limit. The sweep is a GPU
+filter uniform, so the 1.1 M-vertex city is tessellated once and animates at
+full frame rate. URL params: `?t=60&mode=above&paused=1`.
+
+Data: `public/vertige/` - quantized footprints (courtyard holes included),
+heights, floors, usage and construction year packed into a 5.5 MB binary from
+the BD TOPO WFS, clipped to the 20 arrondissements (`pnpm build:vertige`).
+
 ### `/noctilien` - night-bus frequency
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)
@@ -95,4 +112,5 @@ GPU, so painted WebGL pixels are never asserted.
 ## Data sources
 
 - [IDFM GTFS](https://transport.data.gouv.fr/datasets/reseau-urbain-et-interurbain-dile-de-france-mobilites) - schedules for all Île-de-France transit (~30-day window)
+- [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) - building footprints and measured heights, via the Géoplateforme WFS
 - Basemap: CARTO dark tiles © OpenStreetMap contributors

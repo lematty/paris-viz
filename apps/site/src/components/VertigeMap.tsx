@@ -17,6 +17,7 @@ import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX, VERTIGE } from "@/lib/siteStrings";
 import { currentSearchParams, hexToRgb } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
 import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
@@ -84,9 +85,9 @@ const bandOf = (dm: number) => {
 };
 
 const SPEEDS = [
-  { value: 0.5, label: "0.5×" },
   { value: 1, label: "1×" },
   { value: 2, label: "2×" },
+  { value: 4, label: "4×" },
 ];
 
 function readParams() {
@@ -257,7 +258,7 @@ export default function VertigeMap() {
   const clock = useAnimationClock({
     initialTime: params.t,
     autoplay: !params.paused,
-    initialSpeed: 1,
+    initialSpeed: 2,
     normalize: (t) => ((t % WRAP_T) + WRAP_T) % WRAP_T,
     onFrame,
   });
@@ -265,71 +266,83 @@ export default function VertigeMap() {
 
   useEffect(() => {
     basemapRef.current = createBasemapLayer();
-    const deck = new Deck({
-      parent: containerRef.current!,
-      initialViewState: {
-        longitude: 2.347,
-        latitude: 48.855,
-        zoom: 12,
-        pitch: 55,
-        bearing: -12,
-        minZoom: 10.3,
-        maxZoom: 16.5,
-        maxPitch: 70,
-      },
-      controller: true,
-      effects: [
-        new LightingEffect({
-          ambient: new AmbientLight({ color: [255, 255, 255], intensity: 1.1 }),
-          sun: new DirectionalLight({
-            color: [255, 235, 205],
-            intensity: 1.5,
-            direction: [-1, -0.6, -2],
-          }),
-        }),
-      ],
-      getCursor: ({ isDragging, isHovering }) =>
-        isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
-      getTooltip: ({ object, layer }) => {
-        if (!object || layer?.id !== "vertige-buildings") return null;
-        const d = dataRef.current;
-        const m = metaRef.current;
-        if (!d || !m) return null;
-        const s = VERTIGE[langRef.current];
-        const b = object as Building;
-        const parts = [`${(d.hDm[b.i] / 10).toLocaleString(langRef.current === "fr" ? "fr-FR" : "en-GB", { maximumFractionDigits: 1 })} m`];
-        if (d.floors[b.i] !== 255) parts.push(s.floors(d.floors[b.i]));
-        const label = m.usages[d.usage[b.i]];
-        if (label && label !== "Indifférencié")
-          parts.push(s.usages[label] ?? label);
-        const y = d.year[b.i];
-        if (y > 1000 && y < 2100) parts.push(s.built(y));
-        return { text: parts.join(" · "), style: DECK_TOOLTIP_STYLE };
-      },
-      layers: [basemapRef.current],
-    });
-    deckRef.current = deck;
-    (window as unknown as Record<string, unknown>).__vertige = {
-      setTime: (t: number) => {
-        timeRef.current = t;
-      },
-      // camera override for tests and promo screenshots
-      setView: (vs: Record<string, number>) =>
-        deck.setProps({
+    return mountDeck(
+      () => {
+        const deck = new Deck({
+          parent: containerRef.current!,
           initialViewState: {
             longitude: 2.347,
             latitude: 48.855,
             zoom: 12,
             pitch: 55,
             bearing: -12,
-            ...vs,
+            minZoom: 10.3,
+            maxZoom: 16.5,
+            maxPitch: 70,
           },
-        }),
-    };
-    return () => {
-      deckRef.current = null;
-      deck.finalize();
-    };
+          controller: true,
+          effects: [
+            new LightingEffect({
+              ambient: new AmbientLight({
+                color: [255, 255, 255],
+                intensity: 1.1,
+              }),
+              sun: new DirectionalLight({
+                color: [255, 235, 205],
+                intensity: 1.5,
+                direction: [-1, -0.6, -2],
+              }),
+            }),
+          ],
+          getCursor: ({ isDragging, isHovering }) =>
+            isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
+          getTooltip: ({ object, layer }) => {
+            if (!object || layer?.id !== "vertige-buildings") return null;
+            const d = dataRef.current;
+            const m = metaRef.current;
+            if (!d || !m) return null;
+            const s = VERTIGE[langRef.current];
+            const b = object as Building;
+            const parts = [
+              `${(d.hDm[b.i] / 10).toLocaleString(
+                langRef.current === "fr" ? "fr-FR" : "en-GB",
+                { maximumFractionDigits: 1 },
+              )} m`,
+            ];
+            if (d.floors[b.i] !== 255) parts.push(s.floors(d.floors[b.i]));
+            const label = m.usages[d.usage[b.i]];
+            if (label && label !== "Indifférencié")
+              parts.push(s.usages[label] ?? label);
+            const y = d.year[b.i];
+            if (y > 1000 && y < 2100) parts.push(s.built(y));
+            return { text: parts.join(" · "), style: DECK_TOOLTIP_STYLE };
+          },
+          layers: [basemapRef.current],
+        });
+        deckRef.current = deck;
+        (window as unknown as Record<string, unknown>).__vertige = {
+          setTime: (t: number) => {
+            timeRef.current = t;
+          },
+          // camera override for tests and promo screenshots
+          setView: (vs: Record<string, number>) =>
+            deck.setProps({
+              initialViewState: {
+                longitude: 2.347,
+                latitude: 48.855,
+                zoom: 12,
+                pitch: 55,
+                bearing: -12,
+                ...vs,
+              },
+            }),
+        };
+        return deck;
+      },
+      () => {
+        deckRef.current = null;
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
