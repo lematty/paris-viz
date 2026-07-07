@@ -7,6 +7,7 @@ import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX, HORIZON } from "@/lib/siteStrings";
 import { currentSearchParams } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
 import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
@@ -299,46 +300,51 @@ export default function HorizonMap() {
 
   useEffect(() => {
     basemapRef.current = createBasemapLayer();
-    const deck = new Deck({
-      parent: containerRef.current!,
-      initialViewState: {
-        longitude: 2.42,
-        latitude: 48.83,
-        zoom: 9,
-        minZoom: 7.5,
-        maxZoom: 14,
-      },
-      controller: true,
-      pickingRadius: 12,
-      getCursor: ({ isDragging, isHovering }) =>
-        isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
-      getTooltip: ({ object, index, layer }) => {
-        if (!object || index < 0 || layer?.id !== "horizon-stations") return null;
-        const st = object as HorizonStation;
-        const h = HORIZON[langRef.current];
-        const m = metaRef.current;
-        const mat = matrixRef.current;
-        if (!m || !mat) return null;
-        if (index === originRef.current)
-          return { text: st.name, style: DECK_TOOLTIP_STYLE };
-        const tj = mat[originRef.current * m.stations.length + index];
-        return {
-          text: `${st.name}\n${tj > MAX_T ? h.beyond : h.minutes(tj)}`,
-          style: DECK_TOOLTIP_STYLE,
+    return mountDeck(
+      () => {
+        const deck = new Deck({
+          parent: containerRef.current!,
+          initialViewState: {
+            longitude: 2.42,
+            latitude: 48.83,
+            zoom: 9,
+            minZoom: 7.5,
+            maxZoom: 14,
+          },
+          controller: true,
+          pickingRadius: 12,
+          getCursor: ({ isDragging, isHovering }) =>
+            isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
+          getTooltip: ({ object, index, layer }) => {
+            if (!object || index < 0 || layer?.id !== "horizon-stations")
+              return null;
+            const st = object as HorizonStation;
+            const h = HORIZON[langRef.current];
+            const m = metaRef.current;
+            const mat = matrixRef.current;
+            if (!m || !mat) return null;
+            if (index === originRef.current)
+              return { text: st.name, style: DECK_TOOLTIP_STYLE };
+            const tj = mat[originRef.current * m.stations.length + index];
+            return {
+              text: `${st.name}\n${tj > MAX_T ? h.beyond : h.minutes(tj)}`,
+              style: DECK_TOOLTIP_STYLE,
+            };
+          },
+          layers: [basemapRef.current],
+        });
+        deckRef.current = deck;
+        (window as unknown as Record<string, unknown>).__horizon = {
+          setTime: (t: number) => {
+            timeRef.current = t;
+          },
         };
+        return deck;
       },
-      layers: [basemapRef.current],
-    });
-    deckRef.current = deck;
-    (window as unknown as Record<string, unknown>).__horizon = {
-      setTime: (t: number) => {
-        timeRef.current = t;
+      () => {
+        deckRef.current = null;
       },
-    };
-    return () => {
-      deckRef.current = null;
-      deck.finalize();
-    };
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

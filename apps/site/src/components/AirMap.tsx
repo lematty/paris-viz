@@ -7,6 +7,7 @@ import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { AIR, FLUX } from "@/lib/siteStrings";
 import { currentSearchParams } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
 import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
@@ -416,46 +417,55 @@ export default function AirMap() {
     veil.height = GRID_H;
     veilCtxRef.current = veil.getContext("2d");
     basemapRef.current = createBasemapLayer();
-    const deck = new Deck({
-      parent: containerRef.current!,
-      initialViewState: {
-        longitude: 2.42,
-        latitude: 48.8,
-        zoom: 8.7,
-        minZoom: 7.5,
-        maxZoom: 13,
-      },
-      controller: true,
-      pickingRadius: 10,
-      getTooltip: ({ object, index, layer }) => {
-        if (!object || index < 0 || layer?.id !== "air-stations") return null;
-        const v = valueAtRef.current(index, timeRef.current, winRef.current);
-        const st = object as AirStation;
-        const a = AIR[langRef.current];
-        const note = meanNoteRef.current;
-        return {
-          text:
-            `${st.name}\n` +
-            (v === null
-              ? a.noData
-              : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}` +
-                (note ? ` (${note})` : "")) +
-            `\n${st.traffic ? a.traffic : a.background}`,
-          style: DECK_TOOLTIP_STYLE,
+    return mountDeck(
+      () => {
+        const deck = new Deck({
+          parent: containerRef.current!,
+          initialViewState: {
+            longitude: 2.42,
+            latitude: 48.8,
+            zoom: 8.7,
+            minZoom: 7.5,
+            maxZoom: 13,
+          },
+          controller: true,
+          pickingRadius: 10,
+          getTooltip: ({ object, index, layer }) => {
+            if (!object || index < 0 || layer?.id !== "air-stations")
+              return null;
+            const v = valueAtRef.current(
+              index,
+              timeRef.current,
+              winRef.current,
+            );
+            const st = object as AirStation;
+            const a = AIR[langRef.current];
+            const note = meanNoteRef.current;
+            return {
+              text:
+                `${st.name}\n` +
+                (v === null
+                  ? a.noData
+                  : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}` +
+                    (note ? ` (${note})` : "")) +
+                `\n${st.traffic ? a.traffic : a.background}`,
+              style: DECK_TOOLTIP_STYLE,
+            };
+          },
+          layers: [basemapRef.current],
+        });
+        deckRef.current = deck;
+        (window as unknown as Record<string, unknown>).__air = {
+          setTime: (t: number) => {
+            timeRef.current = t;
+          },
         };
+        return deck;
       },
-      layers: [basemapRef.current],
-    });
-    deckRef.current = deck;
-    (window as unknown as Record<string, unknown>).__air = {
-      setTime: (t: number) => {
-        timeRef.current = t;
+      () => {
+        deckRef.current = null;
       },
-    };
-    return () => {
-      deckRef.current = null;
-      deck.finalize();
-    };
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

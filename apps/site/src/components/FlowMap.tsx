@@ -8,6 +8,7 @@ import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX } from "@/lib/siteStrings";
 import { currentSearchParams, fmtClock, hexToRgb } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
 import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
@@ -382,39 +383,43 @@ export default function FlowMap() {
 
   useEffect(() => {
     basemapRef.current = createBasemapLayer();
-    const deck = new Deck({
-      parent: containerRef.current!,
-      initialViewState: {
-        longitude: 2.35,
-        latitude: 48.86,
-        zoom: 11,
-        minZoom: 8,
-        maxZoom: 17,
-      },
-      controller: true,
-      layers: [basemapRef.current],
-      pickingRadius: 6,
-      getTooltip: ({ object, layer }) => {
-        if (!object || !layer) return null;
-        const mode = layer.id.split("-")[1] as ModeKey;
-        return {
-          text: `${FLUX[langRef.current].modes[mode]} ${(object as Trip).line}`,
-          style: DECK_TOOLTIP_STYLE,
+    return mountDeck(
+      () => {
+        const deck = new Deck({
+          parent: containerRef.current!,
+          initialViewState: {
+            longitude: 2.35,
+            latitude: 48.86,
+            zoom: 11,
+            minZoom: 8,
+            maxZoom: 17,
+          },
+          controller: true,
+          layers: [basemapRef.current],
+          pickingRadius: 6,
+          getTooltip: ({ object, layer }) => {
+            if (!object || !layer) return null;
+            const mode = layer.id.split("-")[1] as ModeKey;
+            return {
+              text: `${FLUX[langRef.current].modes[mode]} ${(object as Trip).line}`,
+              style: DECK_TOOLTIP_STYLE,
+            };
+          },
+        });
+        deckRef.current = deck;
+        // automation/debug handle
+        (window as unknown as Record<string, unknown>).__flow = {
+          setTime: (t: number) => {
+            timeRef.current = t;
+          },
+          getTime: () => timeRef.current,
         };
+        return deck;
       },
-    });
-    deckRef.current = deck;
-    // automation/debug handle
-    (window as unknown as Record<string, unknown>).__flow = {
-      setTime: (t: number) => {
-        timeRef.current = t;
+      () => {
+        deckRef.current = null;
       },
-      getTime: () => timeRef.current,
-    };
-    return () => {
-      deckRef.current = null;
-      deck.finalize();
-    };
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
