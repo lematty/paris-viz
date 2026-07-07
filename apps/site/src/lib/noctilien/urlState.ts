@@ -26,9 +26,9 @@ export function parseHash(hash: string): UrlState {
     target: null,
   };
 
-  const map = params.get("map")?.split("/");
-  if (map?.length === 3) {
-    const [zoom, lat, lon] = map.map(Number);
+  const mapParts = params.get("map")?.split("/");
+  if (mapParts?.length === 3) {
+    const [zoom, lat, lon] = mapParts.map(Number);
     if ([zoom, lat, lon].every(Number.isFinite)) state.view = { zoom, lat, lon };
   }
 
@@ -37,12 +37,12 @@ export function parseHash(hash: string): UrlState {
   const line = params.get("line");
   if (line && /^N\d{2,3}$/.test(line)) state.line = line;
 
-  const q = params.get("q");
-  const at = q?.lastIndexOf("@") ?? -1;
-  if (q && at > 0) {
-    const [lat, lon] = q.slice(at + 1).split(",").map(Number);
+  const query = params.get("q");
+  const atIndex = query?.lastIndexOf("@") ?? -1;
+  if (query && atIndex > 0) {
+    const [lat, lon] = query.slice(atIndex + 1).split(",").map(Number);
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      state.target = { label: q.slice(0, at), lat, lon };
+      state.target = { label: query.slice(0, atIndex), lat, lon };
     }
   }
 
@@ -63,6 +63,6 @@ export function buildHash(state: UrlState): string {
       `${state.target.label}@${state.target.lat.toFixed(5)},${state.target.lon.toFixed(5)}`,
     );
   }
-  const s = params.toString();
-  return s ? `#${s}` : "";
+  const serialized = params.toString();
+  return serialized ? `#${serialized}` : "";
 }

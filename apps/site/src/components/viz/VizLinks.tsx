@@ -23,10 +23,10 @@ export default function VizLinks({
   return (
     <p className="viz-links sheet-hide">
       {lang === "fr" ? "Voir aussi : " : "See also: "}
-      {PAGES.filter((p) => p.key !== current).map((p, i) => (
-        <span key={p.key}>
+      {PAGES.filter((page) => page.key !== current).map((page, i) => (
+        <span key={page.key}>
           {i > 0 && " · "}
-          <a href={p.href}>{p.label}</a>
+          <a href={page.href}>{page.label}</a>
         </span>
       ))}
     </p>

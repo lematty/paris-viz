@@ -22,15 +22,15 @@ export const DAY_MS = 86_400_000;
 // CSV
 // ---------------------------------------------------------------------------
 
-export function parseCsvLine(line: string, delim = ","): string[] {
-  if (!line.includes('"')) return line.split(delim);
-  const out: string[] = [];
+export function parseCsvLine(line: string, delimiter = ","): string[] {
+  if (!line.includes('"')) return line.split(delimiter);
+  const fields: string[] = [];
   let field = "";
   let inQuotes = false;
   for (let i = 0; i < line.length; i++) {
-    const c = line[i];
+    const char = line[i];
     if (inQuotes) {
-      if (c === '"') {
+      if (char === '"') {
         if (line[i + 1] === '"') {
           field += '"';
           i++;
@@ -38,19 +38,19 @@ export function parseCsvLine(line: string, delim = ","): string[] {
           inQuotes = false;
         }
       } else {
-        field += c;
+        field += char;
       }
-    } else if (c === '"') {
+    } else if (char === '"') {
       inQuotes = true;
-    } else if (c === delim) {
-      out.push(field);
+    } else if (char === delimiter) {
+      fields.push(field);
       field = "";
     } else {
-      field += c;
+      field += char;
     }
   }
-  out.push(field);
-  return out;
+  fields.push(field);
+  return fields;
 }
 
 /** Streams one CSV member of the GTFS zip, invoking onRow with a
@@ -63,37 +63,37 @@ export async function streamZipCsv(
   const child = spawn("unzip", ["-p", zipPath, member], {
     stdio: ["ignore", "pipe", "inherit"],
   });
-  const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
+  const lineReader = createInterface({ input: child.stdout, crlfDelay: Infinity });
   let header: Map<string, number> | null = null;
   let row: string[] = [];
   const get = (col: string) => row[header!.get(col) ?? -1] ?? "";
-  for await (const line of rl) {
+  for await (const line of lineReader) {
     if (!line) continue;
     if (!header) {
       header = new Map(
-        parseCsvLine(line.replace(/^﻿/, "")).map((h, i) => [h.trim(), i]),
+        parseCsvLine(line.replace(/^﻿/, "")).map((name, i) => [name.trim(), i]),
       );
       continue;
     }
     row = parseCsvLine(line);
     onRow(get);
   }
-  const code = await new Promise<number | null>((res) => child.on("close", res));
-  if (code !== 0) throw new Error(`unzip -p ${member} exited with code ${code}`);
+  const exitCode = await new Promise<number | null>((resolve) => child.on("close", resolve));
+  if (exitCode !== 0) throw new Error(`unzip -p ${member} exited with code ${exitCode}`);
 }
 
 // ---------------------------------------------------------------------------
 // Dates & times (GTFS dates are YYYYMMDD calendar dates; times may be >24:00)
 // ---------------------------------------------------------------------------
 
-export const parseGtfsDate = (s: string) =>
-  Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+export const parseGtfsDate = (dateStr: string) =>
+  Date.UTC(+dateStr.slice(0, 4), +dateStr.slice(4, 6) - 1, +dateStr.slice(6, 8));
 
 export const fmtDate = (ts: number) => new Date(ts).toISOString().slice(0, 10);
 
 /** "25:30:00" → 91800 (seconds since midnight of the service day). */
-export const parseGtfsTime = (s: string) =>
-  +s.slice(0, 2) * 3600 + +s.slice(3, 5) * 60 + +s.slice(6, 8);
+export const parseGtfsTime = (timeStr: string) =>
+  +timeStr.slice(0, 2) * 3600 + +timeStr.slice(3, 5) * 60 + +timeStr.slice(6, 8);
 
 export const WEEKDAY_COLS = [
   "sunday",
@@ -112,15 +112,15 @@ export async function loadServiceDates(
   serviceIds: ReadonlySet<string>,
 ): Promise<Map<string, Set<number>>> {
   const serviceDates = new Map<string, Set<number>>();
-  const ensure = (id: string) => {
-    let s = serviceDates.get(id);
-    if (!s) serviceDates.set(id, (s = new Set()));
-    return s;
+  const getOrCreateDates = (id: string) => {
+    let dates = serviceDates.get(id);
+    if (!dates) serviceDates.set(id, (dates = new Set()));
+    return dates;
   };
   await streamZipCsv(zipPath, "calendar.txt", (get) => {
     const id = get("service_id");
     if (!serviceIds.has(id)) return;
-    const dates = ensure(id);
+    const dates = getOrCreateDates(id);
     const end = parseGtfsDate(get("end_date"));
     for (let ts = parseGtfsDate(get("start_date")); ts <= end; ts += DAY_MS) {
       if (get(WEEKDAY_COLS[new Date(ts).getUTCDay()]) === "1") dates.add(ts);
@@ -130,7 +130,7 @@ export async function loadServiceDates(
     const id = get("service_id");
     if (!serviceIds.has(id)) return;
     const ts = parseGtfsDate(get("date"));
-    if (get("exception_type") === "1") ensure(id).add(ts);
+    if (get("exception_type") === "1") getOrCreateDates(id).add(ts);
     else serviceDates.get(id)?.delete(ts);
   });
   return serviceDates;
@@ -151,48 +151,48 @@ export function haversineMeters(
   const rad = Math.PI / 180;
   const dLat = (bLat - aLat) * rad;
   const dLon = (bLon - aLon) * rad;
-  const s =
+  const haversine =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_R * Math.asin(Math.sqrt(s));
+  return 2 * EARTH_R * Math.asin(Math.sqrt(haversine));
 }
 
-/** Douglas-Peucker in degree space ([lat, lon] pairs); tol in degrees
+/** Douglas-Peucker in degree space ([lat, lon] pairs); tolerance in degrees
  * (~1e-4 ≈ 11 m). Endpoints are always kept. */
 export function simplifyPath(
-  pts: [number, number][],
-  tol: number,
+  points: [number, number][],
+  tolerance: number,
 ): [number, number][] {
-  if (pts.length < 3) return pts;
-  const keep = new Uint8Array(pts.length);
-  keep[0] = keep[pts.length - 1] = 1;
-  const stack: [number, number][] = [[0, pts.length - 1]];
+  if (points.length < 3) return points;
+  const keep = new Uint8Array(points.length);
+  keep[0] = keep[points.length - 1] = 1;
+  const stack: [number, number][] = [[0, points.length - 1]];
   while (stack.length) {
-    const [a, b] = stack.pop()!;
-    let maxD = 0;
-    let maxI = a;
-    const [ax, ay] = pts[a];
-    const [bx, by] = pts[b];
+    const [start, end] = stack.pop()!;
+    let maxDist = 0;
+    let maxIdx = start;
+    const [ax, ay] = points[start];
+    const [bx, by] = points[end];
     const dx = bx - ax;
     const dy = by - ay;
     const len2 = dx * dx + dy * dy || 1e-12;
-    for (let i = a + 1; i < b; i++) {
+    for (let i = start + 1; i < end; i++) {
       const t = Math.max(
         0,
-        Math.min(1, ((pts[i][0] - ax) * dx + (pts[i][1] - ay) * dy) / len2),
+        Math.min(1, ((points[i][0] - ax) * dx + (points[i][1] - ay) * dy) / len2),
       );
-      const d = Math.hypot(pts[i][0] - (ax + t * dx), pts[i][1] - (ay + t * dy));
-      if (d > maxD) {
-        maxD = d;
-        maxI = i;
+      const dist = Math.hypot(points[i][0] - (ax + t * dx), points[i][1] - (ay + t * dy));
+      if (dist > maxDist) {
+        maxDist = dist;
+        maxIdx = i;
       }
     }
-    if (maxD > tol) {
-      keep[maxI] = 1;
-      stack.push([a, maxI], [maxI, b]);
+    if (maxDist > tolerance) {
+      keep[maxIdx] = 1;
+      stack.push([start, maxIdx], [maxIdx, end]);
     }
   }
-  return pts.filter((_, i) => keep[i]);
+  return points.filter((_, i) => keep[i]);
 }
 
 // ---------------------------------------------------------------------------

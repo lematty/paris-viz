@@ -31,16 +31,16 @@ interface VertigeMeta {
 
 /** One building: element offsets into the shared flat positions array. */
 interface Building {
-  i: number;
-  s: number;
-  e: number;
+  idx: number;
+  start: number;
+  end: number;
   holes?: number[];
 }
 
 interface BuildingData {
   buildings: Building[];
   positions: Float64Array;
-  hDm: Uint16Array;
+  heightDm: Uint16Array;
   year: Uint16Array;
   floors: Uint8Array;
   usage: Uint8Array;
@@ -60,10 +60,10 @@ const ceilingAt = (t: number) =>
   t <= BREAK_T
     ? (t * BREAK_M) / BREAK_T
     : BREAK_M + ((t - BREAK_T) * (TOP_M - BREAK_M)) / (MAX_T - BREAK_T);
-const timeAt = (m: number) =>
-  m <= BREAK_M
-    ? (m * BREAK_T) / BREAK_M
-    : BREAK_T + ((m - BREAK_M) * (MAX_T - BREAK_T)) / (TOP_M - BREAK_M);
+const timeForCeiling = (meters: number) =>
+  meters <= BREAK_M
+    ? (meters * BREAK_T) / BREAK_M
+    : BREAK_T + ((meters - BREAK_M) * (MAX_T - BREAK_T)) / (TOP_M - BREAK_M);
 
 // sequential amber ramp, dim bronze floor to the site's signature gold:
 // lightness rises with height so the towers glow on the dark basemap
@@ -79,8 +79,9 @@ const BAND_HEX = [
 ];
 const BAND_RGB = BAND_HEX.map(hexToRgb);
 const bandOf = (dm: number) => {
-  const m = dm / 10;
-  for (let b = 0; b < BAND_TOPS.length; b++) if (m < BAND_TOPS[b]) return b;
+  const meters = dm / 10;
+  for (let b = 0; b < BAND_TOPS.length; b++)
+    if (meters < BAND_TOPS[b]) return b;
   return BAND_TOPS.length;
 };
 
@@ -91,65 +92,65 @@ const SPEEDS = [
 ];
 
 function readParams() {
-  const p = currentSearchParams();
-  const t = p.get("t") ? +p.get("t")! : 0;
+  const searchParams = currentSearchParams();
+  const t = searchParams.get("t") ? +searchParams.get("t")! : 0;
   return {
     t: Number.isFinite(t) ? Math.max(0, Math.min(MAX_T, t)) : 0,
-    paused: p.get("paused") === "1",
-    mode: (p.get("mode") === "above" ? "above" : "below") as CeilMode,
+    paused: searchParams.get("paused") === "1",
+    mode: (searchParams.get("mode") === "above" ? "above" : "below") as CeilMode,
   };
 }
 
 function parseBuildings(buf: ArrayBuffer): BuildingData {
-  const dv = new DataView(buf);
-  if (dv.getUint32(0, true) !== 0x56455254)
+  const view = new DataView(buf);
+  if (view.getUint32(0, true) !== 0x56455254)
     throw new Error("buildings.bin: bad magic");
-  const N = dv.getUint32(4, true);
-  const R = dv.getUint32(8, true);
-  const V = dv.getUint32(12, true);
-  const minLon = dv.getFloat64(16, true);
-  const minLat = dv.getFloat64(24, true);
-  const maxLon = dv.getFloat64(32, true);
-  const maxLat = dv.getFloat64(40, true);
-  let off = 48;
-  const hDm = new Uint16Array(buf, off, N);
-  off += 2 * N;
-  const year = new Uint16Array(buf, off, N);
-  off += 2 * N;
-  const floors = new Uint8Array(buf, off, N);
-  off += N;
-  const usage = new Uint8Array(buf, off, N);
-  off += N;
-  const rings = new Uint8Array(buf, off, N);
-  off += N;
-  off += off % 2;
-  const ringVerts = new Uint16Array(buf, off, R);
-  off += 2 * R;
-  const q = new Uint16Array(buf, off, 2 * V);
+  const buildingCount = view.getUint32(4, true);
+  const ringCount = view.getUint32(8, true);
+  const vertexCount = view.getUint32(12, true);
+  const minLon = view.getFloat64(16, true);
+  const minLat = view.getFloat64(24, true);
+  const maxLon = view.getFloat64(32, true);
+  const maxLat = view.getFloat64(40, true);
+  let offset = 48;
+  const heightDm = new Uint16Array(buf, offset, buildingCount);
+  offset += 2 * buildingCount;
+  const year = new Uint16Array(buf, offset, buildingCount);
+  offset += 2 * buildingCount;
+  const floors = new Uint8Array(buf, offset, buildingCount);
+  offset += buildingCount;
+  const usage = new Uint8Array(buf, offset, buildingCount);
+  offset += buildingCount;
+  const rings = new Uint8Array(buf, offset, buildingCount);
+  offset += buildingCount;
+  offset += offset % 2;
+  const ringVerts = new Uint16Array(buf, offset, ringCount);
+  offset += 2 * ringCount;
+  const quantized = new Uint16Array(buf, offset, 2 * vertexCount);
 
-  const positions = new Float64Array(2 * V);
+  const positions = new Float64Array(2 * vertexCount);
   const sx = (maxLon - minLon) / 65535;
   const sy = (maxLat - minLat) / 65535;
-  for (let i = 0; i < V; i++) {
-    positions[2 * i] = minLon + q[2 * i] * sx;
-    positions[2 * i + 1] = minLat + q[2 * i + 1] * sy;
+  for (let i = 0; i < vertexCount; i++) {
+    positions[2 * i] = minLon + quantized[2 * i] * sx;
+    positions[2 * i + 1] = minLat + quantized[2 * i + 1] * sy;
   }
 
-  const buildings: Building[] = new Array(N);
-  let ri = 0;
-  let ve = 0; // element cursor into positions
-  for (let i = 0; i < N; i++) {
-    const s = ve;
+  const buildings: Building[] = new Array(buildingCount);
+  let ringCursor = 0;
+  let elementCursor = 0; // element cursor into positions
+  for (let i = 0; i < buildingCount; i++) {
+    const start = elementCursor;
     const nRings = rings[i];
     let holes: number[] | undefined;
     for (let k = 0; k < nRings; k++) {
-      ve += ringVerts[ri + k] * 2;
-      if (k < nRings - 1) (holes ??= []).push(ve - s);
+      elementCursor += ringVerts[ringCursor + k] * 2;
+      if (k < nRings - 1) (holes ??= []).push(elementCursor - start);
     }
-    ri += nRings;
-    buildings[i] = { i, s, e: ve, holes };
+    ringCursor += nRings;
+    buildings[i] = { idx: i, start, end: elementCursor, holes };
   }
-  return { buildings, positions, hDm, year, floors, usage };
+  return { buildings, positions, heightDm, year, floors, usage };
 }
 
 export default function VertigeMap() {
@@ -163,8 +164,8 @@ export default function VertigeMap() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<CeilMode>(params.mode);
   const [lang, setLang] = useState<Lang>(loadLang);
-  const fx = FLUX[lang];
-  const vg = VERTIGE[lang];
+  const commonStrings = FLUX[lang];
+  const strings = VERTIGE[lang];
   const langRef = useRef(lang);
   langRef.current = lang;
   const metaRef = useRef(meta);
@@ -176,16 +177,17 @@ export default function VertigeMap() {
 
   useEffect(() => {
     fetch("/vertige/meta.json")
-      .then((r) => {
-        if (!r.ok) throw new Error(`meta.json: HTTP ${r.status}`);
-        return r.json() as Promise<VertigeMeta>;
+      .then((response) => {
+        if (!response.ok) throw new Error(`meta.json: HTTP ${response.status}`);
+        return response.json() as Promise<VertigeMeta>;
       })
       .then(setMeta)
       .catch((e: Error) => setError(e.message));
     fetch("/vertige/buildings.bin")
-      .then((r) => {
-        if (!r.ok) throw new Error(`buildings.bin: HTTP ${r.status}`);
-        return r.arrayBuffer();
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`buildings.bin: HTTP ${response.status}`);
+        return response.arrayBuffer();
       })
       .then((buf) => setData(parseBuildings(buf)))
       .catch((e: Error) => setError(e.message));
@@ -194,44 +196,53 @@ export default function VertigeMap() {
   const deckRef = useRef<Deck | null>(null);
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
   const appliedRef = useRef({
-    cq: -1,
+    quantizedCeiling: -1,
     mode: "below" as CeilMode,
     data: null as BuildingData | null,
   });
 
   const onFrame = (t: number) => {
-    const td = Math.min(MAX_T, t);
-    const ceil = ceilingAt(td);
+    const displayTime = Math.min(MAX_T, t);
+    const ceil = ceilingAt(displayTime);
     if (clockRef.current) clockRef.current.textContent = `${Math.round(ceil)} m`;
     if (sliderRef.current && document.activeElement !== sliderRef.current)
-      sliderRef.current.value = String(Math.round(td * 4) / 4);
+      sliderRef.current.value = String(Math.round(displayTime * 4) / 4);
     const deck = deckRef.current;
     const basemap = basemapRef.current;
-    const d = dataRef.current;
-    if (!deck || !basemap || !d) return;
+    const data = dataRef.current;
+    if (!deck || !basemap || !data) return;
     // quantize the ceiling so paused frames and sub-frame ticks skip redraws
-    const cq = Math.round(ceil * 4) / 4;
-    const m = modeRef.current;
-    const a = appliedRef.current;
-    if (cq === a.cq && m === a.mode && d === a.data) return;
-    appliedRef.current = { cq, mode: m, data: d };
+    const quantizedCeiling = Math.round(ceil * 4) / 4;
+    const mode = modeRef.current;
+    const applied = appliedRef.current;
+    if (
+      quantizedCeiling === applied.quantizedCeiling &&
+      mode === applied.mode &&
+      data === applied.data
+    )
+      return;
+    appliedRef.current = { quantizedCeiling, mode, data };
 
-    const P = d.positions;
-    const H = d.hDm;
+    const positions = data.positions;
+    const heights = data.heightDm;
     deck.setProps({
       layers: [
         basemap,
         new SolidPolygonLayer<Building, DataFilterExtensionProps<Building>>({
           id: "vertige-buildings",
-          data: d.buildings,
+          data: data.buildings,
           extruded: true,
           positionFormat: "XY",
-          getPolygon: (b: Building) =>
-            b.holes
-              ? { positions: P.subarray(b.s, b.e), holeIndices: b.holes }
-              : P.subarray(b.s, b.e),
-          getElevation: (b: Building) => H[b.i] / 10,
-          getFillColor: (b: Building) => BAND_RGB[bandOf(H[b.i])],
+          getPolygon: (building: Building) =>
+            building.holes
+              ? {
+                  positions: positions.subarray(building.start, building.end),
+                  holeIndices: building.holes,
+                }
+              : positions.subarray(building.start, building.end),
+          getElevation: (building: Building) => heights[building.idx] / 10,
+          getFillColor: (building: Building) =>
+            BAND_RGB[bandOf(heights[building.idx])],
           material: {
             ambient: 0.45,
             diffuse: 0.7,
@@ -244,12 +255,15 @@ export default function VertigeMap() {
           // GPU filter: sweeping the ceiling only updates a uniform, the
           // 1.1 M-vertex geometry is tessellated and uploaded exactly once
           extensions: [new DataFilterExtension({ filterSize: 1 })],
-          getFilterValue: (b: Building) => H[b.i] / 10,
-          filterRange: m === "below" ? [-1, cq] : [cq, TOP_M + 100],
+          getFilterValue: (building: Building) => heights[building.idx] / 10,
+          filterRange:
+            mode === "below"
+              ? [-1, quantizedCeiling]
+              : [quantizedCeiling, TOP_M + 100],
           filterSoftRange:
-            m === "below"
-              ? [-1, Math.max(-1, cq - 2)]
-              : [Math.min(TOP_M + 100, cq + 2), TOP_M + 100],
+            mode === "below"
+              ? [-1, Math.max(-1, quantizedCeiling - 2)]
+              : [Math.min(TOP_M + 100, quantizedCeiling + 2), TOP_M + 100],
         }),
       ],
     });
@@ -298,23 +312,24 @@ export default function VertigeMap() {
             isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
           getTooltip: ({ object, layer }) => {
             if (!object || layer?.id !== "vertige-buildings") return null;
-            const d = dataRef.current;
-            const m = metaRef.current;
-            if (!d || !m) return null;
-            const s = VERTIGE[langRef.current];
-            const b = object as Building;
+            const data = dataRef.current;
+            const meta = metaRef.current;
+            if (!data || !meta) return null;
+            const strings = VERTIGE[langRef.current];
+            const building = object as Building;
             const parts = [
-              `${(d.hDm[b.i] / 10).toLocaleString(
+              `${(data.heightDm[building.idx] / 10).toLocaleString(
                 langRef.current === "fr" ? "fr-FR" : "en-GB",
                 { maximumFractionDigits: 1 },
               )} m`,
             ];
-            if (d.floors[b.i] !== 255) parts.push(s.floors(d.floors[b.i]));
-            const label = m.usages[d.usage[b.i]];
+            if (data.floors[building.idx] !== 255)
+              parts.push(strings.floors(data.floors[building.idx]));
+            const label = meta.usages[data.usage[building.idx]];
             if (label && label !== "Indifférencié")
-              parts.push(s.usages[label] ?? label);
-            const y = d.year[b.i];
-            if (y > 1000 && y < 2100) parts.push(s.built(y));
+              parts.push(strings.usages[label] ?? label);
+            const year = data.year[building.idx];
+            if (year > 1000 && year < 2100) parts.push(strings.built(year));
             return { text: parts.join(" · "), style: DECK_TOOLTIP_STYLE };
           },
           layers: [basemapRef.current],
@@ -325,7 +340,7 @@ export default function VertigeMap() {
             timeRef.current = t;
           },
           // camera override for tests and promo screenshots
-          setView: (vs: Record<string, number>) =>
+          setView: (viewState: Record<string, number>) =>
             deck.setProps({
               initialViewState: {
                 longitude: 2.347,
@@ -333,7 +348,7 @@ export default function VertigeMap() {
                 zoom: 12,
                 pitch: 55,
                 bearing: -12,
-                ...vs,
+                ...viewState,
               },
             }),
         };
@@ -352,54 +367,54 @@ export default function VertigeMap() {
   // below it and only churches, the grands ensembles and the towers remain
   const story = () => {
     setMode("above");
-    timeRef.current = timeAt(37);
+    timeRef.current = timeForCeiling(37);
     clock.setPlaying(false);
   };
 
   const subtitle = useMemo(() => {
-    if (error) return fx.error(error);
-    if (!meta || !data) return vg.loading;
-    return vg.subtitle(meta.count.toLocaleString(locale));
-  }, [error, meta, data, fx, vg, locale]);
+    if (error) return commonStrings.error(error);
+    if (!meta || !data) return strings.loading;
+    return strings.subtitle(meta.count.toLocaleString(locale));
+  }, [error, meta, data, commonStrings, strings, locale]);
 
   return (
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
-        onLang={(l) => {
-          setLang(l);
-          saveLang(l);
+        onLang={(nextLang) => {
+          setLang(nextLang);
+          saveLang(nextLang);
         }}
-        title={vg.title}
+        title={strings.title}
         subtitle={subtitle}
         clockRef={clockRef}
         clockInitial={`${Math.round(ceilingAt(params.t))} m`}
         clockNote={
           <div className="clock-note">
-            {mode === "below" ? vg.noteBelow : vg.noteAbove}
+            {mode === "below" ? strings.noteBelow : strings.noteAbove}
           </div>
         }
         playing={clock.playing}
-        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
         speeds={SPEEDS}
         onSpeed={clock.setSpeed}
         labels={{
-          play: fx.play,
-          pause: fx.pause,
-          speed: fx.speed,
-          time: fx.time,
-          sheetToggle: fx.sheetToggle,
+          play: commonStrings.play,
+          pause: commonStrings.pause,
+          speed: commonStrings.speed,
+          time: commonStrings.time,
+          sheetToggle: commonStrings.sheetToggle,
         }}
         controlsExtra={
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as CeilMode)}
-            aria-label={vg.modeAria}
+            aria-label={strings.modeAria}
           >
-            <option value="below">{vg.modeBelow}</option>
-            <option value="above">{vg.modeAbove}</option>
+            <option value="below">{strings.modeBelow}</option>
+            <option value="above">{strings.modeAbove}</option>
           </select>
         }
         slider={{
@@ -412,15 +427,15 @@ export default function VertigeMap() {
             timeRef.current = v;
           },
         }}
-        footer={vg.footer}
+        footer={strings.footer}
       >
         <button className="story-btn sheet-hide" onClick={story}>
-          {vg.story}
+          {strings.story}
         </button>
         <div className="iso-legend sheet-hide">
           <div className="iso-swatches">
-            {BAND_HEX.map((c) => (
-              <span key={c} className="iso-swatch" style={{ background: c }} />
+            {BAND_HEX.map((hex) => (
+              <span key={hex} className="iso-swatch" style={{ background: hex }} />
             ))}
           </div>
           <div className="legend-labels">
@@ -432,7 +447,7 @@ export default function VertigeMap() {
             <span>100</span>
             <span>100+ m</span>
           </div>
-          <p className="pulse-legend">{vg.legend}</p>
+          <p className="pulse-legend">{strings.legend}</p>
         </div>
         <VizLinks current="vertige" lang={lang} />
       </VizPanel>

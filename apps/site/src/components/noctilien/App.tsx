@@ -19,9 +19,9 @@ import Legend from "./Legend";
 const dataPromise: Promise<NoctilienData> | null =
   typeof window === "undefined"
     ? null
-    : fetch("/noctilien.json").then((r) => {
-        if (!r.ok) throw new Error(`noctilien.json: HTTP ${r.status}`);
-        return r.json();
+    : fetch("/noctilien.json").then((response) => {
+        if (!response.ok) throw new Error(`noctilien.json: HTTP ${response.status}`);
+        return response.json();
       });
 
 export type NightType = "week" | "weekend";
@@ -40,23 +40,23 @@ export interface LayerToggles {
 
 export default function App() {
   // read once per mount (module-level reads go stale across client navs)
-  const [initial] = useState(() =>
+  const [initialState] = useState(() =>
     parseHash(typeof window === "undefined" ? "" : window.location.hash),
   );
   const [data, setData] = useState<NoctilienData | null>(null);
   const [dataError, setDataError] = useState(false);
   const [lang, setLang] = useState<Lang>(loadLang);
-  const [night, setNight] = useState<NightType>(initial.night);
+  const [night, setNight] = useState<NightType>(initialState.night);
   const [layers, setLayers] = useState<LayerToggles>({
     heat: true,
     stops: true,
-    routes: initial.line !== null,
+    routes: initialState.line !== null,
   });
-  const [target, setTarget] = useState<SearchResult | null>(initial.target);
-  const [selectedLine, setSelectedLine] = useState<string | null>(initial.line);
-  const [view, setView] = useState<MapView | null>(initial.view);
+  const [target, setTarget] = useState<SearchResult | null>(initialState.target);
+  const [selectedLine, setSelectedLine] = useState<string | null>(initialState.line);
+  const [view, setView] = useState<MapView | null>(initialState.view);
 
-  const t = STRINGS[lang];
+  const strings = STRINGS[lang];
 
   useEffect(() => {
     dataPromise?.then(setData).catch(() => setDataError(true));
@@ -68,17 +68,17 @@ export default function App() {
     window.history.replaceState(null, "", hash || window.location.pathname);
   }, [view, night, selectedLine, target]);
 
-  const nearby = useMemo(
+  const nearbyStops = useMemo(
     () =>
       data && target ? nearestStops(data.stops, target.lat, target.lon) : [],
     [data, target],
   );
   const selectedLineColor = selectedLine
-    ? (data?.routes.find((r) => r.name === selectedLine)?.color ?? "#3F2A7E")
+    ? (data?.routes.find((route) => route.name === selectedLine)?.color ?? "#3F2A7E")
     : null;
 
-  const toggle = (key: keyof LayerToggles) =>
-    setLayers((l) => ({ ...l, [key]: !l[key] }));
+  const toggleLayer = (key: keyof LayerToggles) =>
+    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const switchLang = (next: Lang) => {
     setLang(next);
@@ -91,9 +91,9 @@ export default function App() {
   );
 
   // Selecting a result must reveal the nearest-stops list on mobile.
-  const selectTarget = (r: SearchResult | null) => {
-    setTarget(r);
-    if (r) setSheetOpen(true);
+  const selectTarget = (result: SearchResult | null) => {
+    setTarget(result);
+    if (result) setSheetOpen(true);
   };
 
   // story: it's a weekend night at Châtelet and the métro is closed -
@@ -107,7 +107,7 @@ export default function App() {
     navigator.geolocation?.getCurrentPosition(
       (pos) =>
         selectTarget({
-          label: t.myLocation,
+          label: strings.myLocation,
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
         }),
@@ -139,8 +139,8 @@ export default function App() {
         selectedLine={selectedLine}
         onSelectLine={setSelectedLine}
         lang={lang}
-        initialView={initial.view}
-        skipInitialFly={initial.view !== null}
+        initialView={initialState.view}
+        skipInitialFly={initialState.view !== null}
         onViewChange={setView}
       />
 
@@ -150,53 +150,53 @@ export default function App() {
         </a>
         <div className="panel-title-row">
           <h1>
-            Noctilien <span className="panel-sub">{t.subtitle}</span>
+            Noctilien <span className="panel-sub">{strings.subtitle}</span>
           </h1>
           <LangToggle lang={lang} onChange={switchLang} />
           <button
             className="sheet-toggle"
-            aria-label={t.sheetToggle}
+            aria-label={strings.sheetToggle}
             aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen((o) => !o)}
+            onClick={() => setSheetOpen((open) => !open)}
           >
             {sheetOpen ? "⌄" : "⌃"}
           </button>
         </div>
         <div className="search-row">
-          <SearchBox onSelect={selectTarget} t={t} />
-          <button className="locate-btn" title={t.locate} onClick={locate}>
+          <SearchBox onSelect={selectTarget} strings={strings} />
+          <button className="locate-btn" title={strings.locate} onClick={locate}>
             ◎
           </button>
         </div>
 
         <div className="sheet-hide">
-          <p className="panel-hint">{t.hint}</p>
+          <p className="panel-hint">{strings.hint}</p>
 
-          <NightToggle value={night} onChange={setNight} t={t} />
+          <NightToggle value={night} onChange={setNight} strings={strings} />
 
         <div className="layer-toggles">
           {(
             [
-              ["heat", t.heatmap],
-              ["stops", t.stops],
-              ["routes", t.lines],
+              ["heat", strings.heatmap],
+              ["stops", strings.stops],
+              ["routes", strings.lines],
             ] as const
           ).map(([key, label]) => (
             <label key={key}>
               <input
                 type="checkbox"
                 checked={layers[key]}
-                onChange={() => toggle(key)}
+                onChange={() => toggleLayer(key)}
               />
               {label}
             </label>
           ))}
         </div>
 
-        <Legend t={t} />
+        <Legend strings={strings} />
 
         <button className="story-btn" onClick={story}>
-          {t.story}
+          {strings.story}
         </button>
 
         {selectedLine && (
@@ -207,10 +207,10 @@ export default function App() {
             >
               {selectedLine}
             </span>
-            <span>{t.lineHighlighted}</span>
+            <span>{strings.lineHighlighted}</span>
             <button
               onClick={() => setSelectedLine(null)}
-              aria-label={t.clearLine}
+              aria-label={strings.clearLine}
             >
               ✕
             </button>
@@ -220,19 +220,19 @@ export default function App() {
         {target && (
           <NearestStops
             target={target}
-            stops={nearby}
+            stops={nearbyStops}
             night={night}
             onClear={() => setTarget(null)}
             onSelectLine={(line) =>
               setSelectedLine(line === selectedLine ? null : line)
             }
-            t={t}
+            strings={strings}
           />
         )}
 
           <VizLinks current="noctilien" lang={lang} />
           <p className="panel-footer">
-            {t.footer(data.feedWindow.start, data.feedWindow.end)}
+            {strings.footer(data.feedWindow.start, data.feedWindow.end)}
           </p>
         </div>
       </div>

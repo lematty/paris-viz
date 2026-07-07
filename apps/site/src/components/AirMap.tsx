@@ -36,10 +36,10 @@ interface AirMeta {
 // plays at 1 Hz or more, so every speed averages about what passes in one
 // real second and the eye gets one readable value per second instead
 const SPEEDS = [
-  { v: 6, w: 1, wLabel: "", label: "6 h/s" },
-  { v: 24, w: 24, wLabel: "24 h", label: "1 j/s" },
-  { v: 72, w: 72, wLabel: "3 j", label: "3 j/s" },
-  { v: 168, w: 168, wLabel: "7 j", label: "7 j/s" },
+  { value: 6, windowHours: 1, windowLabel: "", label: "6 h/s" },
+  { value: 24, windowHours: 24, windowLabel: "24 h", label: "1 j/s" },
+  { value: 72, windowHours: 72, windowLabel: "3 j", label: "3 j/s" },
+  { value: 168, windowHours: 168, windowLabel: "7 j", label: "7 j/s" },
 ];
 
 // color ramps anchored per pollutant (µg/m³): calm teal → amber → red → violet
@@ -53,17 +53,17 @@ const RAMP: [number, [number, number, number]][] = [
   [1.0, [150, 40, 160]],
 ];
 
-function rampColor(t: number): [number, number, number] {
-  const x = Math.max(0, Math.min(1, t));
+function rampColor(normalized: number): [number, number, number] {
+  const clamped = Math.max(0, Math.min(1, normalized));
   for (let i = 1; i < RAMP.length; i++) {
-    if (x <= RAMP[i][0]) {
-      const [t0, a] = RAMP[i - 1];
-      const [t1, b] = RAMP[i];
-      const f = (x - t0) / (t1 - t0 || 1);
+    if (clamped <= RAMP[i][0]) {
+      const [startStop, startColor] = RAMP[i - 1];
+      const [endStop, endColor] = RAMP[i];
+      const fraction = (clamped - startStop) / (endStop - startStop || 1);
       return [
-        Math.round(a[0] + (b[0] - a[0]) * f),
-        Math.round(a[1] + (b[1] - a[1]) * f),
-        Math.round(a[2] + (b[2] - a[2]) * f),
+        Math.round(startColor[0] + (endColor[0] - startColor[0]) * fraction),
+        Math.round(startColor[1] + (endColor[1] - startColor[1]) * fraction),
+        Math.round(startColor[2] + (endColor[2] - startColor[2]) * fraction),
       ];
     }
   }
@@ -76,9 +76,9 @@ const GRID_H = 100;
 
 // clock formatters cached per locale; date and time render as two fixed
 // lines so the panel never reflows as label widths change during playback
-const CLOCK_FMT: Record<string, Intl.DateTimeFormat[]> = {};
+const CLOCK_FORMATS: Record<string, Intl.DateTimeFormat[]> = {};
 const clockFormats = (locale: string) =>
-  (CLOCK_FMT[locale] ??= [
+  (CLOCK_FORMATS[locale] ??= [
     new Intl.DateTimeFormat(locale, {
       timeZone: "Europe/Paris",
       weekday: "short",
@@ -93,14 +93,14 @@ const clockFormats = (locale: string) =>
   ]);
 
 function readParams() {
-  const p = currentSearchParams();
-  const year = p.get("year");
-  const poll = p.get("poll");
+  const searchParams = currentSearchParams();
+  const year = searchParams.get("year");
+  const poll = searchParams.get("poll");
   return {
     year: year && /^20\d\d$/.test(year) ? +year : 2025,
     poll: POLLS.includes(poll as Poll) ? (poll as Poll) : ("no2" as Poll),
-    paused: p.get("paused") === "1",
-    time: p.get("t") ? +p.get("t")! : 8, // hours since Jan 1
+    paused: searchParams.get("paused") === "1",
+    time: searchParams.get("t") ? +searchParams.get("t")! : 8, // hours since Jan 1
   };
 }
 export default function AirMap() {
@@ -126,8 +126,8 @@ export default function AirMap() {
   const [year, setYear] = useState(params.year);
   const [poll, setPoll] = useState<Poll>(params.poll);
   const [lang, setLang] = useState<Lang>(loadLang);
-  const fx = FLUX[lang];
-  const ar = AIR[lang];
+  const commonStrings = FLUX[lang];
+  const strings = AIR[lang];
   const langRef = useRef(lang);
   langRef.current = lang;
   const metaRef = useRef(meta);
@@ -141,12 +141,12 @@ export default function AirMap() {
 
   useEffect(() => {
     fetch("/air/meta.json")
-      .then((r) => {
-        if (!r.ok) throw new Error(`meta.json: HTTP ${r.status}`);
-        return r.json() as Promise<AirMeta>;
+      .then((response) => {
+        if (!response.ok) throw new Error(`meta.json: HTTP ${response.status}`);
+        return response.json() as Promise<AirMeta>;
       })
       .then(setMeta)
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => setError(err.message));
   }, []);
 
   // load the selected pollutant/year series
@@ -157,24 +157,25 @@ export default function AirMap() {
     setSeries(null);
     const requested = { poll, year };
     fetch(`/air/${poll}-${year}.bin`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${poll}-${year}.bin: HTTP ${r.status}`);
-        return r.arrayBuffer();
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`${poll}-${year}.bin: HTTP ${response.status}`);
+        return response.arrayBuffer();
       })
       .then((buf) => {
         if (pollRef.current !== requested.poll || yearRef.current !== requested.year)
           return;
         const values = new Uint8Array(buf);
-        const n = meta.stations.length;
-        const sums = new Uint32Array((info.hours + 1) * n);
-        const counts = new Uint16Array((info.hours + 1) * n);
+        const stationCount = meta.stations.length;
+        const sums = new Uint32Array((info.hours + 1) * stationCount);
+        const counts = new Uint16Array((info.hours + 1) * stationCount);
         for (let h = 0; h < info.hours; h++) {
-          const row = h * n;
-          for (let s = 0; s < n; s++) {
-            const v = values[row + s];
-            const ok = v !== 255;
-            sums[row + n + s] = sums[row + s] + (ok ? v : 0);
-            counts[row + n + s] = counts[row + s] + (ok ? 1 : 0);
+          const row = h * stationCount;
+          for (let s = 0; s < stationCount; s++) {
+            const value = values[row + s];
+            const ok = value !== 255;
+            sums[row + stationCount + s] = sums[row + s] + (ok ? value : 0);
+            counts[row + stationCount + s] = counts[row + s] + (ok ? 1 : 0);
           }
         }
         setSeries({
@@ -188,7 +189,7 @@ export default function AirMap() {
         });
         timeRef.current = Math.min(timeRef.current, info.hours - 2);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => setError(err.message));
   }, [meta, poll, year]);
 
   // station bbox for the veil (padded); mercator y extents too, since the
@@ -197,18 +198,18 @@ export default function AirMap() {
   // position mid-map
   const bbox = useMemo(() => {
     if (!meta) return null;
-    const lats = meta.stations.map((s) => s.lat);
-    const lons = meta.stations.map((s) => s.lon);
+    const lats = meta.stations.map((station) => station.lat);
+    const lons = meta.stations.map((station) => station.lon);
     const minLat = Math.min(...lats) - 0.08;
     const maxLat = Math.max(...lats) + 0.08;
-    const rad = Math.PI / 180;
+    const degToRad = Math.PI / 180;
     return {
       minLat,
       maxLat,
       minLon: Math.min(...lons) - 0.12,
       maxLon: Math.max(...lons) + 0.12,
-      mercMin: Math.asinh(Math.tan(minLat * rad)),
-      mercMax: Math.asinh(Math.tan(maxLat * rad)),
+      mercMin: Math.asinh(Math.tan(minLat * degToRad)),
+      mercMax: Math.asinh(Math.tan(maxLat * degToRad)),
     };
   }, [meta]);
   const bboxRef = useRef(bbox);
@@ -217,78 +218,93 @@ export default function AirMap() {
   // yearly regional-mean curve for the sparkline (daily means)
   const curve = useMemo(() => {
     if (!series || !meta) return null;
-    const n = meta.stations.length;
+    const stationCount = meta.stations.length;
     const days = Math.floor(series.hours / 24);
     const daily: number[] = [];
-    for (let d = 0; d < days; d++) {
+    for (let dayIdx = 0; dayIdx < days; dayIdx++) {
       let sum = 0;
-      let cnt = 0;
-      for (let h = d * 24; h < d * 24 + 24; h++) {
-        for (let s = 0; s < n; s++) {
-          const v = series.values[h * n + s];
-          if (v !== 255) {
-            sum += v;
-            cnt++;
+      let count = 0;
+      for (let h = dayIdx * 24; h < dayIdx * 24 + 24; h++) {
+        for (let s = 0; s < stationCount; s++) {
+          const value = series.values[h * stationCount + s];
+          if (value !== 255) {
+            sum += value;
+            count++;
           }
         }
       }
-      daily.push(cnt ? sum / cnt : 0);
+      daily.push(count ? sum / count : 0);
     }
     const max = Math.max(...daily, 1);
-    const pts = daily.map((v, d) => {
-      const x = ((d + 0.5) / days) * 240;
-      const y = 46 - (v / max) * 42;
+    const points = daily.map((value, dayIdx) => {
+      const x = ((dayIdx + 0.5) / days) * 240;
+      const y = 46 - (value / max) * 42;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-    return { path: `M0,46 L${pts.join(" L")} L240,46 Z`, days };
+    return { path: `M0,46 L${points.join(" L")} L240,46 Z`, days };
   }, [series, meta]);
 
   const deckRef = useRef<Deck | null>(null);
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
   const veilCtxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const appliedRef = useRef({ t: -1, sig: "" });
+  const appliedRef = useRef({ t: -1, signature: "" });
 
-  // mean over a w-hour window centered on hour h; w = 1 is the raw hourly
-  // value, and 255-coded gaps just shrink the window instead of poking holes
-  const meanAt = (stationIdx: number, h: number, w: number): number | null => {
-    const s = seriesRef.current;
-    const m = metaRef.current;
-    if (!s || !m) return null;
-    const n = m.stations.length;
-    const a = Math.max(0, h - (w >> 1));
-    const b = Math.min(s.hours, a + w);
-    const cnt = s.counts[b * n + stationIdx] - s.counts[a * n + stationIdx];
-    if (!cnt) return null;
-    return (s.sums[b * n + stationIdx] - s.sums[a * n + stationIdx]) / cnt;
+  // mean over a windowHours-wide window centered on the given hour; a window
+  // of 1 is the raw hourly value, and 255-coded gaps just shrink the window
+  // instead of poking holes
+  const meanAt = (
+    stationIdx: number,
+    hour: number,
+    windowHours: number,
+  ): number | null => {
+    const currentSeries = seriesRef.current;
+    const currentMeta = metaRef.current;
+    if (!currentSeries || !currentMeta) return null;
+    const stationCount = currentMeta.stations.length;
+    const windowStart = Math.max(0, hour - (windowHours >> 1));
+    const windowEnd = Math.min(currentSeries.hours, windowStart + windowHours);
+    const count =
+      currentSeries.counts[windowEnd * stationCount + stationIdx] -
+      currentSeries.counts[windowStart * stationCount + stationIdx];
+    if (!count) return null;
+    return (
+      (currentSeries.sums[windowEnd * stationCount + stationIdx] -
+        currentSeries.sums[windowStart * stationCount + stationIdx]) /
+      count
+    );
   };
 
-  const valueAt = (stationIdx: number, t: number, w = 1): number | null => {
-    const s = seriesRef.current;
-    if (!s) return null;
-    const h0 = Math.max(0, Math.min(s.hours - 1, Math.floor(t)));
-    const h1 = Math.min(s.hours - 1, h0 + 1);
-    const a = meanAt(stationIdx, h0, w);
-    const b = meanAt(stationIdx, h1, w);
-    if (a === null && b === null) return null;
-    const va = a === null ? (b as number) : a;
-    const vb = b === null ? (a as number) : b;
-    return va + (vb - va) * (t - h0);
+  const valueAt = (
+    stationIdx: number,
+    t: number,
+    windowHours = 1,
+  ): number | null => {
+    const currentSeries = seriesRef.current;
+    if (!currentSeries) return null;
+    const h0 = Math.max(0, Math.min(currentSeries.hours - 1, Math.floor(t)));
+    const h1 = Math.min(currentSeries.hours - 1, h0 + 1);
+    const mean0 = meanAt(stationIdx, h0, windowHours);
+    const mean1 = meanAt(stationIdx, h1, windowHours);
+    if (mean0 === null && mean1 === null) return null;
+    const value0 = mean0 === null ? (mean1 as number) : mean0;
+    const value1 = mean1 === null ? (mean0 as number) : mean1;
+    return value0 + (value1 - value0) * (t - h0);
   };
   const valueAtRef = useRef(valueAt);
   valueAtRef.current = valueAt;
   // rolling-mean window in hours, follows the selected playback speed
-  const winRef = useRef(24);
+  const windowHoursRef = useRef(24);
 
   const onFrame = (t: number) => {
-    const s = seriesRef.current;
-    const hours = s?.hours ?? 8760;
+    const currentSeries = seriesRef.current;
+    const hours = currentSeries?.hours ?? 8760;
     if (clockRef.current) {
-      const start = s?.start;
+      const start = currentSeries?.start;
       if (start) {
         const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
         const [dateFmt, timeFmt] = clockFormats(locale);
-        const d = new Date(start + Math.floor(t) * 3600e3);
-        clockRef.current.textContent = `${dateFmt.format(d)}\n${timeFmt.format(d)}`;
+        const date = new Date(start + Math.floor(t) * 3600e3);
+        clockRef.current.textContent = `${dateFmt.format(date)}\n${timeFmt.format(date)}`;
       } else {
         clockRef.current.textContent = "--";
       }
@@ -302,27 +318,30 @@ export default function AirMap() {
     }
     const deck = deckRef.current;
     const basemap = basemapRef.current;
-    const vctx = veilCtxRef.current;
-    if (!deck || !basemap || !vctx) return;
-    const w = winRef.current;
-    const sig = `${pollRef.current}|${yearRef.current}|${w}|${s ? 1 : 0}`;
-    if (Math.abs(t - appliedRef.current.t) < 0.02 && sig === appliedRef.current.sig)
+    const veilContext = veilCtxRef.current;
+    if (!deck || !basemap || !veilContext) return;
+    const windowHours = windowHoursRef.current;
+    const signature = `${pollRef.current}|${yearRef.current}|${windowHours}|${currentSeries ? 1 : 0}`;
+    if (
+      Math.abs(t - appliedRef.current.t) < 0.02 &&
+      signature === appliedRef.current.signature
+    )
       return;
-    appliedRef.current = { t, sig };
-    const m = metaRef.current;
+    appliedRef.current = { t, signature };
+    const currentMeta = metaRef.current;
     const box = bboxRef.current;
-    if (!s || !m || !box) return;
+    if (!currentSeries || !currentMeta || !box) return;
 
     // current value per station (rolling mean sized to the playback speed)
-    const n = m.stations.length;
-    const vals = new Float32Array(n).fill(-1);
-    for (let i = 0; i < n; i++) {
-      const v = valueAtRef.current(i, t, w);
-      if (v !== null) vals[i] = v;
+    const stationCount = currentMeta.stations.length;
+    const stationValues = new Float32Array(stationCount).fill(-1);
+    for (let i = 0; i < stationCount; i++) {
+      const value = valueAtRef.current(i, t, windowHours);
+      if (value !== null) stationValues[i] = value;
     }
 
     // IDW veil onto the grid; alpha fades away from the nearest station
-    const img = vctx.createImageData(GRID_W, GRID_H);
+    const img = veilContext.createImageData(GRID_W, GRID_H);
     const domain = DOMAIN[pollRef.current];
     const lonSpan = box.maxLon - box.minLon;
     const mercSpan = box.mercMax - box.mercMin;
@@ -331,31 +350,31 @@ export default function AirMap() {
       const lat = Math.atan(Math.sinh(mercY)) * (180 / Math.PI);
       for (let gx = 0; gx < GRID_W; gx++) {
         const lon = box.minLon + (gx / (GRID_W - 1)) * lonSpan;
-        let num = 0;
-        let den = 0;
-        let dmin = Infinity;
-        for (let i = 0; i < n; i++) {
-          if (vals[i] < 0) continue;
-          const st = m.stations[i];
-          const dx = (st.lon - lon) * 0.66; // ≈cos(48.8°), degrees→comparable
-          const dy = st.lat - lat;
-          const d2 = dx * dx + dy * dy + 1e-6;
-          if (d2 < dmin) dmin = d2;
-          const w = 1 / (d2 * d2); // IDW power 4: crisper local structure
-          num += w * vals[i];
-          den += w;
+        let numerator = 0;
+        let denominator = 0;
+        let minDistSq = Infinity;
+        for (let i = 0; i < stationCount; i++) {
+          if (stationValues[i] < 0) continue;
+          const station = currentMeta.stations[i];
+          const dx = (station.lon - lon) * 0.66; // ≈cos(48.8°), degrees→comparable
+          const dy = station.lat - lat;
+          const distSq = dx * dx + dy * dy + 1e-6;
+          if (distSq < minDistSq) minDistSq = distSq;
+          const weight = 1 / (distSq * distSq); // IDW power 4: crisper local structure
+          numerator += weight * stationValues[i];
+          denominator += weight;
         }
-        const o = (gy * GRID_W + gx) * 4;
-        if (!den) continue;
-        const v = num / den;
-        const [r, g, b] = rampColor(v / domain);
+        const pixelOffset = (gy * GRID_W + gx) * 4;
+        if (!denominator) continue;
+        const value = numerator / denominator;
+        const [r, g, b] = rampColor(value / domain);
         // fade the veil where the nearest station is far (no information)
-        const dist = Math.sqrt(dmin);
-        const conf = Math.max(0, 1 - dist / 0.35);
-        img.data[o] = r;
-        img.data[o + 1] = g;
-        img.data[o + 2] = b;
-        img.data[o + 3] = Math.round(150 * Math.pow(conf, 0.8));
+        const dist = Math.sqrt(minDistSq);
+        const confidence = Math.max(0, 1 - dist / 0.35);
+        img.data[pixelOffset] = r;
+        img.data[pixelOffset + 1] = g;
+        img.data[pixelOffset + 2] = b;
+        img.data[pixelOffset + 3] = Math.round(150 * Math.pow(confidence, 0.8));
       }
     }
 
@@ -370,22 +389,22 @@ export default function AirMap() {
         }),
         new ScatterplotLayer({
           id: "air-stations",
-          data: m.stations,
-          getPosition: (d: AirStation) => [d.lon, d.lat],
+          data: currentMeta.stations,
+          getPosition: (station: AirStation) => [station.lon, station.lat],
           getRadius: 700,
           radiusMinPixels: 3,
           radiusMaxPixels: 14,
           stroked: true,
           getLineColor: [230, 232, 238, 200],
           lineWidthMinPixels: 1,
-          getFillColor: (d: AirStation, { index }) => {
-            const v = vals[index];
-            if (v < 0) return [80, 86, 100, 120];
-            const [r, g, b] = rampColor(v / domain);
+          getFillColor: (station: AirStation, { index }) => {
+            const value = stationValues[index];
+            if (value < 0) return [80, 86, 100, 120];
+            const [r, g, b] = rampColor(value / domain);
             return [r, g, b, 235];
           },
           pickable: true,
-          updateTriggers: { getFillColor: [t, pollRef.current, w] },
+          updateTriggers: { getFillColor: [t, pollRef.current, windowHours] },
         }),
       ],
     });
@@ -396,17 +415,19 @@ export default function AirMap() {
     autoplay: !params.paused,
     initialSpeed: 24,
     normalize: (t) => {
-      const h = seriesRef.current?.hours ?? 8760;
-      return ((t % h) + h) % h;
+      const hours = seriesRef.current?.hours ?? 8760;
+      return ((t % hours) + hours) % hours;
     },
     onFrame,
   });
   const { timeRef } = clock;
-  const speedDef = SPEEDS.find((s) => s.v === clock.speed) ?? SPEEDS[1];
-  winRef.current = speedDef.w;
+  const speedDef = SPEEDS.find((speed) => speed.value === clock.speed) ?? SPEEDS[1];
+  windowHoursRef.current = speedDef.windowHours;
   const meanNote =
-    speedDef.w > 1
-      ? ar.mean(lang === "fr" ? speedDef.wLabel : speedDef.wLabel.replace("j", "d"))
+    speedDef.windowHours > 1
+      ? strings.mean(
+          lang === "fr" ? speedDef.windowLabel : speedDef.windowLabel.replace("j", "d"),
+        )
       : null;
   const meanNoteRef = useRef(meanNote);
   meanNoteRef.current = meanNote;
@@ -433,22 +454,22 @@ export default function AirMap() {
           getTooltip: ({ object, index, layer }) => {
             if (!object || index < 0 || layer?.id !== "air-stations")
               return null;
-            const v = valueAtRef.current(
+            const value = valueAtRef.current(
               index,
               timeRef.current,
-              winRef.current,
+              windowHoursRef.current,
             );
-            const st = object as AirStation;
-            const a = AIR[langRef.current];
+            const station = object as AirStation;
+            const airStrings = AIR[langRef.current];
             const note = meanNoteRef.current;
             return {
               text:
-                `${st.name}\n` +
-                (v === null
-                  ? a.noData
-                  : `${Math.round(v)} µg/m³ ${POLL_LABEL[pollRef.current]}` +
+                `${station.name}\n` +
+                (value === null
+                  ? airStrings.noData
+                  : `${Math.round(value)} µg/m³ ${POLL_LABEL[pollRef.current]}` +
                     (note ? ` (${note})` : "")) +
-                `\n${st.traffic ? a.traffic : a.background}`,
+                `\n${station.traffic ? airStrings.traffic : airStrings.background}`,
               style: DECK_TOOLTIP_STYLE,
             };
           },
@@ -478,8 +499,8 @@ export default function AirMap() {
   const seek = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.buttons === 0 && e.type !== "pointerdown") return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    timeRef.current = f * hours;
+    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    timeRef.current = fraction * hours;
   };
 
   // lockdown story: 17 March 2020, 08:00 Paris (NO2 collapses within days)
@@ -498,18 +519,18 @@ export default function AirMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
-        onLang={(l) => {
-          setLang(l);
-          saveLang(l);
+        onLang={(newLang) => {
+          setLang(newLang);
+          saveLang(newLang);
         }}
-        title={ar.title}
+        title={strings.title}
         subtitle={
           <>
             {error
-              ? fx.error(error)
+              ? commonStrings.error(error)
               : meta
-                ? ar.subtitle(meta.stations.length.toLocaleString(locale))
-                : ar.loading}
+                ? strings.subtitle(meta.stations.length.toLocaleString(locale))
+                : strings.loading}
             {meta && !series && !error && (
               <span className="mode-loading"> …</span>
             )}
@@ -517,33 +538,33 @@ export default function AirMap() {
         }
         clockRef={clockRef}
         clockInitial="--"
-        clockNote={<div className="clock-note">{meanNote ?? ar.hourly}</div>}
+        clockNote={<div className="clock-note">{meanNote ?? strings.hourly}</div>}
         playing={clock.playing}
-        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
-        speeds={SPEEDS.map((s) => ({
-          value: s.v,
-          label: lang === "fr" ? s.label : s.label.replace("j/s", "d/s"),
+        speeds={SPEEDS.map((speed) => ({
+          value: speed.value,
+          label: lang === "fr" ? speed.label : speed.label.replace("j/s", "d/s"),
         }))}
         onSpeed={clock.setSpeed}
         labels={{
-          play: fx.play,
-          pause: fx.pause,
-          speed: fx.speed,
-          time: fx.time,
-          sheetToggle: fx.sheetToggle,
+          play: commonStrings.play,
+          pause: commonStrings.pause,
+          speed: commonStrings.speed,
+          time: commonStrings.time,
+          sheetToggle: commonStrings.sheetToggle,
         }}
         controlsExtra={
           <div className="poll-toggle" role="radiogroup" aria-label="Polluant">
-            {POLLS.map((p) => (
+            {POLLS.map((pollutant) => (
               <button
-                key={p}
+                key={pollutant}
                 role="radio"
-                aria-checked={poll === p}
-                className={poll === p ? "active" : ""}
-                onClick={() => setPoll(p)}
+                aria-checked={poll === pollutant}
+                className={poll === pollutant ? "active" : ""}
+                onClick={() => setPoll(pollutant)}
               >
-                {POLL_LABEL[p]}
+                {POLL_LABEL[pollutant]}
               </button>
             ))}
           </div>
@@ -581,31 +602,31 @@ export default function AirMap() {
           max: hours - 1,
           step: 1,
           defaultValue: params.time,
-          onInput: (v) => {
-            timeRef.current = v;
+          onInput: (value) => {
+            timeRef.current = value;
           },
         }}
-        footer={ar.footer}
+        footer={strings.footer}
       >
         <div
           className="year-row sheet-hide"
           role="radiogroup"
-          aria-label={ar.yearAria}
+          aria-label={strings.yearAria}
         >
-          {years.map((y) => (
+          {years.map((yearOption) => (
             <button
-              key={y}
+              key={yearOption}
               role="radio"
-              aria-checked={year === y}
-              className={`year-pill${year === y ? " active" : ""}`}
-              onClick={() => setYear(y)}
+              aria-checked={year === yearOption}
+              className={`year-pill${year === yearOption ? " active" : ""}`}
+              onClick={() => setYear(yearOption)}
             >
-              {y}
+              {yearOption}
             </button>
           ))}
         </div>
         <button className="story-btn sheet-hide" onClick={lockdown}>
-          {ar.lockdown}
+          {strings.lockdown}
         </button>
         <div className="air-legend sheet-hide">
           <div
@@ -619,7 +640,7 @@ export default function AirMap() {
             <span>0 µg/m³</span>
             <span>{DOMAIN[poll]}+</span>
           </div>
-          <p className="pulse-legend">{ar.legend}</p>
+          <p className="pulse-legend">{strings.legend}</p>
         </div>
         <VizLinks current="air" lang={lang} />
       </VizPanel>

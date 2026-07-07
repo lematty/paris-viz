@@ -59,12 +59,12 @@ const merc = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
 const DEFAULT_ORIGIN = "châtelet - les halles";
 
 function readParams() {
-  const p = currentSearchParams();
-  const t = p.get("t") ? +p.get("t")! : 0;
+  const searchParams = currentSearchParams();
+  const t = searchParams.get("t") ? +searchParams.get("t")! : 0;
   return {
-    from: p.get("from") ?? "",
+    from: searchParams.get("from") ?? "",
     t: Number.isFinite(t) ? Math.max(0, Math.min(MAX_T, t)) : 0,
-    paused: p.get("paused") === "1",
+    paused: searchParams.get("paused") === "1",
   };
 }
 
@@ -81,8 +81,8 @@ export default function HorizonMap() {
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [lang, setLang] = useState<Lang>(loadLang);
-  const fx = FLUX[lang];
-  const hz = HORIZON[lang];
+  const commonStrings = FLUX[lang];
+  const strings = HORIZON[lang];
   const langRef = useRef(lang);
   langRef.current = lang;
   const metaRef = useRef(meta);
@@ -92,16 +92,18 @@ export default function HorizonMap() {
 
   useEffect(() => {
     fetch("/horizon/stations.json")
-      .then((r) => {
-        if (!r.ok) throw new Error(`stations.json: HTTP ${r.status}`);
-        return r.json() as Promise<HorizonMeta>;
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`stations.json: HTTP ${response.status}`);
+        return response.json() as Promise<HorizonMeta>;
       })
       .then(setMeta)
       .catch((e: Error) => setError(e.message));
     fetch("/horizon/matrix.bin")
-      .then((r) => {
-        if (!r.ok) throw new Error(`matrix.bin: HTTP ${r.status}`);
-        return r.arrayBuffer();
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`matrix.bin: HTTP ${response.status}`);
+        return response.arrayBuffer();
       })
       .then((buf) => setMatrix(new Uint8Array(buf)))
       .catch((e: Error) => setError(e.message));
@@ -145,22 +147,22 @@ export default function HorizonMap() {
   const field = useMemo(() => {
     if (!meta || !matrix || !grid || origin < 0) return null;
     const { w, h, minLon, maxLon, mercMin, mercMax } = grid;
-    const f = new Float32Array(w * h).fill(Infinity);
-    const N = meta.stations.length;
-    const row = origin * N;
-    for (let j = 0; j < N; j++) {
-      const tj = matrix[row + j];
-      if (tj > MAX_T) continue;
-      const walkMin = Math.min(MAX_WALK_MIN, MAX_T - tj);
-      const st = meta.stations[j];
+    const field = new Float32Array(w * h).fill(Infinity);
+    const stationCount = meta.stations.length;
+    const row = origin * stationCount;
+    for (let j = 0; j < stationCount; j++) {
+      const minutesToStation = matrix[row + j];
+      if (minutesToStation > MAX_T) continue;
+      const walkMin = Math.min(MAX_WALK_MIN, MAX_T - minutesToStation);
+      const station = meta.stations[j];
       // meters per pixel at this station's latitude (both axes scale by
       // cos(lat) here: ground distance per unit of mercator y does too)
-      const cosLat = Math.cos((st.lat * Math.PI) / 180);
+      const cosLat = Math.cos((station.lat * Math.PI) / 180);
       const mppX =
         ((maxLon - minLon) * (Math.PI / 180) * EARTH_R * cosLat) / (w - 1);
       const mppY = ((mercMax - mercMin) * EARTH_R * cosLat) / (h - 1);
-      const cx = ((st.lon - minLon) / (maxLon - minLon)) * (w - 1);
-      const cy = ((mercMax - merc(st.lat)) / (mercMax - mercMin)) * (h - 1);
+      const cx = ((station.lon - minLon) / (maxLon - minLon)) * (w - 1);
+      const cy = ((mercMax - merc(station.lat)) / (mercMax - mercMin)) * (h - 1);
       const rx = (walkMin * WALK_M_PER_MIN) / mppX;
       const ry = (walkMin * WALK_M_PER_MIN) / mppY;
       const x0 = Math.max(0, Math.floor(cx - rx));
@@ -171,15 +173,15 @@ export default function HorizonMap() {
         const dyM = (y - cy) * mppY;
         for (let x = x0; x <= x1; x++) {
           const dxM = (x - cx) * mppX;
-          const wMin = Math.hypot(dxM, dyM) / WALK_M_PER_MIN;
-          if (wMin > walkMin) continue; // bounding-box corner, out of range
-          const t = tj + wMin;
+          const walkTime = Math.hypot(dxM, dyM) / WALK_M_PER_MIN;
+          if (walkTime > walkMin) continue; // bounding-box corner, out of range
+          const totalMinutes = minutesToStation + walkTime;
           const i = y * w + x;
-          if (t < f[i]) f[i] = t;
+          if (totalMinutes < field[i]) field[i] = totalMinutes;
         }
       }
     }
-    return f;
+    return field;
   }, [meta, matrix, grid, origin]);
   const fieldRef = useRef(field);
   fieldRef.current = field;
@@ -190,7 +192,10 @@ export default function HorizonMap() {
 
   const deckRef = useRef<Deck | null>(null);
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
-  const appliedRef = useRef({ tq: -1, field: null as Float32Array | null });
+  const appliedRef = useRef({
+    quantizedTime: -1,
+    field: null as Float32Array | null,
+  });
   // two recycled ImageData buffers: alternating gives the BitmapLayer a new
   // object identity (so the texture updates) without allocating ~4.5 MB per
   // recolor tick
@@ -198,24 +203,28 @@ export default function HorizonMap() {
   const imgFlipRef = useRef(0);
 
   const onFrame = (t: number) => {
-    const td = Math.min(MAX_T, t);
+    const displayTime = Math.min(MAX_T, t);
     if (clockRef.current)
-      clockRef.current.textContent = `${Math.floor(td)} min`;
+      clockRef.current.textContent = `${Math.floor(displayTime)} min`;
     if (sliderRef.current && document.activeElement !== sliderRef.current)
       sliderRef.current.value = String(Math.min(MAX_T, Math.round(t * 4) / 4));
     const deck = deckRef.current;
     const basemap = basemapRef.current;
-    const f = fieldRef.current;
-    const g = gridRef.current;
-    const m = metaRef.current;
-    const mat = matrixRef.current;
-    if (!deck || !basemap || !f || !g || !m || !mat) return;
+    const field = fieldRef.current;
+    const grid = gridRef.current;
+    const meta = metaRef.current;
+    const matrix = matrixRef.current;
+    if (!deck || !basemap || !field || !grid || !meta || !matrix) return;
     // quantize the budget so paused frames and sub-frame ticks skip redraws
-    const tq = Math.round(td * 4) / 4;
-    if (tq === appliedRef.current.tq && f === appliedRef.current.field) return;
-    appliedRef.current = { tq, field: f };
+    const quantizedTime = Math.round(displayTime * 4) / 4;
+    if (
+      quantizedTime === appliedRef.current.quantizedTime &&
+      field === appliedRef.current.field
+    )
+      return;
+    appliedRef.current = { quantizedTime, field };
 
-    const { w, h } = g;
+    const { w, h } = grid;
     let imgs = imgsRef.current;
     if (!imgs || imgs[0].width !== w || imgs[0].height !== h)
       imgsRef.current = imgs = [new ImageData(w, h), new ImageData(w, h)];
@@ -224,37 +233,41 @@ export default function HorizonMap() {
     const px = img.data;
     new Uint32Array(px.buffer).fill(0); // reset the recycled buffer
     for (let i = 0; i < w * h; i++) {
-      const ft = f[i];
-      const u = tq - ft; // minutes since this pixel was reached
-      if (u < 0) continue; // stays transparent
-      const band = Math.min(BAND_COLORS.length - 1, (ft / BAND_MIN) | 0);
+      const reachTime = field[i];
+      const sinceReached = quantizedTime - reachTime; // minutes since this pixel was reached
+      if (sinceReached < 0) continue; // stays transparent
+      const band = Math.min(BAND_COLORS.length - 1, (reachTime / BAND_MIN) | 0);
       const [r, gr, b] = BAND_COLORS[band];
-      const o = i * 4;
-      px[o] = r;
-      px[o + 1] = gr;
-      px[o + 2] = b;
+      const offset = i * 4;
+      px[offset] = r;
+      px[offset + 1] = gr;
+      px[offset + 2] = b;
       // alpha is a continuous ramp in travel time (rise to a glowing
       // frontier, settle to the body tint) so texture filtering renders the
       // ~125 m grid cells as soft gradients instead of hard squares
-      px[o + 3] =
-        u < 0.6 ? (u / 0.6) * 225 : u < 2 ? 225 - ((u - 0.6) / 1.4) * 110 : 115;
+      px[offset + 3] =
+        sinceReached < 0.6
+          ? (sinceReached / 0.6) * 225
+          : sinceReached < 2
+            ? 225 - ((sinceReached - 0.6) / 1.4) * 110
+            : 115;
     }
 
-    const N = m.stations.length;
-    const row = originRef.current * N;
+    const stationCount = meta.stations.length;
+    const row = originRef.current * stationCount;
     deck.setProps({
       layers: [
         basemap,
         new BitmapLayer({
           id: "horizon-field",
           image: img,
-          bounds: [g.minLon, g.minLat, g.maxLon, g.maxLat],
+          bounds: [grid.minLon, grid.minLat, grid.maxLon, grid.maxLat],
           opacity: 1,
         }),
         new ScatterplotLayer({
           id: "horizon-stations",
-          data: m.stations,
-          getPosition: (d: HorizonStation) => [d.lon, d.lat],
+          data: meta.stations,
+          getPosition: (station: HorizonStation) => [station.lon, station.lat],
           getRadius: (_: HorizonStation, { index }: { index: number }) =>
             index === originRef.current ? 260 : 120,
           radiusMinPixels: 2,
@@ -269,9 +282,12 @@ export default function HorizonMap() {
           lineWidthMinPixels: 1,
           getFillColor: (_: HorizonStation, { index }: { index: number }) => {
             if (index === originRef.current) return [255, 255, 255, 255];
-            const tj = mat[row + index];
-            if (tj > tq) return UNREACHED_DOT;
-            const band = Math.min(BAND_COLORS.length - 1, (tj / BAND_MIN) | 0);
+            const minutesToStation = matrix[row + index];
+            if (minutesToStation > quantizedTime) return UNREACHED_DOT;
+            const band = Math.min(
+              BAND_COLORS.length - 1,
+              (minutesToStation / BAND_MIN) | 0,
+            );
             return [...BAND_COLORS[band], 240] as [number, number, number, number];
           },
           pickable: true,
@@ -279,7 +295,7 @@ export default function HorizonMap() {
             if (info.index >= 0) setOrigin(info.index);
           },
           updateTriggers: {
-            getFillColor: [tq, originRef.current],
+            getFillColor: [quantizedTime, originRef.current],
             getRadius: originRef.current,
             getLineColor: originRef.current,
             getLineWidth: originRef.current,
@@ -318,16 +334,21 @@ export default function HorizonMap() {
           getTooltip: ({ object, index, layer }) => {
             if (!object || index < 0 || layer?.id !== "horizon-stations")
               return null;
-            const st = object as HorizonStation;
-            const h = HORIZON[langRef.current];
-            const m = metaRef.current;
-            const mat = matrixRef.current;
-            if (!m || !mat) return null;
+            const station = object as HorizonStation;
+            const strings = HORIZON[langRef.current];
+            const meta = metaRef.current;
+            const matrix = matrixRef.current;
+            if (!meta || !matrix) return null;
             if (index === originRef.current)
-              return { text: st.name, style: DECK_TOOLTIP_STYLE };
-            const tj = mat[originRef.current * m.stations.length + index];
+              return { text: station.name, style: DECK_TOOLTIP_STYLE };
+            const minutesToStation =
+              matrix[originRef.current * meta.stations.length + index];
             return {
-              text: `${st.name}\n${tj > MAX_T ? h.beyond : h.minutes(tj)}`,
+              text: `${station.name}\n${
+                minutesToStation > MAX_T
+                  ? strings.beyond
+                  : strings.minutes(minutesToStation)
+              }`,
               style: DECK_TOOLTIP_STYLE,
             };
           },
@@ -353,13 +374,15 @@ export default function HorizonMap() {
 
   const results = useMemo(() => {
     if (!meta || norm(query).length < 2) return [];
-    const q = norm(query);
+    const normalizedQuery = norm(query);
     const starts: { name: string; idx: number }[] = [];
     const contains: { name: string; idx: number }[] = [];
-    meta.stations.forEach((s, idx) => {
-      const n = norm(s.name);
-      if (n.startsWith(q)) starts.push({ name: s.name, idx });
-      else if (n.includes(q)) contains.push({ name: s.name, idx });
+    meta.stations.forEach((station, idx) => {
+      const name = norm(station.name);
+      if (name.startsWith(normalizedQuery))
+        starts.push({ name: station.name, idx });
+      else if (name.includes(normalizedQuery))
+        contains.push({ name: station.name, idx });
     });
     return [...starts, ...contains].slice(0, 8);
   }, [meta, query]);
@@ -387,16 +410,16 @@ export default function HorizonMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
-        onLang={(l) => {
-          setLang(l);
-          saveLang(l);
+        onLang={(nextLang) => {
+          setLang(nextLang);
+          saveLang(nextLang);
         }}
-        title={hz.title}
+        title={strings.title}
         subtitle={
           error
-            ? fx.error(error)
+            ? commonStrings.error(error)
             : meta
-              ? hz.subtitle(
+              ? strings.subtitle(
                   meta.stations.length.toLocaleString(locale),
                   new Date(meta.date).toLocaleDateString(locale, {
                     day: "numeric",
@@ -404,29 +427,29 @@ export default function HorizonMap() {
                     timeZone: "UTC",
                   }),
                 )
-              : hz.loading
+              : strings.loading
         }
         clockRef={clockRef}
         clockInitial={`${Math.floor(params.t)} min`}
-        clockNote={<div className="clock-note">{hz.clockNote(originName)}</div>}
+        clockNote={<div className="clock-note">{strings.clockNote(originName)}</div>}
         playing={clock.playing}
-        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
         speeds={SPEEDS}
         onSpeed={clock.setSpeed}
         labels={{
-          play: fx.play,
-          pause: fx.pause,
-          speed: fx.speed,
-          time: fx.time,
-          sheetToggle: fx.sheetToggle,
+          play: commonStrings.play,
+          pause: commonStrings.pause,
+          speed: commonStrings.speed,
+          time: commonStrings.time,
+          sheetToggle: commonStrings.sheetToggle,
         }}
         beforeSlider={
           <div className="searchbox horizon-search sheet-hide">
             <input
               value={query}
-              placeholder={hz.searchPlaceholder}
-              aria-label={hz.searchAria}
+              placeholder={strings.searchPlaceholder}
+              aria-label={strings.searchAria}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setHighlight(0);
@@ -449,16 +472,16 @@ export default function HorizonMap() {
             />
             {results.length > 0 && (
               <ul className="search-results" role="listbox">
-                {results.map((r, i) => (
+                {results.map((result, i) => (
                   <li
-                    key={r.idx}
+                    key={result.idx}
                     role="option"
                     aria-selected={i === highlight}
                     className={i === highlight ? "highlighted" : ""}
                     onMouseEnter={() => setHighlight(i)}
-                    onClick={() => pick(r.idx)}
+                    onClick={() => pick(result.idx)}
                   >
-                    {r.name}
+                    {result.name}
                   </li>
                 ))}
               </ul>
@@ -475,18 +498,18 @@ export default function HorizonMap() {
             timeRef.current = v;
           },
         }}
-        footer={hz.footer}
+        footer={strings.footer}
       >
         <button className="story-btn sheet-hide" onClick={story}>
-          {hz.story}
+          {strings.story}
         </button>
         <div className="iso-legend sheet-hide">
           <div className="iso-swatches">
-            {BAND_COLORS.map((c, i) => (
+            {BAND_COLORS.map((color, i) => (
               <span
                 key={i}
                 className="iso-swatch"
-                style={{ background: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }}
+                style={{ background: `rgb(${color[0]}, ${color[1]}, ${color[2]})` }}
               />
             ))}
           </div>
@@ -497,7 +520,7 @@ export default function HorizonMap() {
             <span>60</span>
             <span>75 min</span>
           </div>
-          <p className="pulse-legend">{hz.legend}</p>
+          <p className="pulse-legend">{strings.legend}</p>
         </div>
         <VizLinks current="horizon" lang={lang} />
       </VizPanel>

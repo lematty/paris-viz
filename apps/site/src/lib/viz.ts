@@ -7,10 +7,10 @@ export function currentSearchParams(): URLSearchParams {
 }
 
 /** Seconds-of-day → "HH:MM". */
-export const fmtClock = (s: number) => {
-  const h = Math.floor(s / 3600) % 24;
-  const m = Math.floor((s % 3600) / 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+export const fmtClock = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600) % 24;
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
 export function hexToRgb(hex: string): [number, number, number] {

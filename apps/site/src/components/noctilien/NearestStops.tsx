@@ -12,56 +12,56 @@ export default function NearestStops({
   night,
   onClear,
   onSelectLine,
-  t,
+  strings,
 }: {
   target: SearchResult;
   stops: StopWithDistance[];
   night: NightType;
   onClear: () => void;
   onSelectLine: (line: string) => void;
-  t: Strings;
+  strings: Strings;
 }) {
   return (
     <div className="nearest">
       <div className="nearest-header">
-        <strong>{t.nearTitle(target.label)}</strong>
-        <button onClick={onClear} aria-label={t.clearSearch}>
+        <strong>{strings.nearTitle(target.label)}</strong>
+        <button onClick={onClear} aria-label={strings.clearSearch}>
           ✕
         </button>
       </div>
       {stops.length === 0 ? (
-        <p className="nearest-empty">{t.noStop}</p>
+        <p className="nearest-empty">{strings.noStop}</p>
       ) : (
         <ul>
-          {stops.map((s) => {
-            const stat = s[night];
+          {stops.map((stop) => {
+            const stats = stop[night];
             return (
-              <li key={`${s.name}-${s.lat}`}>
+              <li key={`${stop.name}-${stop.lat}`}>
                 <div className="nearest-name">
-                  {s.name}
+                  {stop.name}
                   <span className="nearest-dist">
-                    {Math.round(s.distanceM)} m ·{" "}
-                    {Math.max(1, Math.round(s.distanceM / WALK_M_PER_MIN))}{" "}
-                    {t.minWalk}
+                    {Math.round(stop.distanceM)} m ·{" "}
+                    {Math.max(1, Math.round(stop.distanceM / WALK_M_PER_MIN))}{" "}
+                    {strings.minWalk}
                   </span>
                 </div>
                 <div className="nearest-stat">
-                  {s.lines.map((l, i) => (
-                    <span key={l}>
+                  {stop.lines.map((line, i) => (
+                    <span key={line}>
                       {i > 0 && " · "}
                       <button
                         className="line-link"
-                        title={t.highlightLine(l)}
-                        onClick={() => onSelectLine(l)}
+                        title={strings.highlightLine(line)}
+                        onClick={() => onSelectLine(line)}
                       >
-                        {l}
+                        {line}
                       </button>
                     </span>
                   ))}{" "}
                   -{" "}
-                  {stat.headway
-                    ? t.busEvery(stat.headway)
-                    : t.busesPerNight(stat.dep)}
+                  {stats.headway
+                    ? strings.busEvery(stats.headway)
+                    : strings.busesPerNight(stats.dep)}
                 </div>
               </li>
             );

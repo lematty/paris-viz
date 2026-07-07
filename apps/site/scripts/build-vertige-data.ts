@@ -111,13 +111,13 @@ async function main() {
 
   // --- the city limit: union of the 20 arrondissement polygons ---------------
   const arrTxt = await fetchCached(ARRONDISSEMENTS_URL, "arrondissements.geojson");
-  const arr = JSON.parse(arrTxt) as { features: Feature[] };
+  const arrondissements = JSON.parse(arrTxt) as { features: Feature[] };
   const cityRings: number[][][] = [];
-  for (const f of arr.features) {
-    const g = f.geometry;
-    if (g.type === "Polygon") cityRings.push((g.coordinates as number[][][])[0]);
-    else if (g.type === "MultiPolygon")
-      for (const poly of g.coordinates as number[][][][]) cityRings.push(poly[0]);
+  for (const feature of arrondissements.features) {
+    const geom = feature.geometry;
+    if (geom.type === "Polygon") cityRings.push((geom.coordinates as number[][][])[0]);
+    else if (geom.type === "MultiPolygon")
+      for (const poly of geom.coordinates as number[][][][]) cityRings.push(poly[0]);
   }
   const inParis = (x: number, y: number) =>
     cityRings.some((ring) => inRing(x, y, ring));
@@ -132,15 +132,15 @@ async function main() {
   console.log(`BD TOPO buildings in bbox: ${total}`);
   const pages: Feature[][] = [first.features];
   const starts: number[] = [];
-  for (let s = PAGE; s < total; s += PAGE) starts.push(s);
+  for (let start = PAGE; start < total; start += PAGE) starts.push(start);
   // a few pages in flight at a time: fast, but polite to the WFS
   const PARALLEL = 4;
   for (let i = 0; i < starts.length; i += PARALLEL) {
     const batch = starts.slice(i, i + PARALLEL);
     const texts = await Promise.all(
-      batch.map((s) => fetchCached(wfsPageUrl(s), `batiment-${s}.json`)),
+      batch.map((start) => fetchCached(wfsPageUrl(start), `batiment-${start}.json`)),
     );
-    for (const t of texts) pages.push((JSON.parse(t) as { features: Feature[] }).features);
+    for (const text of texts) pages.push((JSON.parse(text) as { features: Feature[] }).features);
     console.log(`  pages ${Math.min(i + PARALLEL, starts.length)}/${starts.length}`);
   }
 
@@ -150,64 +150,64 @@ async function main() {
   const maxLon = 2.47;
   const minLat = 48.813;
   const maxLat = 48.906;
-  const qx = (lon: number) =>
+  const quantizeX = (lon: number) =>
     Math.max(0, Math.min(QUANT, Math.round(((lon - minLon) / (maxLon - minLon)) * QUANT)));
-  const qy = (lat: number) =>
+  const quantizeY = (lat: number) =>
     Math.max(0, Math.min(QUANT, Math.round(((lat - minLat) / (maxLat - minLat)) * QUANT)));
 
-  const usageIdx = new Map<string, number>();
+  const usageIndexByLabel = new Map<string, number>();
   const usages: string[] = [];
   const usageOf = (label: string): number => {
-    let idx = usageIdx.get(label);
+    let idx = usageIndexByLabel.get(label);
     if (idx === undefined) {
       idx = usages.length;
-      usageIdx.set(label, idx);
+      usageIndexByLabel.set(label, idx);
       usages.push(label);
     }
     return idx;
   };
 
-  const hDm: number[] = [];
+  const heightsDm: number[] = [];
   const years: number[] = [];
   const floors: number[] = [];
   const usage: number[] = [];
   const ringCounts: number[] = [];
-  const ringVerts: number[] = [];
+  const ringVertexCounts: number[] = [];
   const coords: number[] = [];
   let skippedNoHeight = 0;
   let skippedOutside = 0;
   let skippedState = 0;
-  let maxH = 0;
+  let maxHeight = 0;
 
   for (const features of pages) {
-    for (const f of features) {
-      const p = f.properties;
-      if (p.etat_de_l_objet && p.etat_de_l_objet !== "En service") {
+    for (const feature of features) {
+      const props = feature.properties;
+      if (props.etat_de_l_objet && props.etat_de_l_objet !== "En service") {
         skippedState++;
         continue;
       }
       // measured height, or a floor-count estimate for the few unmeasured ones
-      let h = p.hauteur ?? 0;
-      if (h <= 0) {
-        if (p.nombre_d_etages && p.nombre_d_etages > 0)
-          h = p.nombre_d_etages * 3.2 + 1;
+      let height = props.hauteur ?? 0;
+      if (height <= 0) {
+        if (props.nombre_d_etages && props.nombre_d_etages > 0)
+          height = props.nombre_d_etages * 3.2 + 1;
         else {
           skippedNoHeight++;
           continue;
         }
       }
       const polys =
-        f.geometry.type === "MultiPolygon"
-          ? (f.geometry.coordinates as number[][][][])
-          : [f.geometry.coordinates as number[][][]];
-      const year = p.date_d_apparition
-        ? Math.max(0, +p.date_d_apparition.slice(0, 4) || 0)
+        feature.geometry.type === "MultiPolygon"
+          ? (feature.geometry.coordinates as number[][][][])
+          : [feature.geometry.coordinates as number[][][]];
+      const year = props.date_d_apparition
+        ? Math.max(0, +props.date_d_apparition.slice(0, 4) || 0)
         : 0;
-      const et =
-        p.nombre_d_etages && p.nombre_d_etages > 0 && p.nombre_d_etages < 255
-          ? p.nombre_d_etages
+      const floorCount =
+        props.nombre_d_etages && props.nombre_d_etages > 0 && props.nombre_d_etages < 255
+          ? props.nombre_d_etages
           : 255;
-      const u = usageOf(p.usage_1 || "Indifférencié");
+      const usageIndex = usageOf(props.usage_1 || "Indifférencié");
 
       for (const poly of polys) {
         const outer = poly[0];
@@ -229,16 +229,16 @@ async function main() {
         const keptRings: number[][][] = [];
         for (const ring of poly) {
           // quantize, drop the closing duplicate and collinear micro-detail
-          let q: [number, number][] = ring.map((pt) => [qx(pt[0]), qy(pt[1])]);
+          let quantized: [number, number][] = ring.map((pt) => [quantizeX(pt[0]), quantizeY(pt[1])]);
           if (
-            q.length > 1 &&
-            q[0][0] === q[q.length - 1][0] &&
-            q[0][1] === q[q.length - 1][1]
+            quantized.length > 1 &&
+            quantized[0][0] === quantized[quantized.length - 1][0] &&
+            quantized[0][1] === quantized[quantized.length - 1][1]
           )
-            q = q.slice(0, -1);
-          q = simplifyPath(q, SIMPLIFY_TOL);
+            quantized = quantized.slice(0, -1);
+          quantized = simplifyPath(quantized, SIMPLIFY_TOL);
           const dedup: [number, number][] = [];
-          for (const pt of q) {
+          for (const pt of quantized) {
             const last = dedup[dedup.length - 1];
             if (!last || last[0] !== pt[0] || last[1] !== pt[1]) dedup.push(pt);
           }
@@ -247,71 +247,72 @@ async function main() {
         }
         if (keptRings.length === 0 || keptRings.length > 255) continue;
 
-        hDm.push(Math.min(65535, Math.round(h * 10)));
+        heightsDm.push(Math.min(65535, Math.round(height * 10)));
         years.push(Math.min(65535, year));
-        floors.push(et);
-        usage.push(u);
+        floors.push(floorCount);
+        usage.push(usageIndex);
         ringCounts.push(keptRings.length);
         for (const ring of keptRings) {
-          ringVerts.push(ring.length);
+          ringVertexCounts.push(ring.length);
           for (const [x, y] of ring) coords.push(x, y);
         }
-        if (h > maxH) maxH = h;
+        if (height > maxHeight) maxHeight = height;
       }
     }
   }
 
-  const N = hDm.length;
-  const R = ringVerts.length;
-  const V = coords.length / 2;
+  const buildingCount = heightsDm.length;
+  const ringTotal = ringVertexCounts.length;
+  const vertexTotal = coords.length / 2;
   console.log(
-    `Buildings kept: ${N} (${R} rings, ${V} vertices) · ` +
+    `Buildings kept: ${buildingCount} (${ringTotal} rings, ${vertexTotal} vertices) · ` +
       `skipped: ${skippedOutside} outside Paris, ${skippedNoHeight} without height, ` +
-      `${skippedState} not in service · max height ${maxH.toFixed(1)} m`,
+      `${skippedState} not in service · max height ${maxHeight.toFixed(1)} m`,
   );
-  if (N < 50_000) throw new Error("Suspiciously few buildings - upstream change?");
+  if (buildingCount < 50_000)
+    throw new Error("Suspiciously few buildings - upstream change?");
 
   // --- sanity: the height histogram should crest at the Haussmann band ---------
   const bands = [9, 15, 21, 30, 50, 100, Infinity];
   const hist = new Array(bands.length).fill(0);
-  for (const dm of hDm) hist[bands.findIndex((b) => dm / 10 < b)]++;
+  for (const heightDm of heightsDm) hist[bands.findIndex((b) => heightDm / 10 < b)]++;
   console.log(
     "Height bands (<9, <15, <21, <30, <50, <100, 100+ m): " +
-      hist.map((n) => `${Math.round((n / N) * 100)}%`).join(" "),
+      hist.map((count) => `${Math.round((count / buildingCount) * 100)}%`).join(" "),
   );
 
   // --- emit ---------------------------------------------------------------------
   const headerBytes = 16 + 4 * 8;
-  const attrBytes = 2 * N + 2 * N + N + N + N;
+  const attrBytes = 2 * buildingCount + 2 * buildingCount + buildingCount + buildingCount + buildingCount;
   const pad = (headerBytes + attrBytes) % 2;
-  const bytes = headerBytes + attrBytes + pad + 2 * R + 4 * V;
+  const bytes = headerBytes + attrBytes + pad + 2 * ringTotal + 4 * vertexTotal;
   const buf = Buffer.alloc(bytes);
-  let o = 0;
-  buf.writeUInt32LE(0x56455254, o); o += 4;
-  buf.writeUInt32LE(N, o); o += 4;
-  buf.writeUInt32LE(R, o); o += 4;
-  buf.writeUInt32LE(V, o); o += 4;
+  let offset = 0;
+  buf.writeUInt32LE(0x56455254, offset); offset += 4;
+  buf.writeUInt32LE(buildingCount, offset); offset += 4;
+  buf.writeUInt32LE(ringTotal, offset); offset += 4;
+  buf.writeUInt32LE(vertexTotal, offset); offset += 4;
   for (const v of [minLon, minLat, maxLon, maxLat]) {
-    buf.writeDoubleLE(v, o);
-    o += 8;
+    buf.writeDoubleLE(v, offset);
+    offset += 8;
   }
-  for (const v of hDm) { buf.writeUInt16LE(v, o); o += 2; }
-  for (const v of years) { buf.writeUInt16LE(v, o); o += 2; }
-  for (const v of floors) { buf.writeUInt8(v, o); o += 1; }
-  for (const v of usage) { buf.writeUInt8(v, o); o += 1; }
-  for (const v of ringCounts) { buf.writeUInt8(v, o); o += 1; }
-  o += pad;
-  for (const v of ringVerts) { buf.writeUInt16LE(v, o); o += 2; }
-  for (const v of coords) { buf.writeUInt16LE(v, o); o += 2; }
-  if (o !== bytes) throw new Error(`layout mismatch: wrote ${o} of ${bytes}`);
+  for (const v of heightsDm) { buf.writeUInt16LE(v, offset); offset += 2; }
+  for (const v of years) { buf.writeUInt16LE(v, offset); offset += 2; }
+  for (const v of floors) { buf.writeUInt8(v, offset); offset += 1; }
+  for (const v of usage) { buf.writeUInt8(v, offset); offset += 1; }
+  for (const v of ringCounts) { buf.writeUInt8(v, offset); offset += 1; }
+  offset += pad;
+  for (const v of ringVertexCounts) { buf.writeUInt16LE(v, offset); offset += 2; }
+  for (const v of coords) { buf.writeUInt16LE(v, offset); offset += 2; }
+  if (offset !== bytes) throw new Error(`layout mismatch: wrote ${offset} of ${bytes}`);
 
   writeFileSync(path.join(OUT_DIR, "buildings.bin"), buf);
   writeFileSync(
     path.join(OUT_DIR, "meta.json"),
     JSON.stringify({
       date: new Date().toISOString().slice(0, 10),
-      count: N,
-      maxH: Math.round(maxH * 10) / 10,
+      count: buildingCount,
+      maxH: Math.round(maxHeight * 10) / 10,
       usages,
       source: "IGN BD TOPO",
     }),

@@ -103,17 +103,17 @@ async function main() {
   }
   const serviceNights = new Map<string, NightCounts>();
   for (const [id, dates] of serviceDates) {
-    const c: NightCounts = { eveWeek: 0, eveWeekend: 0, mornWeek: 0, mornWeekend: 0 };
+    const counts: NightCounts = { eveWeek: 0, eveWeekend: 0, mornWeek: 0, mornWeekend: 0 };
     for (const ts of dates) {
-      if (isWeekendNight(ts)) c.eveWeekend++;
-      else c.eveWeek++;
+      if (isWeekendNight(ts)) counts.eveWeekend++;
+      else counts.eveWeek++;
       const prev = ts - DAY_MS;
       if (prev >= minDate) {
-        if (isWeekendNight(prev)) c.mornWeekend++;
-        else c.mornWeek++;
+        if (isWeekendNight(prev)) counts.mornWeekend++;
+        else counts.mornWeek++;
       }
     }
-    serviceNights.set(id, c);
+    serviceNights.set(id, counts);
   }
   let totalWeekNights = 0;
   let totalWeekendNights = 0;
@@ -140,8 +140,8 @@ async function main() {
     if (!trip) return;
     const time = get("departure_time") || get("arrival_time");
     if (!time) return;
-    const h = +time.slice(0, 2);
-    const minute = h * 60 + +time.slice(3, 5) - (h >= 12 ? 1440 : 0);
+    const hour = +time.slice(0, 2);
+    const minute = hour * 60 + +time.slice(3, 5) - (hour >= 12 ? 1440 : 0);
     const counts = serviceNights.get(trip.serviceId);
     if (!counts) return;
     const stopId = get("stop_id");
@@ -155,7 +155,7 @@ async function main() {
         lines: new Set(),
       }));
     }
-    if (h >= 12) {
+    if (hour >= 12) {
       acc.weekDep += counts.eveWeek;
       acc.weekendDep += counts.eveWeekend;
     } else {
@@ -188,24 +188,25 @@ async function main() {
     lon: number;
   }
   const byName = new Map<string, Cluster[]>();
-  for (const [id, p] of poles) {
-    const clusters = byName.get(p.name) ?? [];
+  for (const [id, pole] of poles) {
+    const clusters = byName.get(pole.name) ?? [];
     const hit = clusters.find(
-      (c) => Math.hypot((c.lat - p.lat) * 111_000, (c.lon - p.lon) * 74_000) < 150,
+      (cluster) =>
+        Math.hypot((cluster.lat - pole.lat) * 111_000, (cluster.lon - pole.lon) * 74_000) < 150,
     );
     if (hit) {
-      hit.lat = (hit.lat * hit.ids.length + p.lat) / (hit.ids.length + 1);
-      hit.lon = (hit.lon * hit.ids.length + p.lon) / (hit.ids.length + 1);
+      hit.lat = (hit.lat * hit.ids.length + pole.lat) / (hit.ids.length + 1);
+      hit.lon = (hit.lon * hit.ids.length + pole.lon) / (hit.ids.length + 1);
       hit.ids.push(id);
     } else {
-      clusters.push({ name: p.name, ids: [id], lat: p.lat, lon: p.lon });
+      clusters.push({ name: pole.name, ids: [id], lat: pole.lat, lon: pole.lon });
     }
-    byName.set(p.name, clusters);
+    byName.set(pole.name, clusters);
   }
 
   const round5 = (x: number) => Math.round(x * 1e5) / 1e5;
-  const stats = (dep: number, nights: number, span: number) => {
-    const perNight = dep / nights;
+  const stats = (departures: number, nights: number, span: number) => {
+    const perNight = departures / nights;
     return {
       dep: Math.round(perNight * 10) / 10,
       headway:
@@ -214,18 +215,18 @@ async function main() {
   };
   const stops: Stop[] = [];
   for (const clusters of byName.values()) {
-    for (const c of clusters) {
-      const accs = c.ids.map((id) => stopAcc.get(id)!);
-      const weekDep = accs.reduce((s, a) => s + a.weekDep, 0);
-      const weekendDep = accs.reduce((s, a) => s + a.weekendDep, 0);
+    for (const cluster of clusters) {
+      const accs = cluster.ids.map((id) => stopAcc.get(id)!);
+      const weekDep = accs.reduce((sum, acc) => sum + acc.weekDep, 0);
+      const weekendDep = accs.reduce((sum, acc) => sum + acc.weekendDep, 0);
       const span =
-        Math.max(...accs.map((a) => a.maxMinute)) -
-        Math.min(...accs.map((a) => a.minMinute));
+        Math.max(...accs.map((acc) => acc.maxMinute)) -
+        Math.min(...accs.map((acc) => acc.minMinute));
       stops.push({
-        name: c.name,
-        lat: round5(c.lat),
-        lon: round5(c.lon),
-        lines: [...new Set(accs.flatMap((a) => [...a.lines]))].sort(),
+        name: cluster.name,
+        lat: round5(cluster.lat),
+        lon: round5(cluster.lon),
+        lines: [...new Set(accs.flatMap((acc) => [...acc.lines]))].sort(),
         week: stats(weekDep, totalWeekNights, span),
         weekend: stats(weekendDep, totalWeekendNights, span),
       });
@@ -236,17 +237,17 @@ async function main() {
 
   // --- Route polylines: most-used shape per direction -------------------------
   const shapeVotes = new Map<string, Map<string, number>>();
-  for (const t of trips.values()) {
-    if (!t.shapeId) continue;
-    const key = `${t.routeId}|${t.directionId}`;
+  for (const trip of trips.values()) {
+    if (!trip.shapeId) continue;
+    const key = `${trip.routeId}|${trip.directionId}`;
     const votes = shapeVotes.get(key) ?? new Map();
-    votes.set(t.shapeId, (votes.get(t.shapeId) ?? 0) + 1);
+    votes.set(trip.shapeId, (votes.get(trip.shapeId) ?? 0) + 1);
     shapeVotes.set(key, votes);
   }
   const wantedShapes = new Map<string, string>();
   for (const [key, votes] of shapeVotes) {
-    const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0];
-    wantedShapes.set(best, key.split("|")[0]);
+    const bestShapeId = [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    wantedShapes.set(bestShapeId, key.split("|")[0]);
   }
   const shapePts = new Map<string, [number, number, number][]>();
   await streamZipCsv(ZIP_PATH, "shapes.txt", (get) => {
@@ -258,18 +259,18 @@ async function main() {
   });
 
   const routeMap = new Map<string, Route>();
-  for (const [rid, r] of routes) {
-    routeMap.set(rid, { name: r.name, color: `#${r.color}`, paths: [] });
+  for (const [routeId, route] of routes) {
+    routeMap.set(routeId, { name: route.name, color: `#${route.color}`, paths: [] });
   }
   for (const [shapeId, routeId] of wantedShapes) {
     const pts = shapePts.get(shapeId);
     if (!pts) continue;
     pts.sort((a, b) => a[2] - b[2]);
-    const path = simplifyPath(
+    const simplified = simplifyPath(
       pts.map(([la, lo]) => [la, lo] as [number, number]),
       5e-5,
     );
-    routeMap.get(routeId)!.paths.push(path.map(([la, lo]) => [round5(la), round5(lo)]));
+    routeMap.get(routeId)!.paths.push(simplified.map(([la, lo]) => [round5(la), round5(lo)]));
   }
 
   // --- Emit --------------------------------------------------------------------

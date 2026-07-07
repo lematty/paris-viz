@@ -11,15 +11,15 @@ export default function LangToggle({
 }) {
   return (
     <div className="lang-toggle" role="radiogroup" aria-label="Language">
-      {(["en", "fr"] as const).map((l) => (
+      {(["en", "fr"] as const).map((code) => (
         <button
-          key={l}
+          key={code}
           role="radio"
-          aria-checked={lang === l}
-          className={lang === l ? "active" : ""}
-          onClick={() => onChange(l)}
+          aria-checked={lang === code}
+          className={lang === code ? "active" : ""}
+          onClick={() => onChange(code)}
         >
-          {l.toUpperCase()}
+          {code.toUpperCase()}
         </button>
       ))}
     </div>

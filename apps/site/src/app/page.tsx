@@ -10,20 +10,20 @@ export default function Home() {
   // start with the SSR default and adopt the stored choice after hydration
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => setLang(loadLang()), []);
-  const s = SITE[lang];
+  const strings = SITE[lang];
 
   return (
     <main className="home">
       <div className="home-header">
         <div>
           <h1>Paris Viz</h1>
-          <p className="home-sub">{s.tagline}</p>
+          <p className="home-sub">{strings.tagline}</p>
         </div>
         <LangToggle
           lang={lang}
-          onChange={(l) => {
-            setLang(l);
-            saveLang(l);
+          onChange={(nextLang) => {
+            setLang(nextLang);
+            saveLang(nextLang);
           }}
         />
       </div>
@@ -31,38 +31,38 @@ export default function Home() {
         <Link className="card" href="/flux">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/flux.png" alt="" />
-          <h2>{s.fluxTitle}</h2>
-          <p>{s.fluxDesc}</p>
+          <h2>{strings.fluxTitle}</h2>
+          <p>{strings.fluxDesc}</p>
         </Link>
         <Link className="card" href="/air">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/air.png" alt="" />
-          <h2>{s.airTitle}</h2>
-          <p>{s.airDesc}</p>
+          <h2>{strings.airTitle}</h2>
+          <p>{strings.airDesc}</p>
         </Link>
         <Link className="card" href="/horizon">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/horizon.png" alt="" />
-          <h2>{s.horizonTitle}</h2>
-          <p>{s.horizonDesc}</p>
+          <h2>{strings.horizonTitle}</h2>
+          <p>{strings.horizonDesc}</p>
         </Link>
         <Link className="card" href="/vertige">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/vertige.png" alt="" />
-          <h2>{s.vertigeTitle}</h2>
-          <p>{s.vertigeDesc}</p>
+          <h2>{strings.vertigeTitle}</h2>
+          <p>{strings.vertigeDesc}</p>
         </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />
-          <h2>{s.noctTitle}</h2>
-          <p>{s.noctDesc}</p>
+          <h2>{strings.noctTitle}</h2>
+          <p>{strings.noctDesc}</p>
         </Link>
       </div>
       <section className="about">
-        <h2>{s.aboutTitle}</h2>
-        <p>{s.aboutBody}</p>
-        <p>{s.aboutRefresh}</p>
+        <h2>{strings.aboutTitle}</h2>
+        <p>{strings.aboutBody}</p>
+        <p>{strings.aboutRefresh}</p>
         <p className="about-links">
           <a href="https://data.iledefrance-mobilites.fr">
             data.iledefrance-mobilites.fr

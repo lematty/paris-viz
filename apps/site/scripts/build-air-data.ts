@@ -26,14 +26,14 @@ const DATA_ROOT = process.env.DATA_CACHE_DIR
 const DATA_DIR = path.join(DATA_ROOT, "air");
 const OUT_DIR = path.resolve(ROOT, "apps", "site", "public", "air");
 
-const ITEM = (id: string) =>
+const ITEM_URL = (id: string) =>
   `https://www.arcgis.com/sharing/rest/content/items/${id}/data`;
 // national station referential (Dataset D, resolved via the data.gouv API)
 const REFERENTIAL_API =
   "https://www.data.gouv.fr/api/1/datasets/donnees-temps-reel-de-mesure-des-concentrations-de-polluants-atmospheriques-reglementes-1/";
 
 // ArcGIS hub item ids for "YYYY <POLL>" hourly CSVs
-const YEARS: Record<string, Record<number, string>> = {
+const HUB_ITEM_IDS: Record<string, Record<number, string>> = {
   no2: {
     2019: "6ac940f634c7422999bd3630b7359598",
     2020: "0804fd34322d4ab38092a30632de7262",
@@ -109,19 +109,19 @@ async function main() {
     const api = (await (await fetch(REFERENTIAL_API)).json()) as {
       resources: { title: string; url: string }[];
     };
-    const res = api.resources.find((r) => r.title.startsWith("Dataset D"));
+    const res = api.resources.find((resource) => resource.title.startsWith("Dataset D"));
     if (!res) throw new Error("Dataset D resource not found on data.gouv");
     await downloadFile(res.url, xlsPath);
   }
   const XLSX = (await import("xlsx")).default;
-  const wb = XLSX.readFile(xlsPath);
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets["AirQualityStations"], {
+  const workbook = XLSX.readFile(xlsPath);
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets["AirQualityStations"], {
     header: 1,
   }) as (string | number)[][];
-  for (const r of rows.slice(1)) {
-    const name = String(r[5] ?? "");
-    const lat = Number(r[10]);
-    const lon = Number(r[11]);
+  for (const row of rows.slice(1)) {
+    const name = String(row[5] ?? "");
+    const lat = Number(row[10]);
+    const lon = Number(row[11]);
     // Île-de-France bounding box
     if (!name || !(lat > 48.1 && lat < 49.3 && lon > 1.4 && lon < 3.6)) continue;
     const key = norm(name);
@@ -134,7 +134,7 @@ async function main() {
       });
     }
   }
-  for (const st of EXTRA_STATIONS) stationsByNorm.set(norm(st.name), st);
+  for (const station of EXTRA_STATIONS) stationsByNorm.set(norm(station.name), station);
   console.log(`Stations in referential (IDF): ${stationsByNorm.size}`);
 
   const lookup = (label: string): Station | undefined => {
@@ -144,98 +144,98 @@ async function main() {
   };
 
   // master station list: every located station that appears in any CSV
-  const master: Station[] = [];
+  const masterStations: Station[] = [];
   const masterIndex = new Map<string, number>(); // norm name → idx
 
   interface YearFile {
-    poll: string;
+    pollutant: string;
     year: number;
     hours: number;
     start: number; // epoch ms of the first hourly row (UTC)
     values: Uint8Array; // hours × stations, filled after master is complete
-    columns: (number | null)[]; // csv column → master idx
-    raw: string[][];
+    columns: (number | null)[]; // csv column → masterStations idx
+    rawRows: string[][];
   }
   const files: YearFile[] = [];
   const unmatched = new Set<string>();
 
-  for (const [poll, years] of Object.entries(YEARS)) {
+  for (const [pollutant, years] of Object.entries(HUB_ITEM_IDS)) {
     for (const [yearStr, id] of Object.entries(years)) {
       const year = +yearStr;
-      const dest = path.join(DATA_DIR, `${poll}-${year}.csv`);
-      await downloadFile(ITEM(id), dest);
+      const dest = path.join(DATA_DIR, `${pollutant}-${year}.csv`);
+      await downloadFile(ITEM_URL(id), dest);
       const lines = readFileSync(dest, "utf8").split("\n").filter(Boolean);
       // row 0: codes+poll, row 1: station labels, rows 2,3,4: code/name/unit
       const labels = parseCsvLine(lines[1]).slice(1);
       const dataRows = lines.slice(6).map((l) => parseCsvLine(l));
       const columns = labels.map((label) => {
-        const st = lookup(label);
-        if (!st) {
+        const station = lookup(label);
+        if (!station) {
           if (label && !EXCLUDE.test(label)) unmatched.add(label);
           return null;
         }
-        const key = norm(st.name);
+        const key = norm(station.name);
         let idx = masterIndex.get(key);
         if (idx === undefined) {
-          idx = master.length;
+          idx = masterStations.length;
           masterIndex.set(key, idx);
-          master.push(st);
+          masterStations.push(station);
         }
         return idx;
       });
       const matched = columns.filter((c) => c !== null).length;
       console.log(
-        `${poll} ${year}: ${dataRows.length} hours, ${matched}/${labels.length} stations matched`,
+        `${pollutant} ${year}: ${dataRows.length} hours, ${matched}/${labels.length} stations matched`,
       );
       if (dataRows.length < 1000 || matched < 10) {
-        throw new Error(`${poll} ${year}: implausible data, aborting`);
+        throw new Error(`${pollutant} ${year}: implausible data, aborting`);
       }
       const start = Date.parse(String(dataRows[0][0]).replace(" ", "T"));
       if (!Number.isFinite(start)) {
-        throw new Error(`${poll} ${year}: unparseable first timestamp`);
+        throw new Error(`${pollutant} ${year}: unparseable first timestamp`);
       }
       files.push({
-        poll,
+        pollutant,
         year,
         hours: dataRows.length,
         start,
         values: new Uint8Array(0),
         columns,
-        raw: dataRows,
+        rawRows: dataRows,
       });
     }
   }
 
   // --- encode: uint8 per station per hour --------------------------------------
   const meta = {
-    stations: master,
+    stations: masterStations,
     pollutants: {} as Record<
       string,
       { years: Record<number, { hours: number; start: number }> }
     >,
   };
-  for (const f of files) {
-    const n = master.length;
-    const out = new Uint8Array(f.hours * n).fill(255);
-    for (let h = 0; h < f.hours; h++) {
-      const row = f.raw[h];
-      for (let c = 0; c < f.columns.length; c++) {
-        const idx = f.columns[c];
+  for (const file of files) {
+    const stationCount = masterStations.length;
+    const encoded = new Uint8Array(file.hours * stationCount).fill(255);
+    for (let h = 0; h < file.hours; h++) {
+      const row = file.rawRows[h];
+      for (let c = 0; c < file.columns.length; c++) {
+        const idx = file.columns[c];
         if (idx === null) continue;
-        const v = parseFloat(row[c + 1]);
-        if (Number.isFinite(v))
-          out[h * n + idx] = Math.max(0, Math.min(250, Math.round(v)));
+        const value = parseFloat(row[c + 1]);
+        if (Number.isFinite(value))
+          encoded[h * stationCount + idx] = Math.max(0, Math.min(250, Math.round(value)));
       }
     }
-    writeFileSync(path.join(OUT_DIR, `${f.poll}-${f.year}.bin`), out);
-    meta.pollutants[f.poll] ??= { years: {} };
-    meta.pollutants[f.poll].years[f.year] = { hours: f.hours, start: f.start };
+    writeFileSync(path.join(OUT_DIR, `${file.pollutant}-${file.year}.bin`), encoded);
+    meta.pollutants[file.pollutant] ??= { years: {} };
+    meta.pollutants[file.pollutant].years[file.year] = { hours: file.hours, start: file.start };
   }
   if (unmatched.size) console.log("Unmatched labels:", [...unmatched].join(" | "));
   writeFileSync(path.join(OUT_DIR, "meta.json"), JSON.stringify(meta));
-  const totalKb = files.reduce((s, f) => s + (f.hours * master.length) / 1024, 0);
+  const totalKb = files.reduce((sum, file) => sum + (file.hours * masterStations.length) / 1024, 0);
   console.log(
-    `Wrote air/meta.json (${master.length} stations) + ${files.length} year files, ` +
+    `Wrote air/meta.json (${masterStations.length} stations) + ${files.length} year files, ` +
       `${Math.round(totalKb)} KB total (uncompressed)`,
   );
 }

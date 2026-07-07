@@ -46,11 +46,11 @@ export function useAnimationClock(opts: {
       raf = requestAnimationFrame(tick);
       const dt = (now - last) / 1000;
       last = now;
-      const s = live.current;
-      if (s.playing) {
-        timeRef.current = s.normalize(timeRef.current + dt * s.speed);
+      const state = live.current;
+      if (state.playing) {
+        timeRef.current = state.normalize(timeRef.current + dt * state.speed);
       }
-      s.onFrame(timeRef.current);
+      state.onFrame(timeRef.current);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);

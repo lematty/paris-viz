@@ -11,10 +11,10 @@ export function haversineMeters(
   const rad = Math.PI / 180;
   const dLat = (bLat - aLat) * rad;
   const dLon = (bLon - aLon) * rad;
-  const s =
+  const haversine =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_R * Math.asin(Math.sqrt(s));
+  return 2 * EARTH_R * Math.asin(Math.sqrt(haversine));
 }
 
 export interface StopWithDistance extends Stop {
@@ -29,8 +29,8 @@ export function nearestStops(
   maxMeters = 1500,
 ): StopWithDistance[] {
   return stops
-    .map((s) => ({ ...s, distanceM: haversineMeters(lat, lon, s.lat, s.lon) }))
-    .filter((s) => s.distanceM <= maxMeters)
+    .map((stop) => ({ ...stop, distanceM: haversineMeters(lat, lon, stop.lat, stop.lon) }))
+    .filter((stop) => stop.distanceM <= maxMeters)
     .sort((a, b) => a.distanceM - b.distanceM)
     .slice(0, count);
 }

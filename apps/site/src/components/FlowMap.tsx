@@ -48,17 +48,17 @@ interface BusMeta {
 /** Chunk layout: u32 tripCount | per trip (u16 wpCount, u16 lineIdx) |
  * per waypoint (u16 qLon, u16 qLat, u16 qT - 2-second steps from t0). */
 function decodeBusChunk(buf: ArrayBuffer, meta: BusMeta): Trip[] {
-  const dv = new DataView(buf);
+  const view = new DataView(buf);
   const [minLon, minLat, maxLon, maxLat] = meta.bbox;
   const lonSpan = maxLon - minLon;
   const latSpan = maxLat - minLat;
-  const colors = meta.lines.map((l) => hexToRgb(l.color));
-  const n = dv.getUint32(0, true);
-  let o = 4;
+  const colors = meta.lines.map((line) => hexToRgb(line.color));
+  const tripCount = view.getUint32(0, true);
+  let offset = 4;
   const headers: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    headers.push([dv.getUint16(o, true), dv.getUint16(o + 2, true)]);
-    o += 4;
+  for (let i = 0; i < tripCount; i++) {
+    headers.push([view.getUint16(offset, true), view.getUint16(offset + 2, true)]);
+    offset += 4;
   }
   const trips: Trip[] = [];
   for (const [count, lineIdx] of headers) {
@@ -66,11 +66,11 @@ function decodeBusChunk(buf: ArrayBuffer, meta: BusMeta): Trip[] {
     const timestamps: number[] = [];
     for (let j = 0; j < count; j++) {
       path.push([
-        minLon + (dv.getUint16(o, true) / 65535) * lonSpan,
-        minLat + (dv.getUint16(o + 2, true) / 65535) * latSpan,
+        minLon + (view.getUint16(offset, true) / 65535) * lonSpan,
+        minLat + (view.getUint16(offset + 2, true) / 65535) * latSpan,
       ]);
-      timestamps.push(meta.t0 + dv.getUint16(o + 4, true) * 2);
-      o += 6;
+      timestamps.push(meta.t0 + view.getUint16(offset + 4, true) * 2);
+      offset += 6;
     }
     trips.push({
       path,
@@ -92,27 +92,27 @@ const DAY_KEYS: DayKey[] = ["weekday", "saturday", "sunday"];
 
 async function loadMode(key: ModeKey, day: DayKey): Promise<ModeData> {
   const [meta, buf] = await Promise.all([
-    fetch(`/flow/${day}/${key}.json`).then((r) => {
-      if (!r.ok) throw new Error(`${key}.json: HTTP ${r.status}`);
-      return r.json() as Promise<FlowMeta>;
+    fetch(`/flow/${day}/${key}.json`).then((response) => {
+      if (!response.ok) throw new Error(`${key}.json: HTTP ${response.status}`);
+      return response.json() as Promise<FlowMeta>;
     }),
-    fetch(`/flow/${day}/${key}.bin`).then((r) => {
-      if (!r.ok) throw new Error(`${key}.bin: HTTP ${r.status}`);
-      return r.arrayBuffer();
+    fetch(`/flow/${day}/${key}.bin`).then((response) => {
+      if (!response.ok) throw new Error(`${key}.bin: HTTP ${response.status}`);
+      return response.arrayBuffer();
     }),
   ]);
-  const colors = meta.lines.map((l) => hexToRgb(l.color));
+  const colors = meta.lines.map((line) => hexToRgb(line.color));
   const floats = new Float32Array(buf);
   const trips: Trip[] = [];
-  let i = 0;
+  let floatIdx = 0;
   for (let k = 0; k < meta.counts.length; k++) {
     const count = meta.counts[k];
     const path: [number, number][] = [];
     const timestamps: number[] = [];
     for (let j = 0; j < count; j++) {
-      path.push([floats[i], floats[i + 1]]);
-      timestamps.push(floats[i + 2]);
-      i += 3;
+      path.push([floats[floatIdx], floats[floatIdx + 1]]);
+      timestamps.push(floats[floatIdx + 2]);
+      floatIdx += 3;
     }
     trips.push({
       path,
@@ -126,20 +126,20 @@ async function loadMode(key: ModeKey, day: DayKey): Promise<ModeData> {
 
 /** Initial state can come from the URL: ?modes=metro,tram&t=30600&paused=1&speed=120 */
 function readParams() {
-  const p = currentSearchParams();
-  const modesParam = p.get("modes")?.split(",");
+  const searchParams = currentSearchParams();
+  const modesParam = searchParams.get("modes")?.split(",");
   const enabled = Object.fromEntries(
     MODES.map(({ key }) => [key, modesParam ? modesParam.includes(key) : true]),
   ) as Record<ModeKey, boolean>;
-  const day = p.get("day");
+  const day = searchParams.get("day");
   return {
     enabled,
     // buses are opt-in: heavy, and visually dominant over the rail network
     bus: modesParam ? modesParam.includes("bus") : false,
     day: DAY_KEYS.includes(day as DayKey) ? (day as DayKey) : "weekday",
-    paused: p.get("paused") === "1",
-    time: p.get("t") ? +p.get("t")! : 8 * 3600,
-    speed: p.get("speed") ? +p.get("speed")! : 60,
+    paused: searchParams.get("paused") === "1",
+    time: searchParams.get("t") ? +searchParams.get("t")! : 8 * 3600,
+    speed: searchParams.get("speed") ? +searchParams.get("speed")! : 60,
   };
 }
 export default function FlowMap() {
@@ -166,7 +166,7 @@ export default function FlowMap() {
   dayRef.current = day;
   const langRef = useRef(lang);
   langRef.current = lang;
-  const fx = FLUX[lang];
+  const strings = FLUX[lang];
   const busEnabledRef = useRef(busEnabled);
   busEnabledRef.current = busEnabled;
   const soloRef = useRef(solo);
@@ -181,14 +181,14 @@ export default function FlowMap() {
     if (!busEnabled || busMeta) return;
     const requestedDay = day;
     fetch(`/flow/${requestedDay}/bus.json`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`bus.json: HTTP ${r.status}`);
-        return r.json() as Promise<BusMeta>;
+      .then((response) => {
+        if (!response.ok) throw new Error(`bus.json: HTTP ${response.status}`);
+        return response.json() as Promise<BusMeta>;
       })
       .then((meta) => {
         if (dayRef.current === requestedDay) setBusMeta(meta);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((err: Error) => setError(err.message));
   }, [busEnabled, busMeta, day]);
 
   // rail modes load per day; a day switch clears everything and reloads
@@ -204,10 +204,10 @@ export default function FlowMap() {
           if (dayRef.current !== requestedDay) return;
           setLoaded((prev) => {
             const next = { ...prev, [key]: data };
-            const metas = Object.values(next).map((d) => d!.meta);
+            const metas = Object.values(next).map((modeData) => modeData!.meta);
             boundsRef.current = [
-              Math.min(...metas.map((m) => m.minT)),
-              Math.max(...metas.map((m) => m.maxT)),
+              Math.min(...metas.map((meta) => meta.minT)),
+              Math.max(...metas.map((meta) => meta.maxT)),
             ];
             if (sliderRef.current) {
               sliderRef.current.min = String(boundsRef.current[0]);
@@ -216,7 +216,7 @@ export default function FlowMap() {
             return next;
           });
         })
-        .catch((e: Error) => setError(e.message));
+        .catch((err: Error) => setError(err.message));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
@@ -250,30 +250,33 @@ export default function FlowMap() {
   const ensureBusChunks = (t: number) => {
     const meta = busMetaRef.current;
     if (!meta) return;
-    const h = Math.floor(t / 3600);
+    const centerHour = Math.floor(t / 3600);
     const wanted = new Set(
-      [h - 1, h, h + 1].filter((x) => meta.hours.includes(x)),
+      [centerHour - 1, centerHour, centerHour + 1].filter((hour) =>
+        meta.hours.includes(hour),
+      ),
     );
     for (const hour of wanted) {
       if (busChunksRef.current.has(hour) || busPendingRef.current.has(hour))
         continue;
       busPendingRef.current.add(hour);
-      setBusLoading((n) => n + 1);
+      setBusLoading((count) => count + 1);
       const requestedDay = dayRef.current;
       fetch(`/flow/${requestedDay}/bus-${hour}.bin`)
-        .then((r) => {
-          if (!r.ok) throw new Error(`bus-${hour}.bin: HTTP ${r.status}`);
-          return r.arrayBuffer();
+        .then((response) => {
+          if (!response.ok)
+            throw new Error(`bus-${hour}.bin: HTTP ${response.status}`);
+          return response.arrayBuffer();
         })
         .then((buf) => {
           if (dayRef.current !== requestedDay) return; // day switched mid-fetch
           busChunksRef.current.set(hour, decodeBusChunk(buf, meta));
           dataVersionRef.current++;
         })
-        .catch((e: Error) => setError(e.message))
+        .catch((err: Error) => setError(err.message))
         .finally(() => {
           busPendingRef.current.delete(hour);
-          setBusLoading((n) => n - 1);
+          setBusLoading((count) => count - 1);
         });
     }
     for (const hour of [...busChunksRef.current.keys()]) {
@@ -288,7 +291,7 @@ export default function FlowMap() {
 
   const deckRef = useRef<Deck | null>(null);
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
-  const appliedRef = useRef({ t: -1, sig: "" });
+  const appliedRef = useRef({ t: -1, signature: "" });
 
   const onFrame = (t: number) => {
     // DOM updated directly - re-rendering React 60×/s buys nothing here
@@ -300,13 +303,14 @@ export default function FlowMap() {
     const basemap = basemapRef.current;
     if (!deck || !basemap) return;
     // while paused (and nothing toggled/loaded), skip the redraw entirely
-    const sig =
+    const signature =
       MODES.map(({ key }) =>
         enabledRef.current[key] && loadedRef.current[key] ? key : "",
       ).join(",") +
       `|v${dataVersionRef.current}|b${busEnabledRef.current ? 1 : 0}|s${soloRef.current ? 1 : 0}|d${dayRef.current}`;
-    if (t === appliedRef.current.t && sig === appliedRef.current.sig) return;
-    appliedRef.current = { t, sig };
+    if (t === appliedRef.current.t && signature === appliedRef.current.signature)
+      return;
+    appliedRef.current = { t, signature };
     const activeModes = MODES.filter(
       ({ key }) => enabledRef.current[key] && loadedRef.current[key],
     );
@@ -320,9 +324,9 @@ export default function FlowMap() {
               new TripsLayer({
                 id: `bus-${hour}`,
                 data: trips,
-                getPath: (d: Trip) => d.path,
-                getTimestamps: (d: Trip) => d.timestamps,
-                getColor: (d: Trip) => d.color,
+                getPath: (trip: Trip) => trip.path,
+                getTimestamps: (trip: Trip) => trip.timestamps,
+                getColor: (trip: Trip) => trip.color,
                 widthMinPixels: 2,
                 capRounded: true,
                 jointRounded: true,
@@ -339,7 +343,7 @@ export default function FlowMap() {
           new ScatterplotLayer({
             id: `stations-${key}`,
             data: loadedRef.current[key]!.meta.stations,
-            getPosition: (d: [number, number]) => d,
+            getPosition: (position: [number, number]) => position,
             getFillColor: [154, 163, 181, 90],
             radiusMinPixels: 1.1,
             radiusMaxPixels: 3,
@@ -352,9 +356,9 @@ export default function FlowMap() {
         return new TripsLayer({
           id: `trips-${key}`,
           data: displayRef.current[key] ?? [],
-          getPath: (d: Trip) => d.path,
-          getTimestamps: (d: Trip) => d.timestamps,
-          getColor: (d: Trip) => d.color,
+          getPath: (trip: Trip) => trip.path,
+          getTimestamps: (trip: Trip) => trip.timestamps,
+          getColor: (trip: Trip) => trip.color,
           capRounded: true,
           jointRounded: true,
           currentTime: t,
@@ -425,7 +429,7 @@ export default function FlowMap() {
 
 
   const totalTrips = Object.values(loaded).reduce(
-    (s, d) => s + (d?.meta.counts.length ?? 0),
+    (sum, modeData) => sum + (modeData?.meta.counts.length ?? 0),
     0,
   );
   const date = Object.values(loaded)[0]?.meta.date;
@@ -435,33 +439,33 @@ export default function FlowMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
-        onLang={(l) => {
-          setLang(l);
-          saveLang(l);
+        onLang={(newLang) => {
+          setLang(newLang);
+          saveLang(newLang);
         }}
-        title={fx.title}
+        title={strings.title}
         subtitle={
           error
-            ? fx.error(error)
+            ? strings.error(error)
             : date
-              ? fx.subtitle(
+              ? strings.subtitle(
                   totalTrips.toLocaleString(lang === "fr" ? "fr-FR" : "en-GB"),
                   date,
                 )
-              : fx.loading
+              : strings.loading
         }
         clockRef={clockRef}
         playing={clock.playing}
-        onTogglePlay={() => clock.setPlaying((p) => !p)}
+        onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
-        speeds={SPEEDS.map((s) => ({ value: s, label: `×${s}` }))}
+        speeds={SPEEDS.map((speed) => ({ value: speed, label: `×${speed}` }))}
         onSpeed={clock.setSpeed}
         labels={{
-          play: fx.play,
-          pause: fx.pause,
-          speed: fx.speed,
-          time: fx.time,
-          sheetToggle: fx.sheetToggle,
+          play: strings.play,
+          pause: strings.pause,
+          speed: strings.speed,
+          time: strings.time,
+          sheetToggle: strings.sheetToggle,
         }}
         slider={{
           ref: sliderRef,
@@ -469,26 +473,26 @@ export default function FlowMap() {
           max: 26 * 3600,
           step: 60,
           defaultValue: params.time,
-          onInput: (v) => {
-            timeRef.current = v;
+          onInput: (value) => {
+            timeRef.current = value;
           },
         }}
-        footer={fx.footer}
+        footer={strings.footer}
       >
         <div
           className="night-toggle sheet-hide"
           role="radiogroup"
-          aria-label={fx.dayAria}
+          aria-label={strings.dayAria}
         >
-          {DAY_KEYS.map((d) => (
+          {DAY_KEYS.map((dayKey) => (
             <button
-              key={d}
+              key={dayKey}
               role="radio"
-              aria-checked={day === d}
-              className={day === d ? "active" : ""}
-              onClick={() => setDay(d)}
+              aria-checked={day === dayKey}
+              className={day === dayKey ? "active" : ""}
+              onClick={() => setDay(dayKey)}
             >
-              {fx.days[d]}
+              {strings.days[dayKey]}
             </button>
           ))}
         </div>
@@ -503,35 +507,35 @@ export default function FlowMap() {
                     setEnabled((prev) => ({ ...prev, [key]: !prev[key] }))
                   }
                 />
-                {fx.modes[key]}
+                {strings.modes[key]}
                 {!loaded[key] && !error && (
                   <span className="mode-loading"> …</span>
                 )}
               </label>
               {enabled[key] && loaded[key] && (
                 <div className="line-pills">
-                  {loaded[key]!.meta.lines.map((l) => {
+                  {loaded[key]!.meta.lines.map((line) => {
                     const isSolo =
-                      solo?.mode === key && solo.line === l.name;
+                      solo?.mode === key && solo.line === line.name;
                     return (
                       <button
-                        key={l.name}
+                        key={line.name}
                         className={`line-pill${isSolo ? " solo" : ""}${solo && !isSolo ? " dimmed" : ""}`}
-                        style={{ background: l.color }}
+                        style={{ background: line.color }}
                         title={
                           lang === "fr"
                             ? isSolo
                               ? "Réafficher toutes les lignes"
-                              : `Afficher seulement ${l.name}`
+                              : `Afficher seulement ${line.name}`
                             : isSolo
                               ? "Show all lines again"
-                              : `Show only ${l.name}`
+                              : `Show only ${line.name}`
                         }
                         onClick={() =>
-                          setSolo(isSolo ? null : { mode: key, line: l.name })
+                          setSolo(isSolo ? null : { mode: key, line: line.name })
                         }
                       >
-                        {l.name}
+                        {line.name}
                       </button>
                     );
                   })}
@@ -544,9 +548,9 @@ export default function FlowMap() {
               <input
                 type="checkbox"
                 checked={busEnabled}
-                onChange={() => setBusEnabled((b) => !b)}
+                onChange={() => setBusEnabled((prev) => !prev)}
               />
-              {fx.modes.bus}
+              {strings.modes.bus}
               {busEnabled && (!busMeta || busLoading > 0) && (
                 <span className="mode-loading"> …</span>
               )}

@@ -11,10 +11,10 @@ interface AddressFeature {
 
 export default function SearchBox({
   onSelect,
-  t,
+  strings,
 }: {
-  onSelect: (r: SearchResult) => void;
-  t: Strings;
+  onSelect: (result: SearchResult) => void;
+  strings: Strings;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -52,15 +52,15 @@ export default function SearchBox({
         const seen = new Set<string>();
         setResults(
           json.features
-            .filter((f) => {
-              if (seen.has(f.properties.label)) return false;
-              seen.add(f.properties.label);
+            .filter((feature) => {
+              if (seen.has(feature.properties.label)) return false;
+              seen.add(feature.properties.label);
               return true;
             })
-            .map((f) => ({
-              label: f.properties.label,
-              lon: f.geometry.coordinates[0],
-              lat: f.geometry.coordinates[1],
+            .map((feature) => ({
+              label: feature.properties.label,
+              lon: feature.geometry.coordinates[0],
+              lat: feature.geometry.coordinates[1],
             })),
         );
         setHighlight(0);
@@ -75,10 +75,10 @@ export default function SearchBox({
     };
   }, [query]);
 
-  const choose = (r: SearchResult) => {
+  const choose = (result: SearchResult) => {
     skipSearchRef.current = true;
-    onSelect(r);
-    setQuery(r.label);
+    onSelect(result);
+    setQuery(result.label);
     setResults([]);
     setOpen(false);
   };
@@ -87,10 +87,10 @@ export default function SearchBox({
     if (!open || results.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlight((h) => (h + 1) % results.length);
+      setHighlight((prev) => (prev + 1) % results.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlight((h) => (h + results.length - 1) % results.length);
+      setHighlight((prev) => (prev + results.length - 1) % results.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
       choose(results[highlight]);
@@ -103,29 +103,29 @@ export default function SearchBox({
     <div className="searchbox" ref={boxRef}>
       <input
         type="search"
-        placeholder={t.searchPlaceholder}
+        placeholder={strings.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={onKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        aria-label={t.searchAria}
+        aria-label={strings.searchAria}
       />
       {open && results.length > 0 && (
         <ul className="search-results" role="listbox">
-          {results.map((r, i) => (
+          {results.map((result, i) => (
             <li
-              key={r.label}
+              key={result.label}
               role="option"
               aria-selected={i === highlight}
               className={i === highlight ? "highlighted" : ""}
               onMouseDown={(e) => {
                 e.preventDefault();
-                choose(r);
+                choose(result);
               }}
               onMouseEnter={() => setHighlight(i)}
             >
-              {r.label}
+              {result.label}
             </li>
           ))}
         </ul>

@@ -6,18 +6,18 @@ import type { NightType } from "./App";
 export default function NightToggle({
   value,
   onChange,
-  t,
+  strings,
 }: {
   value: NightType;
-  onChange: (v: NightType) => void;
-  t: Strings;
+  onChange: (night: NightType) => void;
+  strings: Strings;
 }) {
   return (
-    <div className="night-toggle" role="radiogroup" aria-label={t.nightAria}>
+    <div className="night-toggle" role="radiogroup" aria-label={strings.nightAria}>
       {(
         [
-          ["week", t.weekNights],
-          ["weekend", t.weekendNights],
+          ["week", strings.weekNights],
+          ["weekend", strings.weekendNights],
         ] as const
       ).map(([key, label]) => (
         <button

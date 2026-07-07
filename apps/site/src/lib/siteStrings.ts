@@ -75,7 +75,7 @@ export const SITE: Record<
 export interface FluxStrings {
   title: string;
   loading: string;
-  subtitle: (n: string, date: string) => string;
+  subtitle: (count: string, date: string) => string;
   error: (msg: string) => string;
   play: string;
   pause: string;
@@ -92,7 +92,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
   en: {
     title: "Flux - the transit network, replayed",
     loading: "loading timetables…",
-    subtitle: (n, date) => `${n} trips from the ${date} timetable`,
+    subtitle: (count, date) => `${count} trips from the ${date} timetable`,
     error: (msg) => `Error: ${msg}`,
     play: "Play",
     pause: "Pause",
@@ -107,7 +107,7 @@ export const FLUX: Record<Lang, FluxStrings> = {
   fr: {
     title: "Flux - le réseau en direct différé",
     loading: "chargement des horaires…",
-    subtitle: (n, date) => `${n} trajets d'après l'horaire du ${date}`,
+    subtitle: (count, date) => `${count} trajets d'après l'horaire du ${date}`,
     error: (msg) => `Erreur : ${msg}`,
     play: "Lecture",
     pause: "Pause",
@@ -130,12 +130,12 @@ export const FLUX: Record<Lang, FluxStrings> = {
 export interface HorizonStrings {
   title: string;
   loading: string;
-  subtitle: (n: string, date: string) => string;
+  subtitle: (count: string, date: string) => string;
   clockNote: (origin: string) => string;
   searchPlaceholder: string;
   searchAria: string;
   legend: string;
-  minutes: (m: number) => string;
+  minutes: (min: number) => string;
   beyond: string;
   clickHint: string;
   story: string;
@@ -146,13 +146,13 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
   en: {
     title: "Horizon - how far can you get?",
     loading: "loading travel times…",
-    subtitle: (n, date) => `${n} rail stations · timetable of ${date}`,
+    subtitle: (count, date) => `${count} rail stations · timetable of ${date}`,
     clockNote: (origin) => `from ${origin} · métro, RER, tram + walking`,
     searchPlaceholder: "Start from… (station name)",
     searchAria: "Origin station",
     legend:
       "Each color band is 15 minutes of travel from the origin: scheduled métro, RER, Transilien and tram rides, average daytime waits, transfers, and up to 15 minutes of walking at the end. Click any station to start from there.",
-    minutes: (m) => `${m} min`,
+    minutes: (min) => `${min} min`,
     beyond: "beyond 75 min",
     clickHint: "Click a station to change the origin",
     story: "✦ The same 75 minutes, from Torcy",
@@ -161,13 +161,13 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
   fr: {
     title: "Horizon - jusqu'où pouvez-vous aller ?",
     loading: "chargement des temps de trajet…",
-    subtitle: (n, date) => `${n} gares et stations · horaires du ${date}`,
+    subtitle: (count, date) => `${count} gares et stations · horaires du ${date}`,
     clockNote: (origin) => `depuis ${origin} · métro, RER, tram + marche`,
     searchPlaceholder: "Partir de… (nom de station)",
     searchAria: "Station de départ",
     legend:
       "Chaque bande de couleur représente 15 minutes de trajet depuis le départ : métro, RER, Transilien et tramway aux horaires théoriques, attentes moyennes de journée, correspondances, et jusqu'à 15 minutes de marche à l'arrivée. Cliquez une station pour en repartir.",
-    minutes: (m) => `${m} min`,
+    minutes: (min) => `${min} min`,
     beyond: "à plus de 75 min",
     clickHint: "Cliquez une station pour changer de départ",
     story: "✦ Les mêmes 75 minutes, depuis Torcy",
@@ -179,7 +179,7 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
 export interface VertigeStrings {
   title: string;
   loading: string;
-  subtitle: (n: string) => string;
+  subtitle: (count: string) => string;
   noteBelow: string;
   noteAbove: string;
   modeAria: string;
@@ -187,8 +187,8 @@ export interface VertigeStrings {
   modeAbove: string;
   legend: string;
   story: string;
-  floors: (n: number) => string;
-  built: (y: number) => string;
+  floors: (count: number) => string;
+  built: (year: number) => string;
   usages: Record<string, string>;
   footer: string;
 }
@@ -197,7 +197,7 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
   en: {
     title: "Vertige - the heights of Paris",
     loading: "loading buildings…",
-    subtitle: (n) => `${n} buildings intra-muros · measured by IGN (BD TOPO)`,
+    subtitle: (count) => `${count} buildings intra-muros · measured by IGN (BD TOPO)`,
     noteBelow: "ceiling: everything built below it",
     noteAbove: "ceiling: only what rises above it",
     modeAria: "Ceiling mode",
@@ -206,8 +206,8 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
     legend:
       "Every building inside the périphérique, extruded to its measured rooftop height and colored by band: dark bronze sheds to golden towers. Press play to raise the ceiling and watch the city assemble: courtyards first, the Haussmann wave between 15 and 21 m, then the towers climbing alone. Drag with the right mouse button or two fingers to tilt and turn.",
     story: "✦ Above 37 m, the height limit of 1977",
-    floors: (n) => `${n} floors`,
-    built: (y) => `built around ${y}`,
+    floors: (count) => `${count} floors`,
+    built: (year) => `built around ${year}`,
     usages: {
       Indifférencié: "unclassified",
       Résidentiel: "residential",
@@ -223,7 +223,7 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
   fr: {
     title: "Vertige - la hauteur de Paris",
     loading: "chargement des bâtiments…",
-    subtitle: (n) => `${n} bâtiments intra-muros · mesures IGN (BD TOPO)`,
+    subtitle: (count) => `${count} bâtiments intra-muros · mesures IGN (BD TOPO)`,
     noteBelow: "plafond : tout ce qui est construit dessous",
     noteAbove: "plafond : seulement ce qui dépasse",
     modeAria: "Mode du plafond",
@@ -232,8 +232,8 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
     legend:
       "Chaque bâtiment intra-muros, extrudé à sa hauteur de toit mesurée et coloré par tranche : bronze sombre pour les appentis, or pour les tours. Lancez la lecture pour élever le plafond et voir la ville s'assembler : les cours d'abord, la vague haussmannienne entre 15 et 21 m, puis les tours qui grimpent seules. Bouton droit ou deux doigts pour incliner et pivoter.",
     story: "✦ Au-dessus de 37 m, le plafond de 1977",
-    floors: (n) => `${n} étages`,
-    built: (y) => `construit vers ${y}`,
+    floors: (count) => `${count} étages`,
+    built: (year) => `construit vers ${year}`,
     usages: {
       Indifférencié: "indifférencié",
       Résidentiel: "résidentiel",
@@ -251,8 +251,8 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
 export interface PulseStrings {
   title: string;
   loading: string;
-  subtitle: (n: string, start: string, end: string) => string;
-  perHour: (n: string) => string;
+  subtitle: (count: string, start: string, end: string) => string;
+  perHour: (count: string) => string;
   legend: string;
   footer: string;
 }
@@ -261,9 +261,9 @@ export const PULSE: Record<Lang, PulseStrings> = {
   en: {
     title: "Relief - the ridership landscape",
     loading: "loading ridership data…",
-    subtitle: (n, start, end) =>
-      `${n} rail stations · ticket validations ${start} → ${end}`,
-    perHour: (n) => `≈ ${n} validations/h`,
+    subtitle: (count, start, end) =>
+      `${count} rail stations · ticket validations ${start} → ${end}`,
+    perHour: (count) => `≈ ${count} validations/h`,
     legend:
       "Each line is a west-east slice of the region, north at the back. Every peak is a station rising with its validations per hour: a calm sea at 3am, mountain ranges along the RER lines at 8:30, La Défense towering alone at 6pm.",
     footer: "Validations: Île-de-France Mobilités open data",
@@ -271,9 +271,9 @@ export const PULSE: Record<Lang, PulseStrings> = {
   fr: {
     title: "Relief - le paysage de l'affluence",
     loading: "chargement des validations…",
-    subtitle: (n, start, end) =>
-      `${n} gares et stations · validations ${start} → ${end}`,
-    perHour: (n) => `≈ ${n} validations/h`,
+    subtitle: (count, start, end) =>
+      `${count} gares et stations · validations ${start} → ${end}`,
+    perHour: (count) => `≈ ${count} validations/h`,
     legend:
       "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
     footer: "Validations : données ouvertes Île-de-France Mobilités",
@@ -283,7 +283,7 @@ export const PULSE: Record<Lang, PulseStrings> = {
 export interface AirStrings {
   title: string;
   loading: string;
-  subtitle: (n: string) => string;
+  subtitle: (count: string) => string;
   legend: string;
   lockdown: string;
   yearAria: string;
@@ -291,7 +291,7 @@ export interface AirStrings {
   background: string;
   noData: string;
   hourly: string;
-  mean: (w: string) => string;
+  mean: (window: string) => string;
   footer: string;
 }
 
@@ -299,7 +299,7 @@ export const AIR: Record<Lang, AirStrings> = {
   en: {
     title: "Respire - a year of Paris air, hour by hour",
     loading: "loading measurements…",
-    subtitle: (n) => `${n} Airparif monitoring stations, hourly measurements`,
+    subtitle: (count) => `${count} Airparif monitoring stations, hourly measurements`,
     legend:
       "The veil interpolates between stations and fades where none are close. Traffic stations run hotter than the neighbourhoods around them; winter evenings glow, windy days wash the map clean.",
     lockdown: "✦ Watch the 2020 lockdown clear the sky",
@@ -308,13 +308,13 @@ export const AIR: Record<Lang, AirStrings> = {
     background: "background station",
     noData: "no data at this hour",
     hourly: "hourly values",
-    mean: (w) => `${w} mean`,
+    mean: (window) => `${window} mean`,
     footer: "Measurements: Airparif open data · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
     title: "Respire - une année d'air parisien, heure par heure",
     loading: "chargement des mesures…",
-    subtitle: (n) => `${n} stations Airparif, mesures horaires`,
+    subtitle: (count) => `${count} stations Airparif, mesures horaires`,
     legend:
       "Le voile interpole entre les stations et s'estompe loin d'elles. Les stations trafic chauffent plus que leurs quartiers ; les soirs d'hiver rougeoient, les jours de vent lavent la carte.",
     lockdown: "✦ Voir le confinement 2020 purifier le ciel",
@@ -323,7 +323,7 @@ export const AIR: Record<Lang, AirStrings> = {
     background: "station de fond",
     noData: "pas de donnée à cette heure",
     hourly: "valeurs horaires",
-    mean: (w) => `moyenne ${w}`,
+    mean: (window) => `moyenne ${window}`,
     footer: "Mesures : données ouvertes Airparif · Fond de carte © OpenStreetMap © CARTO",
   },
 };

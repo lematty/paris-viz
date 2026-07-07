@@ -42,10 +42,10 @@ function buildHeatLut(): Uint8ClampedArray {
   const stops = Object.entries(HEAT_GRADIENT)
     .map(([k, v]) => [parseFloat(k), v] as const)
     .sort((a, b) => a[0] - b[0]);
-  const rgb = (h: string) => [
-    parseInt(h.slice(1, 3), 16),
-    parseInt(h.slice(3, 5), 16),
-    parseInt(h.slice(5, 7), 16),
+  const rgb = (hex: string) => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
   ];
   const lut = new Uint8ClampedArray(256 * 4);
   for (let i = 0; i < 256; i++) {
@@ -59,13 +59,13 @@ function buildHeatLut(): Uint8ClampedArray {
         break;
       }
     }
-    const f =
+    const frac =
       hi[0] === lo[0] ? 0 : Math.max(0, Math.min(1, (t - lo[0]) / (hi[0] - lo[0])));
-    const a = rgb(lo[1]);
-    const b = rgb(hi[1]);
-    lut[i * 4] = a[0] + (b[0] - a[0]) * f;
-    lut[i * 4 + 1] = a[1] + (b[1] - a[1]) * f;
-    lut[i * 4 + 2] = a[2] + (b[2] - a[2]) * f;
+    const loRgb = rgb(lo[1]);
+    const hiRgb = rgb(hi[1]);
+    lut[i * 4] = loRgb[0] + (hiRgb[0] - loRgb[0]) * frac;
+    lut[i * 4 + 1] = loRgb[1] + (hiRgb[1] - loRgb[1]) * frac;
+    lut[i * 4 + 2] = loRgb[2] + (hiRgb[2] - loRgb[2]) * frac;
     // accumulated intensity doubles as opacity, slightly boosted so the low
     // glow reads against the dark basemap
     lut[i * 4 + 3] = Math.min(255, i * 1.4);
@@ -85,16 +85,16 @@ function buildHeatOverlay(
   capDep: number,
   lut: Uint8ClampedArray,
 ): L.ImageOverlay {
-  const active = stops.filter((s) => s[night].dep > 0);
+  const activeStops = stops.filter((stop) => stop[night].dep > 0);
   let minLat = 90,
     maxLat = -90,
     minLon = 180,
     maxLon = -180;
-  for (const s of active) {
-    if (s.lat < minLat) minLat = s.lat;
-    if (s.lat > maxLat) maxLat = s.lat;
-    if (s.lon < minLon) minLon = s.lon;
-    if (s.lon > maxLon) maxLon = s.lon;
+  for (const stop of activeStops) {
+    if (stop.lat < minLat) minLat = stop.lat;
+    if (stop.lat > maxLat) maxLat = stop.lat;
+    if (stop.lon < minLon) minLon = stop.lon;
+    if (stop.lon > maxLon) maxLon = stop.lon;
   }
   const pad = 0.06; // degrees, so edge glows aren't clipped
   minLat -= pad;
@@ -102,47 +102,47 @@ function buildHeatOverlay(
   minLon -= pad;
   maxLon += pad;
 
-  const merc = (lat: number) =>
+  const mercatorY = (lat: number) =>
     Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
-  const yTop = merc(maxLat);
-  const yBot = merc(minLat);
-  const W = 2048;
-  const H = Math.max(
+  const yTop = mercatorY(maxLat);
+  const yBot = mercatorY(minLat);
+  const width = 2048;
+  const height = Math.max(
     256,
-    Math.round((W * (yTop - yBot)) / (((maxLon - minLon) * Math.PI) / 180)),
+    Math.round((width * (yTop - yBot)) / (((maxLon - minLon) * Math.PI) / 180)),
   );
   const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
   const mPerDegLon = 111_320 * Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
-  const rPx = (HEAT_RADIUS_M / mPerDegLon) * (W / (maxLon - minLon));
-  for (const s of active) {
+  const radiusPx = (HEAT_RADIUS_M / mPerDegLon) * (width / (maxLon - minLon));
+  for (const stop of activeStops) {
     // sqrt compresses the hub/branch dynamic range (~365 vs ~5 dep/night)
     // so suburban service stays visible next to the big hubs; the 0.55
     // factor leaves headroom for overlapping neighbours to accumulate
     // (alpha compositing saturates slower than additive heat stacking).
-    const w = 0.55 * Math.min(1, Math.sqrt(s[night].dep / capDep));
-    const x = ((s.lon - minLon) / (maxLon - minLon)) * W;
-    const y = ((yTop - merc(s.lat)) / (yTop - yBot)) * H;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, rPx);
-    g.addColorStop(0, `rgba(0,0,0,${w})`);
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(x - rPx, y - rPx, 2 * rPx, 2 * rPx);
+    const intensity = 0.55 * Math.min(1, Math.sqrt(stop[night].dep / capDep));
+    const x = ((stop.lon - minLon) / (maxLon - minLon)) * width;
+    const y = ((yTop - mercatorY(stop.lat)) / (yTop - yBot)) * height;
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radiusPx);
+    gradient.addColorStop(0, `rgba(0,0,0,${intensity})`);
+    gradient.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x - radiusPx, y - radiusPx, 2 * radiusPx, 2 * radiusPx);
   }
 
-  const img = ctx.getImageData(0, 0, W, H);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const a = d[i + 3] * 4;
-    d[i] = lut[a];
-    d[i + 1] = lut[a + 1];
-    d[i + 2] = lut[a + 2];
-    d[i + 3] = lut[a + 3];
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const lutOffset = pixels[i + 3] * 4;
+    pixels[i] = lut[lutOffset];
+    pixels[i + 1] = lut[lutOffset + 1];
+    pixels[i + 2] = lut[lutOffset + 2];
+    pixels[i + 3] = lut[lutOffset + 3];
   }
-  ctx.putImageData(img, 0, 0);
+  ctx.putImageData(imageData, 0, 0);
 
   return L.imageOverlay(
     canvas.toDataURL(),
@@ -162,27 +162,27 @@ function heatOpacity(zoom: number): number {
   return 0.9 - ((zoom - 12) / 4) * 0.65;
 }
 
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function popupHtml(
   stop: Stop,
   lineColors: Map<string, string>,
-  t: Strings,
+  strings: Strings,
 ): string {
   const badges = stop.lines
     .map(
-      (l) =>
-        `<button class="line-badge" data-line="${esc(l)}" title="${esc(t.highlightLine(l))}" style="background:${lineColors.get(l) ?? "#3F2A7E"}">${esc(l)}</button>`,
+      (line) =>
+        `<button class="line-badge" data-line="${escapeHtml(line)}" title="${escapeHtml(strings.highlightLine(line))}" style="background:${lineColors.get(line) ?? "#3F2A7E"}">${escapeHtml(line)}</button>`,
     )
     .join("");
-  const row = (label: string, s: Stop["week"]) =>
-    `<tr><td>${label}</td><td><strong>${s.dep}</strong>${t.popupPerNight}</td>` +
-    `<td>${s.headway ? t.popupEvery(s.headway) : t.popupOccasional}</td></tr>`;
+  const row = (label: string, stats: Stop["week"]) =>
+    `<tr><td>${label}</td><td><strong>${stats.dep}</strong>${strings.popupPerNight}</td>` +
+    `<td>${stats.headway ? strings.popupEvery(stats.headway) : strings.popupOccasional}</td></tr>`;
   return (
-    `<div class="stop-popup"><strong>${esc(stop.name)}</strong>` +
+    `<div class="stop-popup"><strong>${escapeHtml(stop.name)}</strong>` +
     `<div class="badge-row">${badges}</div>` +
-    `<table>${row(t.popupWeek, stop.week)}${row(t.popupWeekend, stop.weekend)}</table></div>`
+    `<table>${row(strings.popupWeek, stop.week)}${row(strings.popupWeekend, stop.weekend)}</table></div>`
   );
 }
 
@@ -220,7 +220,7 @@ export default function NoctilienMap({
   const skipFlyRef = useRef(skipInitialFly);
 
   const lineColors = useMemo(
-    () => new Map(data.routes.map((r) => [r.name, r.color])),
+    () => new Map(data.routes.map((route) => [route.name, route.color])),
     [data],
   );
   // Normalize heat against the 95th-percentile stop rather than the extreme
@@ -229,11 +229,11 @@ export default function NoctilienMap({
   // across both night types, so toggling to weekend visibly brightens the map
   // instead of being re-normalized away.
   const capDep = useMemo(() => {
-    const deps = data.stops
-      .flatMap((s) => [s.week.dep, s.weekend.dep])
-      .filter((d) => d > 0)
+    const depCounts = data.stops
+      .flatMap((stop) => [stop.week.dep, stop.weekend.dep])
+      .filter((dep) => dep > 0)
       .sort((a, b) => a - b);
-    return deps[Math.floor(deps.length * 0.95)] ?? 1;
+    return depCounts[Math.floor(depCounts.length * 0.95)] ?? 1;
   }, [data]);
 
   // Map and every layer variant, built once. Toggling night type or layer
@@ -247,8 +247,8 @@ export default function NoctilienMap({
     });
     L.control.zoom({ position: "bottomright" }).addTo(map);
     map.on("moveend zoomend", () => {
-      const c = map.getCenter();
-      onViewChangeRef.current({ zoom: map.getZoom(), lat: c.lat, lon: c.lng });
+      const center = map.getCenter();
+      onViewChangeRef.current({ zoom: map.getZoom(), lat: center.lat, lon: center.lng });
     });
     // Heat sits above tiles (200) but below vector overlays (400).
     map.createPane("heat").style.zIndex = "350";
@@ -267,13 +267,13 @@ export default function NoctilienMap({
     const canvas = L.canvas({ padding: 0.5 });
 
     const routeLines = new Map<string, L.Polyline[]>();
-    for (const r of data.routes) {
+    for (const route of data.routes) {
       routeLines.set(
-        r.name,
-        r.paths.map((path) =>
+        route.name,
+        route.paths.map((path) =>
           L.polyline(path, {
             renderer: canvas,
-            color: r.color,
+            color: route.color,
             weight: 2,
             opacity: 0.55,
             interactive: false,
@@ -286,7 +286,7 @@ export default function NoctilienMap({
     // on click only, instead of making the polylines interactive - Leaflet's
     // canvas hover hit-testing would walk all ~10k path points on every
     // mousemove, the kind of per-frame work that made the map feel slow.
-    const distToSeg = (p: L.Point, a: L.Point, b: L.Point) => {
+    const distToSegment = (p: L.Point, a: L.Point, b: L.Point) => {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const len2 = dx * dx + dy * dy || 1e-9;
@@ -294,25 +294,25 @@ export default function NoctilienMap({
       return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
     };
     map.on("click", (e) => {
-      let best: string | null = null;
-      let bestD = 10; // px tolerance
+      let bestLine: string | null = null;
+      let bestDist = 10; // px tolerance
       for (const [name, lines] of routeLines) {
         for (const line of lines) {
           if (!map.hasLayer(line)) continue;
-          const pts = (line.getLatLngs() as L.LatLng[]).map((ll) =>
-            map.latLngToContainerPoint(ll),
+          const points = (line.getLatLngs() as L.LatLng[]).map((latLng) =>
+            map.latLngToContainerPoint(latLng),
           );
-          for (let i = 0; i + 1 < pts.length; i++) {
-            const d = distToSeg(e.containerPoint, pts[i], pts[i + 1]);
-            if (d < bestD) {
-              bestD = d;
-              best = name;
+          for (let i = 0; i + 1 < points.length; i++) {
+            const dist = distToSegment(e.containerPoint, points[i], points[i + 1]);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestLine = name;
             }
           }
         }
       }
-      if (best) {
-        onSelectLineRef.current(best === selectedLineRef.current ? null : best);
+      if (bestLine) {
+        onSelectLineRef.current(bestLine === selectedLineRef.current ? null : bestLine);
       }
     });
 
@@ -336,11 +336,11 @@ export default function NoctilienMap({
     const buildNight = (night: NightType) => {
       const heat = buildHeatOverlay(data.stops, night, capDep, lut);
       const stops = L.layerGroup();
-      for (const s of data.stops) {
-        if (s[night].dep <= 0) continue;
-        L.circleMarker([s.lat, s.lon], {
+      for (const stop of data.stops) {
+        if (stop[night].dep <= 0) continue;
+        L.circleMarker([stop.lat, stop.lon], {
           renderer: canvas,
-          radius: 2.5 + 4 * Math.min(1, Math.sqrt(s[night].dep / capDep)),
+          radius: 2.5 + 4 * Math.min(1, Math.sqrt(stop[night].dep / capDep)),
           color: "#9fd8ff",
           weight: 1,
           opacity: 0.7,
@@ -351,7 +351,7 @@ export default function NoctilienMap({
           bubblingMouseEvents: false,
         })
           // content is a function so it renders in the current language
-          .bindPopup(() => popupHtml(s, lineColors, STRINGS[langRef.current]), {
+          .bindPopup(() => popupHtml(stop, lineColors, STRINGS[langRef.current]), {
             className: "night-popup",
           })
           .addTo(stops);
@@ -365,9 +365,9 @@ export default function NoctilienMap({
       routeLines,
     };
     map.on("zoomend", () => {
-      const o = heatOpacity(map.getZoom());
-      sets.week.heat.setOpacity(o);
-      sets.weekend.heat.setOpacity(o);
+      const opacity = heatOpacity(map.getZoom());
+      sets.week.heat.setOpacity(opacity);
+      sets.weekend.heat.setOpacity(opacity);
     });
     layerSetsRef.current = sets;
     mapRef.current = map;
@@ -393,21 +393,21 @@ export default function NoctilienMap({
       if (on && !map.hasLayer(layer)) layer.addTo(map);
       if (!on && map.hasLayer(layer)) layer.remove();
     };
-    for (const n of ["week", "weekend"] as const) {
-      sync(sets[n].heat, layers.heat && night === n);
-      sync(sets[n].stops, layers.stops && night === n);
+    for (const nightType of ["week", "weekend"] as const) {
+      sync(sets[nightType].heat, layers.heat && night === nightType);
+      sync(sets[nightType].stops, layers.stops && night === nightType);
     }
     // A selected line is always shown, even with the Lines layer unchecked;
     // with it checked, the other lines dim so the selection stands out.
     for (const [name, lines] of sets.routeLines) {
-      const isSel = name === selectedLine;
+      const isSelected = name === selectedLine;
       for (const line of lines) {
         line.setStyle({
-          weight: isSel ? 4.5 : 2,
-          opacity: selectedLine ? (isSel ? 0.95 : 0.12) : 0.55,
+          weight: isSelected ? 4.5 : 2,
+          opacity: selectedLine ? (isSelected ? 0.95 : 0.12) : 0.55,
         });
-        sync(line, layers.routes || isSel);
-        if (isSel) line.bringToFront();
+        sync(line, layers.routes || isSelected);
+        if (isSelected) line.bringToFront();
       }
     }
   });

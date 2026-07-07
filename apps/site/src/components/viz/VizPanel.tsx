@@ -83,7 +83,7 @@ export default function VizPanel({
           className="sheet-toggle"
           aria-label={labels.sheetToggle}
           aria-expanded={sheetOpen}
-          onClick={() => setSheetOpen((o) => !o)}
+          onClick={() => setSheetOpen((open) => !open)}
         >
           {sheetOpen ? "⌄" : "⌃"}
         </button>
@@ -106,9 +106,9 @@ export default function VizPanel({
           onChange={(e) => onSpeed(+e.target.value)}
           aria-label={labels.speed}
         >
-          {speeds.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
+          {speeds.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>

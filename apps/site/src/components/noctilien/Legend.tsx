@@ -6,13 +6,13 @@ import type { Strings } from "@/lib/noctilien/i18n";
 const RAMP =
   "linear-gradient(to right, #160b39, #56106e, #a52c60, #e55c30, #f98e09, #fcffa4)";
 
-export default function Legend({ t }: { t: Strings }) {
+export default function Legend({ strings }: { strings: Strings }) {
   return (
     <div className="legend">
       <div className="legend-bar" style={{ background: RAMP }} />
       <div className="legend-labels">
-        <span>{t.fewBuses}</span>
-        <span>{t.many}</span>
+        <span>{strings.fewBuses}</span>
+        <span>{strings.many}</span>
       </div>
     </div>
   );
