@@ -1,8 +1,8 @@
-# `/vertige` - the heights of Paris
+# `/vertige` - how tall is Paris?
 
 Live: [paris-viz.vercel.app/vertige](https://paris-viz.vercel.app/vertige)
 
-![Every building of Paris intra-muros extruded to its measured height](../apps/site/public/vertige-og.png)
+![Every building inside the périphérique extruded to its measured height](../apps/site/public/vertige-og.png)
 
 Every building inside the périphérique (~110,000) extruded in 3D to its
 IGN-measured rooftop height, colored on an amber ramp from dark bronze sheds

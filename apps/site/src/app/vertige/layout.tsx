@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const TITLE = "Vertige - the heights of Paris";
+const TITLE = "Vertige - how tall is Paris?";
 const DESCRIPTION =
   "Every building in Paris in 3D, appearing floor by floor: the whole city tops out at the Haussmann roofline, then a handful of towers keep climbing alone.";
 

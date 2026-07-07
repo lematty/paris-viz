@@ -42,9 +42,9 @@ Animated isochrones over the rail network: pick any of ~940 stations and
 watch 75 minutes of travel ripple outward in 15-minute bands, transfers and
 walking included. [Read more →](docs/horizon.md) · [open live](https://paris-viz.vercel.app/horizon)
 
-### [`/vertige` - the heights of Paris](docs/vertige.md)
+### [`/vertige` - how tall is Paris?](docs/vertige.md)
 
-![Every building of Paris intra-muros extruded to its measured height](apps/site/public/vertige-og.png)
+![Every building inside the périphérique extruded to its measured height](apps/site/public/vertige-og.png)
 
 Every building inside the périphérique in 3D at its IGN-measured height:
 a rising ceiling assembles the city floor by floor until only the towers
