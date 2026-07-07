@@ -13,6 +13,8 @@ export const SITE: Record<
     airDesc: string;
     noctTitle: string;
     noctDesc: string;
+    horizonTitle: string;
+    horizonDesc: string;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
@@ -30,6 +32,9 @@ export const SITE: Record<
     noctTitle: "Noctilien - night buses",
     noctDesc:
       "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
+    horizonTitle: "Horizon - how far can you get?",
+    horizonDesc:
+      "Pick any station and watch 75 minutes ripple across the region: everywhere the rail network can take you, walking included.",
     aboutTitle: "About the data",
     aboutBody:
       "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, and the national address base for geocoding. Nothing is tracked and there is no backend: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
@@ -48,6 +53,9 @@ export const SITE: Record<
     noctTitle: "Noctilien - bus de nuit",
     noctDesc:
       "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
+    horizonTitle: "Horizon - jusqu'où pouvez-vous aller ?",
+    horizonDesc:
+      "Choisissez une station et regardez 75 minutes se propager sur la région : partout où le réseau ferré peut vous emmener, marche comprise.",
     aboutTitle: "À propos des données",
     aboutBody:
       "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, et la Base Adresse Nationale pour le géocodage. Aucun suivi, aucun backend : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
@@ -108,6 +116,52 @@ export const FLUX: Record<Lang, FluxStrings> = {
       tram: "Tramway",
       bus: "Bus",
     },
+  },
+};
+
+export interface HorizonStrings {
+  title: string;
+  loading: string;
+  subtitle: (n: string, date: string) => string;
+  clockNote: (origin: string) => string;
+  searchPlaceholder: string;
+  searchAria: string;
+  legend: string;
+  minutes: (m: number) => string;
+  beyond: string;
+  clickHint: string;
+  footer: string;
+}
+
+export const HORIZON: Record<Lang, HorizonStrings> = {
+  en: {
+    title: "Horizon - how far can you get?",
+    loading: "loading travel times…",
+    subtitle: (n, date) => `${n} rail stations · timetable of ${date}`,
+    clockNote: (origin) => `from ${origin} · métro, RER, tram + walking`,
+    searchPlaceholder: "Start from… (station name)",
+    searchAria: "Origin station",
+    legend:
+      "Each color band is 15 minutes of travel from the origin: scheduled métro, RER, Transilien and tram rides, average daytime waits, transfers, and up to 15 minutes of walking at the end. Click any station to start from there.",
+    minutes: (m) => `${m} min`,
+    beyond: "beyond 75 min",
+    clickHint: "Click a station to change the origin",
+    footer: "Timetables: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Horizon - jusqu'où pouvez-vous aller ?",
+    loading: "chargement des temps de trajet…",
+    subtitle: (n, date) => `${n} gares et stations · horaires du ${date}`,
+    clockNote: (origin) => `depuis ${origin} · métro, RER, tram + marche`,
+    searchPlaceholder: "Partir de… (nom de station)",
+    searchAria: "Station de départ",
+    legend:
+      "Chaque bande de couleur représente 15 minutes de trajet depuis le départ : métro, RER, Transilien et tramway aux horaires théoriques, attentes moyennes de journée, correspondances, et jusqu'à 15 minutes de marche à l'arrivée. Cliquez une station pour en repartir.",
+    minutes: (m) => `${m} min`,
+    beyond: "à plus de 75 min",
+    clickHint: "Cliquez une station pour changer de départ",
+    footer:
+      "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

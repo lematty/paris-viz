@@ -903,3 +903,36 @@ a {
   font-size: 12px;
   color: var(--text-dim);
 }
+
+/* ---------- isochrones (/horizon) ---------- */
+
+.horizon-search {
+  margin: 2px 0 10px;
+}
+
+.horizon-search input {
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.iso-legend {
+  margin-top: 12px;
+}
+
+.iso-swatches {
+  display: flex;
+  gap: 2px;
+}
+
+.iso-swatch {
+  flex: 1;
+  height: 8px;
+}
+
+.iso-swatch:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.iso-swatch:last-child {
+  border-radius: 0 4px 4px 0;
+}

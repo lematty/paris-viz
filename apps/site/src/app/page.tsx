@@ -40,6 +40,12 @@ export default function Home() {
           <h2>{s.airTitle}</h2>
           <p>{s.airDesc}</p>
         </Link>
+        <Link className="card" href="/horizon">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="card-thumb" src="/thumbs/horizon.png" alt="" />
+          <h2>{s.horizonTitle}</h2>
+          <p>{s.horizonDesc}</p>
+        </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />

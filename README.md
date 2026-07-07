@@ -44,6 +44,19 @@ Airparif hourly station CSVs + the national LCSQA station referential.
 Data: `public/air/` - meta + one ~350 KB binary per pollutant-year
 (`pnpm build:air`).
 
+### `/horizon` - how far can you get?
+
+Animated isochrones over the rail network: pick any of ~940 stations and
+watch 75 minutes of travel ripple outward in 15-minute color bands - métro,
+RER, Transilien and tram rides at median scheduled run times, average daytime
+waits (half the 07:00-20:00 headway), transfers from `transfers.txt`, and up
+to 15 minutes of walking at the destination end. Click a station or search to
+re-root the wave. URL params: `?from=Nation&t=45&paused=1`.
+
+Data: `public/horizon/` - a station list plus an all-pairs travel-time
+matrix (943×943 uint8 minutes, ~870 KB) built by one Dijkstra per station
+over a frequency-based graph (`pnpm build:horizon`).
+
 ### `/noctilien` - night-bus frequency
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)

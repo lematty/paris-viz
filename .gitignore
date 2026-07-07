@@ -12,6 +12,7 @@ next-env.d.ts
 # generated data artifacts (built by scripts/ensure-data.mjs at build time)
 apps/site/public/flow/
 apps/site/public/noctilien.json
+apps/site/public/horizon/
 
 # misc
 *.tsbuildinfo

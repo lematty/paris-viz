@@ -8,6 +8,7 @@
     "start": "next start",
     "build:flow": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-flow-data.ts",
     "build:noctilien": "tsx scripts/build-noctilien-data.ts",
+    "build:horizon": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-horizon-data.ts",
     "test": "playwright test",
     "build:air": "tsx scripts/build-air-data.ts"
   },

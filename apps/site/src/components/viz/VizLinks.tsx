@@ -5,6 +5,7 @@ import type { Lang } from "@/lib/lang";
 const PAGES = [
   { key: "flux", href: "/flux", label: "Flux" },
   { key: "air", href: "/air", label: "Respire" },
+  { key: "horizon", href: "/horizon", label: "Horizon" },
   { key: "noctilien", href: "/noctilien", label: "Noctilien" },
 ] as const;
 
