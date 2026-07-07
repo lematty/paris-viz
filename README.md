@@ -1,6 +1,7 @@
 # Paris Viz
 
-Interactive visualizations of Paris / Île-de-France open data. pnpm monorepo:
+Interactive visualizations of Paris / Île-de-France open data, live at
+**[paris-viz.vercel.app](https://paris-viz.vercel.app)**. pnpm monorepo:
 
 ```
 apps/site/        Next.js site - each visualization is a route
@@ -23,7 +24,7 @@ params, the data pipeline, and the artifact format.
 
 Every scheduled trip of a full service day moving across the map: ~20,000
 métro, RER and tram runs as glowing comets on real track geometry, plus
-90,000 buses one checkbox away. [Read more →](docs/flux.md)
+90,000 buses one checkbox away. [Read more →](docs/flux.md) · [open live](https://paris-viz.vercel.app/flux)
 
 ### [`/air` - a year of Paris air, hour by hour](docs/air.md)
 
@@ -31,7 +32,7 @@ métro, RER and tram runs as glowing comets on real track geometry, plus
 
 Seven years of hourly Airparif measurements breathing over the map as an
 interpolated veil: winter smog, clean windy days, and the March 2020
-lockdown clearing the sky in a week. [Read more →](docs/air.md)
+lockdown clearing the sky in a week. [Read more →](docs/air.md) · [open live](https://paris-viz.vercel.app/air)
 
 ### [`/horizon` - how far can you get?](docs/horizon.md)
 
@@ -39,7 +40,7 @@ lockdown clearing the sky in a week. [Read more →](docs/air.md)
 
 Animated isochrones over the rail network: pick any of ~940 stations and
 watch 75 minutes of travel ripple outward in 15-minute bands, transfers and
-walking included. [Read more →](docs/horizon.md)
+walking included. [Read more →](docs/horizon.md) · [open live](https://paris-viz.vercel.app/horizon)
 
 ### [`/vertige` - the heights of Paris](docs/vertige.md)
 
@@ -47,7 +48,7 @@ walking included. [Read more →](docs/horizon.md)
 
 Every building inside the périphérique in 3D at its IGN-measured height:
 a rising ceiling assembles the city floor by floor until only the towers
-are left climbing. [Read more →](docs/vertige.md)
+are left climbing. [Read more →](docs/vertige.md) · [open live](https://paris-viz.vercel.app/vertige)
 
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
@@ -55,7 +56,7 @@ are left climbing. [Read more →](docs/vertige.md)
 
 Heatmap of night-bus service after midnight: which neighbourhoods the
 Noctilien network covers, weeknights vs weekends, with address search and
-walking times. [Read more →](docs/noctilien.md)
+walking times. [Read more →](docs/noctilien.md) · [open live](https://paris-viz.vercel.app/noctilien)
 
 ## Develop
 

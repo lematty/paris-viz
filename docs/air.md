@@ -1,5 +1,7 @@
 # `/air` - a year of Paris air, hour by hour
 
+Live: [paris-viz.vercel.app/air](https://paris-viz.vercel.app/air)
+
 ![NO2 veil over Île-de-France on a December evening](air-veil.png)
 
 Hourly air quality (NO2 and PM2.5) from 44 Airparif monitoring stations,
@@ -35,3 +37,6 @@ fades the veil where no station is close.
   available years per pollutant.
 - `<poll>-<year>.bin` - one byte per station per hour: uint8 µg/m³, values
   capped at 250, 255 = missing. ~350 KB per pollutant-year.
+---
+
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Noctilien](noctilien.md)

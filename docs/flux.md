@@ -1,5 +1,7 @@
 # `/flux` - the transit network in motion
 
+Live: [paris-viz.vercel.app/flux](https://paris-viz.vercel.app/flux)
+
 ![Every métro and tram of Île-de-France moving at 08:45](../apps/site/public/og.png)
 
 Every scheduled trip of the Île-de-France network moving on the map over one
@@ -38,3 +40,6 @@ follow `shapes.txt` geometry, simplified with a ~11 m tolerance.
   (~4 m grid), 2-second time steps, one chunk per start hour. ~12 MB for the
   whole day, of which the page only ever holds a 3-hour sliding window
   (~1.5 MB).
+---
+
+[← All visualizations](../README.md) · See also: [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Noctilien](noctilien.md)

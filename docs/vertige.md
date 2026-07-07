@@ -1,5 +1,7 @@
 # `/vertige` - the heights of Paris
 
+Live: [paris-viz.vercel.app/vertige](https://paris-viz.vercel.app/vertige)
+
 ![Every building of Paris intra-muros extruded to its measured height](../apps/site/public/vertige-og.png)
 
 Every building inside the périphérique (~110,000) extruded in 3D to its
@@ -47,3 +49,6 @@ runs at full frame rate.
     uint8 ring count
   - per ring: uint16 vertex count; then all vertices as uint16 x,y quantized
     to the bbox
+---
+
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Noctilien](noctilien.md)

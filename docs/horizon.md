@@ -1,5 +1,7 @@
 # `/horizon` - how far can you get?
 
+Live: [paris-viz.vercel.app/horizon](https://paris-viz.vercel.app/horizon)
+
 ![75 minutes of travel from Châtelet - Les Halles, in 15-minute bands](../apps/site/public/horizon-og.png)
 
 Animated isochrones over the rail network: pick any of ~940 stations and
@@ -40,3 +42,6 @@ animation stays cheap.
   2 RER/Transilien, 4 tram), and the timetable date.
 - `matrix.bin` - N×N uint8 minutes from station i to station j, row-major,
   255 = out of reach (~870 KB for 943 stations).
+---
+
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Vertige](vertige.md) · [Noctilien](noctilien.md)
