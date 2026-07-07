@@ -15,12 +15,14 @@ alone - Montparnasse, the Duo towers, the Tribunal, the Eiffel Tower.
 - Play/pause and a slider sweep the ceiling; the timeline is piecewise
   (0-30 m gets two thirds of it, since that is where the whole city lives).
 - A mode select flips between "below the ceiling" (the city assembles) and
-  "above the ceiling" (the city strips away).
+  "above the ceiling" (the city strips away); a direction toggle sweeps the
+  ceiling back down instead, so the city appears from the towers downward.
 - The story button pins "above" at 37 m: the height limit imposed on central
   Paris in 1977, leaving only churches, the grands ensembles and the towers.
 - Hover a building for its height, floor count, usage, and construction year
   where known. Right-drag or two fingers to tilt and turn.
-- URL params: `?t=60&mode=above&paused=1` (`t` in clock units, 0-90).
+- URL params: `?t=60&mode=above&dir=down&paused=1` (`t` in clock units,
+  0-90).
 
 ## How it is built
 

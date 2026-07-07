@@ -185,6 +185,9 @@ export interface VertigeStrings {
   modeAria: string;
   modeBelow: string;
   modeAbove: string;
+  dirAria: string;
+  dirUp: string;
+  dirDown: string;
   legend: string;
   story: string;
   floors: (count: number) => string;
@@ -204,6 +207,9 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
     modeAria: "Ceiling mode",
     modeBelow: "below the ceiling",
     modeAbove: "above the ceiling",
+    dirAria: "Sweep direction",
+    dirUp: "ceiling rising, click to sweep downward",
+    dirDown: "ceiling falling, click to sweep upward",
     legend:
       "Every building inside the périphérique, extruded to its measured rooftop height and colored by band: dark bronze sheds to golden towers. Press play to raise the ceiling and watch the city assemble: courtyard sheds first, the Haussmann wave between 15 and 21 m, then the towers climbing alone. Drag with the right mouse button or two fingers to tilt and turn.",
     story: "✦ Above 37 m, the height limit of 1977",
@@ -230,6 +236,9 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
     modeAria: "Mode du plafond",
     modeBelow: "sous le plafond",
     modeAbove: "au-dessus",
+    dirAria: "Sens du balayage",
+    dirUp: "plafond montant, cliquez pour descendre",
+    dirDown: "plafond descendant, cliquez pour monter",
     legend:
       "Chaque bâtiment intra-muros, extrudé à sa hauteur de toit mesurée et coloré par tranche : bronze sombre pour les appentis, or pour les tours. Lancez la lecture pour élever le plafond et voir la ville s'assembler : les appentis d'abord, la vague haussmannienne entre 15 et 21 m, puis les tours qui grimpent seules. Bouton droit ou deux doigts pour incliner et pivoter.",
     story: "✦ Au-dessus de 37 m, le plafond de 1977",

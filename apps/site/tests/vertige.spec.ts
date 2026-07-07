@@ -68,6 +68,26 @@ test("story button pins the ceiling at 37 m and shows what rises above", async (
   expect(errors).toEqual([]);
 });
 
+test("?dir=down starts the sweep downward and the toggle flips it", async ({
+  page,
+}) => {
+  const errors = await setup(page);
+  await page.goto("/vertige?paused=1&t=36&dir=down");
+  await expect(page.locator(".sub")).toContainText("buildings", {
+    timeout: 30_000,
+  });
+  await expect(page.locator(".flow-clock")).toHaveText("18 m");
+  // descent itself is timing-dependent WebGL behavior (untestable in
+  // software rendering), so assert the direction STATE and its toggle
+  const toggle = page.locator('button[aria-label="Sweep direction"]');
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveText("▼");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveText("▲");
+  expect(errors).toEqual([]);
+});
+
 test("pressing play raises the ceiling", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/vertige?paused=1&t=20");

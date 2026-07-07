@@ -98,6 +98,7 @@ function readParams() {
     t: Number.isFinite(t) ? Math.max(0, Math.min(MAX_T, t)) : 0,
     paused: searchParams.get("paused") === "1",
     mode: (searchParams.get("mode") === "above" ? "above" : "below") as CeilMode,
+    down: searchParams.get("dir") === "down",
   };
 }
 
@@ -269,14 +270,17 @@ export default function VertigeMap() {
     });
   };
 
+  // direction is the sign of the clock speed: negative sweeps the ceiling
+  // back down, so the city appears from the towers downward
   const clock = useAnimationClock({
     initialTime: params.t,
     autoplay: !params.paused,
-    initialSpeed: 2,
+    initialSpeed: params.down ? -4 : 4,
     normalize: (t) => ((t % WRAP_T) + WRAP_T) % WRAP_T,
     onFrame,
   });
   const { timeRef } = clock;
+  const goingDown = clock.speed < 0;
 
   useEffect(() => {
     basemapRef.current = createBasemapLayer();
@@ -339,6 +343,7 @@ export default function VertigeMap() {
           setTime: (t: number) => {
             timeRef.current = t;
           },
+          getTime: () => timeRef.current,
           // camera override for tests and promo screenshots
           setView: (viewState: Record<string, number>) =>
             deck.setProps({
@@ -397,9 +402,9 @@ export default function VertigeMap() {
         }
         playing={clock.playing}
         onTogglePlay={() => clock.setPlaying((playing) => !playing)}
-        speed={clock.speed}
+        speed={Math.abs(clock.speed)}
         speeds={SPEEDS}
-        onSpeed={clock.setSpeed}
+        onSpeed={(value) => clock.setSpeed(goingDown ? -value : value)}
         labels={{
           play: commonStrings.play,
           pause: commonStrings.pause,
@@ -408,14 +413,24 @@ export default function VertigeMap() {
           sheetToggle: commonStrings.sheetToggle,
         }}
         controlsExtra={
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as CeilMode)}
-            aria-label={strings.modeAria}
-          >
-            <option value="below">{strings.modeBelow}</option>
-            <option value="above">{strings.modeAbove}</option>
-          </select>
+          <>
+            <button
+              aria-label={strings.dirAria}
+              aria-pressed={goingDown}
+              title={goingDown ? strings.dirDown : strings.dirUp}
+              onClick={() => clock.setSpeed(-clock.speed)}
+            >
+              {goingDown ? "▼" : "▲"}
+            </button>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value as CeilMode)}
+              aria-label={strings.modeAria}
+            >
+              <option value="below">{strings.modeBelow}</option>
+              <option value="above">{strings.modeAbove}</option>
+            </select>
+          </>
         }
         slider={{
           ref: sliderRef,
