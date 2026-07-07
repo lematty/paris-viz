@@ -65,6 +65,18 @@ test("search re-roots the isochrone at the picked station", async ({
   expect(errors).toEqual([]);
 });
 
+test("story button re-roots at Torcy and starts playing", async ({ page }) => {
+  const errors = await setup(page);
+  await page.goto("/horizon?paused=1&t=30");
+  await expect(page.locator(".sub")).toContainText("stations", {
+    timeout: 30_000,
+  });
+  await page.locator(".story-btn").click();
+  await expect(page.locator(".clock-note")).toContainText("Torcy");
+  await expect(page.locator('button[aria-label="Pause"]')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test("pressing play advances the travel-time budget", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/horizon?paused=1&t=10");

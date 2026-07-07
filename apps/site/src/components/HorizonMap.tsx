@@ -364,6 +364,18 @@ export default function HorizonMap() {
     setHighlight(0);
   };
 
+  // periphery story: the same clock from Torcy (RER A branch terminus area)
+  // reaches a fifth of what Châtelet reaches in 45 minutes
+  const story = () => {
+    if (!meta) return;
+    const idx = meta.stations.findIndex((s) => s.name === "Torcy");
+    if (idx < 0) return;
+    setOrigin(idx);
+    timeRef.current = 0;
+    clock.setSpeed(3);
+    clock.setPlaying(true);
+  };
+
   return (
     <div className="flow">
       <div ref={containerRef} className="flow-canvas" />
@@ -459,6 +471,9 @@ export default function HorizonMap() {
         }}
         footer={hz.footer}
       >
+        <button className="story-btn sheet-hide" onClick={story}>
+          {hz.story}
+        </button>
         <div className="iso-legend sheet-hide">
           <div className="iso-swatches">
             {BAND_COLORS.map((c, i) => (

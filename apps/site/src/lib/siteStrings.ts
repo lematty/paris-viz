@@ -130,6 +130,7 @@ export interface HorizonStrings {
   minutes: (m: number) => string;
   beyond: string;
   clickHint: string;
+  story: string;
   footer: string;
 }
 
@@ -146,6 +147,7 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
     minutes: (m) => `${m} min`,
     beyond: "beyond 75 min",
     clickHint: "Click a station to change the origin",
+    story: "✦ The same 75 minutes, from Torcy",
     footer: "Timetables: Île-de-France Mobilités · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
@@ -160,6 +162,7 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
     minutes: (m) => `${m} min`,
     beyond: "à plus de 75 min",
     clickHint: "Cliquez une station pour changer de départ",
+    story: "✦ Les mêmes 75 minutes, depuis Torcy",
     footer:
       "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
   },
