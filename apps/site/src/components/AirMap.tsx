@@ -190,16 +190,24 @@ export default function AirMap() {
       .catch((e: Error) => setError(e.message));
   }, [meta, poll, year]);
 
-  // station bbox for the veil (padded)
+  // station bbox for the veil (padded); mercator y extents too, since the
+  // BitmapLayer stretches the image linearly in mercator space and rows
+  // spaced linearly in latitude would land ~450 m north of their true
+  // position mid-map
   const bbox = useMemo(() => {
     if (!meta) return null;
     const lats = meta.stations.map((s) => s.lat);
     const lons = meta.stations.map((s) => s.lon);
+    const minLat = Math.min(...lats) - 0.08;
+    const maxLat = Math.max(...lats) + 0.08;
+    const rad = Math.PI / 180;
     return {
-      minLat: Math.min(...lats) - 0.08,
-      maxLat: Math.max(...lats) + 0.08,
+      minLat,
+      maxLat,
       minLon: Math.min(...lons) - 0.12,
       maxLon: Math.max(...lons) + 0.12,
+      mercMin: Math.asinh(Math.tan(minLat * rad)),
+      mercMax: Math.asinh(Math.tan(maxLat * rad)),
     };
   }, [meta]);
   const bboxRef = useRef(bbox);
@@ -316,9 +324,10 @@ export default function AirMap() {
     const img = vctx.createImageData(GRID_W, GRID_H);
     const domain = DOMAIN[pollRef.current];
     const lonSpan = box.maxLon - box.minLon;
-    const latSpan = box.maxLat - box.minLat;
+    const mercSpan = box.mercMax - box.mercMin;
     for (let gy = 0; gy < GRID_H; gy++) {
-      const lat = box.maxLat - (gy / (GRID_H - 1)) * latSpan;
+      const mercY = box.mercMax - (gy / (GRID_H - 1)) * mercSpan;
+      const lat = Math.atan(Math.sinh(mercY)) * (180 / Math.PI);
       for (let gx = 0; gx < GRID_W; gx++) {
         const lon = box.minLon + (gx / (GRID_W - 1)) * lonSpan;
         let num = 0;

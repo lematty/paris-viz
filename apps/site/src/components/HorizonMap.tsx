@@ -29,7 +29,7 @@ const WRAP_T = 76; // the clock wraps just past the end so the wave replays
 const BAND_MIN = 15; // one color band per 15 minutes
 const WALK_M_PER_MIN = 80; // ~4.8 km/h
 const MAX_WALK_MIN = 15; // walking leg cap at the destination end
-const GRID_W = 960;
+const GRID_W = 1280;
 
 // travel-time bands, nearest first: sun yellow → orange → rose → violet → blue
 const BAND_COLORS: [number, number, number][] = [
@@ -50,6 +50,10 @@ const SPEEDS = [
 
 const norm = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+const EARTH_R = 6_378_137; // WGS84, matches the web-mercator basemap
+/** Latitude (degrees) → unitless spherical-mercator y. */
+const merc = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
 
 const DEFAULT_ORIGIN = "châtelet - les halles";
 
@@ -122,12 +126,16 @@ export default function HorizonMap() {
     const maxLat = Math.max(...lats) + 0.03;
     const minLon = Math.min(...lons) - 0.045;
     const maxLon = Math.max(...lons) + 0.045;
-    const midLat = (minLat + maxLat) / 2;
-    const mLon = 111_320 * Math.cos((midLat * Math.PI) / 180); // m per °lon
-    const mLat = 111_320; // m per °lat
+    // BitmapLayer stretches the image linearly in Web Mercator space, so grid
+    // rows must be spaced in mercator y, not latitude: linear-in-latitude rows
+    // land ~450 m north of their true position mid-map
+    const mercMin = merc(minLat);
+    const mercMax = merc(maxLat);
     const w = GRID_W;
-    const h = Math.round((w * (maxLat - minLat) * mLat) / ((maxLon - minLon) * mLon));
-    return { minLat, maxLat, minLon, maxLon, w, h, mLon, mLat };
+    const h = Math.round(
+      (w * (mercMax - mercMin)) / ((maxLon - minLon) * (Math.PI / 180)),
+    );
+    return { minLat, maxLat, minLon, maxLon, w, h, mercMin, mercMax };
   }, [meta]);
 
   // minutes-to-reach field: min over stations of (train time + walk), computed
@@ -135,9 +143,7 @@ export default function HorizonMap() {
   // station; playback then only recolors it, which keeps animation cheap
   const field = useMemo(() => {
     if (!meta || !matrix || !grid || origin < 0) return null;
-    const { w, h, minLon, maxLon, minLat, maxLat, mLon, mLat } = grid;
-    const mppX = ((maxLon - minLon) * mLon) / (w - 1);
-    const mppY = ((maxLat - minLat) * mLat) / (h - 1);
+    const { w, h, minLon, maxLon, mercMin, mercMax } = grid;
     const f = new Float32Array(w * h).fill(Infinity);
     const N = meta.stations.length;
     const row = origin * N;
@@ -146,8 +152,14 @@ export default function HorizonMap() {
       if (tj > MAX_T) continue;
       const walkMin = Math.min(MAX_WALK_MIN, MAX_T - tj);
       const st = meta.stations[j];
+      // meters per pixel at this station's latitude (both axes scale by
+      // cos(lat) here: ground distance per unit of mercator y does too)
+      const cosLat = Math.cos((st.lat * Math.PI) / 180);
+      const mppX =
+        ((maxLon - minLon) * (Math.PI / 180) * EARTH_R * cosLat) / (w - 1);
+      const mppY = ((mercMax - mercMin) * EARTH_R * cosLat) / (h - 1);
       const cx = ((st.lon - minLon) / (maxLon - minLon)) * (w - 1);
-      const cy = ((maxLat - st.lat) / (maxLat - minLat)) * (h - 1);
+      const cy = ((mercMax - merc(st.lat)) / (mercMax - mercMin)) * (h - 1);
       const rx = (walkMin * WALK_M_PER_MIN) / mppX;
       const ry = (walkMin * WALK_M_PER_MIN) / mppY;
       const x0 = Math.max(0, Math.floor(cx - rx));
@@ -178,6 +190,11 @@ export default function HorizonMap() {
   const deckRef = useRef<Deck | null>(null);
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
   const appliedRef = useRef({ tq: -1, field: null as Float32Array | null });
+  // two recycled ImageData buffers: alternating gives the BitmapLayer a new
+  // object identity (so the texture updates) without allocating ~4.5 MB per
+  // recolor tick
+  const imgsRef = useRef<ImageData[] | null>(null);
+  const imgFlipRef = useRef(0);
 
   const onFrame = (t: number) => {
     const td = Math.min(MAX_T, t);
@@ -198,19 +215,28 @@ export default function HorizonMap() {
     appliedRef.current = { tq, field: f };
 
     const { w, h } = g;
-    const img = new ImageData(w, h);
+    let imgs = imgsRef.current;
+    if (!imgs || imgs[0].width !== w || imgs[0].height !== h)
+      imgsRef.current = imgs = [new ImageData(w, h), new ImageData(w, h)];
+    imgFlipRef.current ^= 1;
+    const img = imgs[imgFlipRef.current];
     const px = img.data;
+    new Uint32Array(px.buffer).fill(0); // reset the recycled buffer
     for (let i = 0; i < w * h; i++) {
       const ft = f[i];
-      if (ft > tq) continue; // stays transparent
+      const u = tq - ft; // minutes since this pixel was reached
+      if (u < 0) continue; // stays transparent
       const band = Math.min(BAND_COLORS.length - 1, (ft / BAND_MIN) | 0);
       const [r, gr, b] = BAND_COLORS[band];
       const o = i * 4;
       px[o] = r;
       px[o + 1] = gr;
       px[o + 2] = b;
-      // the last ~walking minute glows: a bright rim marks the moving frontier
-      px[o + 3] = ft > tq - 1.2 ? 225 : 115;
+      // alpha is a continuous ramp in travel time (rise to a glowing
+      // frontier, settle to the body tint) so texture filtering renders the
+      // ~125 m grid cells as soft gradients instead of hard squares
+      px[o + 3] =
+        u < 0.6 ? (u / 0.6) * 225 : u < 2 ? 225 - ((u - 0.6) / 1.4) * 110 : 115;
     }
 
     const N = m.stations.length;
