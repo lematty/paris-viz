@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const TITLE = "Paris Viz - Paris open-data visualizations";
@@ -31,7 +32,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* only on Vercel builds: local prod has no /_vercel/insights
+            endpoint, and the 404 would break the hermetic test suite */}
+        {process.env.VERCEL && <Analytics />}
+      </body>
     </html>
   );
 }
