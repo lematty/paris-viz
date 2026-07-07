@@ -8,6 +8,7 @@
     "build:flow": "pnpm --filter site build:flow",
     "build:noctilien": "pnpm --filter site build:noctilien",
     "test": "pnpm --filter site test",
-    "build:air": "pnpm --filter site build:air"
+    "build:air": "pnpm --filter site build:air",
+    "build:vertige": "pnpm --filter site build:vertige"
   }
 }

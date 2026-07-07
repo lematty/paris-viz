@@ -51,6 +51,7 @@ const needed = [
   "noctilien.json",
   "air/meta.json",
   "horizon/stations.json",
+  "vertige/meta.json",
 ];
 const missing = needed.filter((f) => !existsSync(path.join(pub, f)));
 
@@ -68,4 +69,5 @@ if (missing.length === 0) {
   execSync("pnpm run build:noctilien", { stdio: "inherit", cwd: site, env });
   execSync("pnpm run build:air", { stdio: "inherit", cwd: site, env });
   execSync("pnpm run build:horizon", { stdio: "inherit", cwd: site, env });
+  execSync("pnpm run build:vertige", { stdio: "inherit", cwd: site, env });
 }

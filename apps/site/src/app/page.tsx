@@ -46,6 +46,12 @@ export default function Home() {
           <h2>{s.horizonTitle}</h2>
           <p>{s.horizonDesc}</p>
         </Link>
+        <Link className="card" href="/vertige">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="card-thumb" src="/thumbs/vertige.png" alt="" />
+          <h2>{s.vertigeTitle}</h2>
+          <p>{s.vertigeDesc}</p>
+        </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />
@@ -67,6 +73,8 @@ export default function Home() {
           </a>
           {" · "}
           <a href="https://www.airparif.fr">airparif.fr</a>
+          {" · "}
+          <a href="https://geoservices.ign.fr/bdtopo">IGN BD TOPO</a>
           {" · "}
           <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
           {" · "}

@@ -15,6 +15,8 @@ export const SITE: Record<
     noctDesc: string;
     horizonTitle: string;
     horizonDesc: string;
+    vertigeTitle: string;
+    vertigeDesc: string;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
@@ -35,9 +37,12 @@ export const SITE: Record<
     horizonTitle: "Horizon - how far can you get?",
     horizonDesc:
       "Pick any station and watch 75 minutes ripple across the region: everywhere the rail network can take you, walking included.",
+    vertigeTitle: "Vertige - the heights of Paris",
+    vertigeDesc:
+      "Every building intra-muros in 3D, appearing floor by floor: the whole city tops out at the Haussmann roofline, then a handful of towers keep climbing alone.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -56,9 +61,12 @@ export const SITE: Record<
     horizonTitle: "Horizon - jusqu'où pouvez-vous aller ?",
     horizonDesc:
       "Choisissez une station et regardez 75 minutes se propager sur la région : partout où le réseau ferré peut vous emmener, marche comprise.",
+    vertigeTitle: "Vertige - la hauteur de Paris",
+    vertigeDesc:
+      "Tous les bâtiments intra-muros en 3D, apparaissant étage par étage : toute la ville s'arrête à la corniche haussmannienne, puis quelques tours continuent de grimper seules.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -165,6 +173,78 @@ export const HORIZON: Record<Lang, HorizonStrings> = {
     story: "✦ Les mêmes 75 minutes, depuis Torcy",
     footer:
       "Horaires : Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface VertigeStrings {
+  title: string;
+  loading: string;
+  subtitle: (n: string) => string;
+  noteBelow: string;
+  noteAbove: string;
+  modeAria: string;
+  modeBelow: string;
+  modeAbove: string;
+  legend: string;
+  story: string;
+  floors: (n: number) => string;
+  built: (y: number) => string;
+  usages: Record<string, string>;
+  footer: string;
+}
+
+export const VERTIGE: Record<Lang, VertigeStrings> = {
+  en: {
+    title: "Vertige - the heights of Paris",
+    loading: "loading buildings…",
+    subtitle: (n) => `${n} buildings intra-muros · measured by IGN (BD TOPO)`,
+    noteBelow: "ceiling: everything built below it",
+    noteAbove: "ceiling: only what rises above it",
+    modeAria: "Ceiling mode",
+    modeBelow: "below the ceiling",
+    modeAbove: "above the ceiling",
+    legend:
+      "Every building inside the périphérique, extruded to its measured rooftop height and colored by band: dark bronze sheds to golden towers. Press play to raise the ceiling and watch the city assemble: courtyards first, the Haussmann wave between 15 and 21 m, then the towers climbing alone. Drag with the right mouse button or two fingers to tilt and turn.",
+    story: "✦ Above 37 m, the height limit of 1977",
+    floors: (n) => `${n} floors`,
+    built: (y) => `built around ${y}`,
+    usages: {
+      Indifférencié: "unclassified",
+      Résidentiel: "residential",
+      Industriel: "industrial",
+      "Commercial et services": "commercial and services",
+      Sportif: "sports",
+      Annexe: "outbuilding",
+      Religieux: "religious",
+      Agricole: "agricultural",
+    },
+    footer: "Buildings: IGN BD TOPO · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Vertige - la hauteur de Paris",
+    loading: "chargement des bâtiments…",
+    subtitle: (n) => `${n} bâtiments intra-muros · mesures IGN (BD TOPO)`,
+    noteBelow: "plafond : tout ce qui est construit dessous",
+    noteAbove: "plafond : seulement ce qui dépasse",
+    modeAria: "Mode du plafond",
+    modeBelow: "sous le plafond",
+    modeAbove: "au-dessus",
+    legend:
+      "Chaque bâtiment intra-muros, extrudé à sa hauteur de toit mesurée et coloré par tranche : bronze sombre pour les appentis, or pour les tours. Lancez la lecture pour élever le plafond et voir la ville s'assembler : les cours d'abord, la vague haussmannienne entre 15 et 21 m, puis les tours qui grimpent seules. Bouton droit ou deux doigts pour incliner et pivoter.",
+    story: "✦ Au-dessus de 37 m, le plafond de 1977",
+    floors: (n) => `${n} étages`,
+    built: (y) => `construit vers ${y}`,
+    usages: {
+      Indifférencié: "indifférencié",
+      Résidentiel: "résidentiel",
+      Industriel: "industriel",
+      "Commercial et services": "commerces et services",
+      Sportif: "sportif",
+      Annexe: "annexe",
+      Religieux: "religieux",
+      Agricole: "agricole",
+    },
+    footer: "Bâtiments : IGN BD TOPO · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

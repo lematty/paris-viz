@@ -6,6 +6,7 @@ const PAGES = [
   { key: "flux", href: "/flux", label: "Flux" },
   { key: "air", href: "/air", label: "Respire" },
   { key: "horizon", href: "/horizon", label: "Horizon" },
+  { key: "vertige", href: "/vertige", label: "Vertige" },
   { key: "noctilien", href: "/noctilien", label: "Noctilien" },
 ] as const;
 
