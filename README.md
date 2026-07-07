@@ -14,75 +14,48 @@ into small static files under `apps/site/public/`, and rendered client-side.
 
 ## Visualizations
 
-### `/flux` - the transit network in motion
+Each one has a full write-up in `docs/` covering the interactions, URL
+params, the data pipeline, and the artifact format.
+
+### [`/flux` - the transit network in motion](docs/flux.md)
 
 ![Every métro and tram of Île-de-France moving at 08:45](apps/site/public/og.png)
 
-Every scheduled trip of the Île-de-France network moving on the map over one
-service day: ~20,000 métro / RER / Transilien / tram trips as glowing comets
-(deck.gl TripsLayer, official line colors, real track geometry from
-shapes.txt), plus **90,000 bus trips** as an opt-in fourth mode. Play/pause,
-speed, time slider, hover a train for its line, click a line chip to solo it.
-URL params: `?modes=metro,tram,bus&t=30600&paused=1&speed=120`.
+Every scheduled trip of a full service day moving across the map: ~20,000
+métro, RER and tram runs as glowing comets on real track geometry, plus
+90,000 buses one checkbox away. [Read more →](docs/flux.md)
 
-![90,000 daily buses at morning rush](docs/flux-buses.png)
+### [`/air` - a year of Paris air, hour by hour](docs/air.md)
 
-Data: `public/flow/{metro,rail,tram}.{bin,json}` - float32 timestamped
-waypoints, lazy-loaded per mode (~15 MB total). Buses use a tighter format
-(`bus.json` + `bus-<hour>.bin`): straight stop-to-stop paths, uint16-quantized
-positions (~4 m grid) and 2-second time steps, one chunk per start hour -
-12 MB for the whole day, of which the page only ever holds a 3-hour sliding
-window (~1.5 MB).
+![NO2 veil over Île-de-France on a December evening](docs/air-veil.png)
 
-### `/air` - a year of Paris air, hour by hour
+Seven years of hourly Airparif measurements breathing over the map as an
+interpolated veil: winter smog, clean windy days, and the March 2020
+lockdown clearing the sky in a week. [Read more →](docs/air.md)
 
-Hourly air quality (NO2 and PM2.5) from 44 Airparif monitoring stations,
-2019-2025, breathing over the map as an interpolated veil that fades away
-from the stations. Year and pollutant selectors, a scrubbable yearly curve,
-and a one-click story: watch the March 2020 lockdown clear the sky. Sources:
-Airparif hourly station CSVs + the national LCSQA station referential.
-Data: `public/air/` - meta + one ~350 KB binary per pollutant-year
-(`pnpm build:air`).
+### [`/horizon` - how far can you get?](docs/horizon.md)
 
-### `/horizon` - how far can you get?
+![75 minutes of travel from Châtelet - Les Halles, in 15-minute bands](apps/site/public/horizon-og.png)
 
 Animated isochrones over the rail network: pick any of ~940 stations and
-watch 75 minutes of travel ripple outward in 15-minute color bands - métro,
-RER, Transilien and tram rides at median scheduled run times, average daytime
-waits (half the 07:00-20:00 headway), transfers from `transfers.txt`, and up
-to 15 minutes of walking at the destination end. Click a station or search to
-re-root the wave. URL params: `?from=Nation&t=45&paused=1`.
+watch 75 minutes of travel ripple outward in 15-minute bands, transfers and
+walking included. [Read more →](docs/horizon.md)
 
-Data: `public/horizon/` - a station list plus an all-pairs travel-time
-matrix (943×943 uint8 minutes, ~870 KB) built by one Dijkstra per station
-over a frequency-based graph (`pnpm build:horizon`).
-
-### `/vertige` - the heights of Paris
+### [`/vertige` - the heights of Paris](docs/vertige.md)
 
 ![Every building of Paris intra-muros extruded to its measured height](apps/site/public/vertige-og.png)
 
-Every building inside the périphérique (~110,000) extruded in 3D to its
-IGN-measured rooftop height, colored from dark bronze sheds to golden towers
-(deck.gl SolidPolygonLayer). Press play and a ceiling rises through the city:
-courtyard sheds first, the Haussmann wave between 15 and 21 m, then the
-towers climbing alone. A mode select flips to "only what rises above", and a
-story button pins that at 37 m - the 1977 height limit. The sweep is a GPU
-filter uniform, so the 1.1 M-vertex city is tessellated once and animates at
-full frame rate. URL params: `?t=60&mode=above&paused=1`.
+Every building inside the périphérique in 3D at its IGN-measured height:
+a rising ceiling assembles the city floor by floor until only the towers
+are left climbing. [Read more →](docs/vertige.md)
 
-Data: `public/vertige/` - quantized footprints (courtyard holes included),
-heights, floors, usage and construction year packed into a 5.5 MB binary from
-the BD TOPO WFS, clipped to the 20 arrondissements (`pnpm build:vertige`).
-
-### `/noctilien` - night-bus frequency
+### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)
 
-Heatmap of Noctilien night-bus service (~00:30–05:30): departures per night
-around every stop, weeknight vs Fri–Sat toggle, address search with nearest
-stops and walking times, line highlighting. Migrated from the
-[standalone repo](https://github.com/lematty/noctilien) with its full git
-history. Data: `public/noctilien.json` - 641 KB (`pnpm build:noctilien`).
+Heatmap of night-bus service after midnight: which neighbourhoods the
+Noctilien network covers, weeknights vs weekends, with address search and
+walking times. [Read more →](docs/noctilien.md)
 
 ## Develop
 
@@ -112,5 +85,8 @@ GPU, so painted WebGL pixels are never asserted.
 ## Data sources
 
 - [IDFM GTFS](https://transport.data.gouv.fr/datasets/reseau-urbain-et-interurbain-dile-de-france-mobilites) - schedules for all Île-de-France transit (~30-day window)
+- [Airparif](https://www.airparif.fr) - hourly NO2 and PM2.5 measurements, with the [LCSQA](https://www.lcsqa.org) station referential
 - [IGN BD TOPO](https://geoservices.ign.fr/bdtopo) - building footprints and measured heights, via the Géoplateforme WFS
+- [opendata.paris.fr](https://opendata.paris.fr) - arrondissement boundaries (the vertige city-limit clip)
+- [Base Adresse Nationale](https://adresse.data.gouv.fr) - geocoding for the noctilien address search
 - Basemap: CARTO dark tiles © OpenStreetMap contributors
