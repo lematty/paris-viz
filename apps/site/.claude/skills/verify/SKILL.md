@@ -27,8 +27,17 @@ pnpm exec next start -p 4123 &
 ```js
 const browser = await chromium.launch({
   executablePath: "/run/current-system/sw/bin/google-chrome-stable",
+  args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
 });
 ```
+
+- Headless WebGL is software-rendered, and heavy scenes (vertige's 1.1 M
+  vertices) take seconds per frame, which starves requestAnimationFrame.
+  Anything in Playwright that waits on RAF then times out while the page
+  is actually fine: pass `{ polling: 250 }` to waitForFunction, click with
+  `{ force: true }` (skips the two-RAF stability check), and read text via
+  `page.$eval` instead of locator.evaluate. Light pages (horizon) do not
+  need any of this.
 
 ## Useful selectors and hooks
 
