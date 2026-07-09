@@ -64,6 +64,7 @@ const timeForCeiling = (meters: number) =>
   meters <= BREAK_M
     ? (meters * BREAK_T) / BREAK_M
     : BREAK_T + ((meters - BREAK_M) * (MAX_T - BREAK_T)) / (TOP_M - BREAK_M);
+const CAP_M = 37; // the 1977 plafond over central Paris
 
 // sequential amber ramp, dim bronze floor to the site's signature gold:
 // lightness rises with height so the towers glow on the dark basemap
@@ -368,11 +369,16 @@ export default function VertigeMap() {
 
   const locale = lang === "fr" ? "fr-FR" : "en-GB";
 
-  // the 1977 planning cap froze central Paris at 37 m: strip everything
-  // below it and only churches, the grands ensembles and the towers remain
+  // the 1977 planning cap froze central Paris at 37 m: above it only the
+  // churches, grands ensembles and towers remain; below it, the city the cap
+  // built. Frozen on one side of the cap, the button offers the other side.
+  const atCapStory =
+    mode === "above" &&
+    !clock.playing &&
+    Math.abs(ceilingAt(Math.min(MAX_T, timeRef.current)) - CAP_M) < 0.5;
   const story = () => {
-    setMode("above");
-    timeRef.current = timeForCeiling(37);
+    setMode(atCapStory ? "below" : "above");
+    timeRef.current = timeForCeiling(CAP_M);
     clock.setPlaying(false);
   };
 
@@ -445,7 +451,7 @@ export default function VertigeMap() {
         footer={strings.footer}
       >
         <button className="story-btn sheet-hide" onClick={story}>
-          {strings.story}
+          {atCapStory ? strings.storyBelow : strings.storyAbove}
         </button>
         <div className="iso-legend sheet-hide">
           <div className="iso-swatches">
