@@ -57,6 +57,7 @@ const EARTH_R = 6_378_137; // WGS84, matches the web-mercator basemap
 const merc = (lat: number) => Math.asinh(Math.tan((lat * Math.PI) / 180));
 
 const DEFAULT_ORIGIN = "châtelet - les halles";
+const STORY_ORIGIN = "torcy";
 
 function readParams() {
   const searchParams = currentSearchParams();
@@ -394,10 +395,16 @@ export default function HorizonMap() {
   };
 
   // periphery story: the same clock from Torcy (RER A branch terminus area)
-  // reaches a fifth of what Châtelet reaches in 45 minutes
+  // reaches a fifth of what Châtelet reaches in 45 minutes; once the view is
+  // already on Torcy the button offers the trip back
+  const storyTarget =
+    norm(originName) === STORY_ORIGIN
+      ? { label: "Châtelet", wanted: DEFAULT_ORIGIN }
+      : { label: "Torcy", wanted: STORY_ORIGIN };
   const story = () => {
     if (!meta) return;
-    const idx = meta.stations.findIndex((s) => s.name === "Torcy");
+    const wanted = norm(storyTarget.wanted);
+    const idx = meta.stations.findIndex((s) => norm(s.name) === wanted);
     if (idx < 0) return;
     setOrigin(idx);
     timeRef.current = 0;
@@ -501,7 +508,7 @@ export default function HorizonMap() {
         footer={strings.footer}
       >
         <button className="story-btn sheet-hide" onClick={story}>
-          {strings.story}
+          {strings.story(storyTarget.label)}
         </button>
         <div className="iso-legend sheet-hide">
           <div className="iso-swatches">
