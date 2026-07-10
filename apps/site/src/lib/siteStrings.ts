@@ -1,65 +1,66 @@
 import type { Lang } from "./lang";
+import type { ThemeKey, VizKey } from "./vizCatalog";
 
 /** Strings for the landing page and the flux visualization. The noctilien
- * page keeps its own richer dictionary in lib/noctilien/i18n.ts. */
+ * page keeps its own richer dictionary in lib/noctilien/i18n.ts. Card and
+ * theme keys follow lib/vizCatalog.ts. */
 
 export const SITE: Record<
   Lang,
   {
     tagline: string;
-    fluxTitle: string;
-    fluxDesc: string;
-    airTitle: string;
-    airDesc: string;
-    noctTitle: string;
-    noctDesc: string;
-    horizonTitle: string;
-    horizonDesc: string;
-    vertigeTitle: string;
-    vertigeDesc: string;
-    stratesTitle: string;
-    stratesDesc: string;
-    crueTitle: string;
-    crueDesc: string;
-    caniculeTitle: string;
-    caniculeDesc: string;
-    reliefTitle: string;
-    reliefDesc: string;
+    themeNotes: Record<ThemeKey, string>;
+    cards: Record<VizKey, { title: string; desc: string }>;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
   }
 > = {
   en: {
-    tagline:
-      "Interactive visualizations of open data from Paris and Île-de-France.",
-    fluxTitle: "Flux - the transit network in motion",
-    fluxDesc:
-      "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
-    airTitle: "Respire - the air you breathe",
-    airDesc:
-      "Seven years of hourly air quality breathing over the map: winter smog, clean windy days, and the 2020 lockdown clearing the sky in a week.",
-    noctTitle: "Noctilien - night buses",
-    noctDesc:
-      "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
-    horizonTitle: "Horizon - how far can you get?",
-    horizonDesc:
-      "Pick any station and watch 75 minutes ripple across the region: everywhere the rail network can take you, walking included.",
-    vertigeTitle: "Vertige - how tall is Paris?",
-    vertigeDesc:
-      "Every building inside the périphérique in 3D, appearing floor by floor: the whole city tops out at the Haussmann roofline, then a handful of towers keep climbing alone.",
-    stratesTitle: "Strates - how old is Paris?",
-    stratesDesc:
-      "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
-    crueTitle: "Crue - the Seine rising",
-    crueDesc:
-      "Raise the river through the 3D city, centimeter by centimeter over the real terrain: the quays go under at 6 m, and at 8.62 m the flood of 1910 returns.",
-    caniculeTitle: "Canicule - the heat island",
-    caniculeDesc:
-      "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
-    reliefTitle: "Relief - the ridership landscape",
-    reliefDesc:
-      "Every station as a mountain rising with its validations per hour: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering alone at 6pm.",
+    tagline: "A living atlas of Paris and Île-de-France, drawn from open data.",
+    themeNotes: {
+      mouvement: "the city in motion",
+      matiere: "the built city",
+      elements: "air, heat and water",
+    },
+    cards: {
+      flux: {
+        title: "Flux - the transit network in motion",
+        desc: "Every scheduled trip of a full day moves across the map: 20,000 métro, RER and tram runs, plus 90,000 buses one checkbox away.",
+      },
+      horizon: {
+        title: "Horizon - how far can you get?",
+        desc: "Pick any station and watch 75 minutes ripple across the region: everywhere the rail network can take you, walking included.",
+      },
+      relief: {
+        title: "Relief - the ridership landscape",
+        desc: "Every station as a mountain rising with its validations per hour: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering alone at 6pm.",
+      },
+      noctilien: {
+        title: "Noctilien - night buses",
+        desc: "Heatmap of night-bus frequency: which neighbourhoods are served after midnight, and which are not.",
+      },
+      vertige: {
+        title: "Vertige - how tall is Paris?",
+        desc: "Every building inside the périphérique in 3D, appearing floor by floor: the whole city tops out at the Haussmann roofline, then a handful of towers keep climbing alone.",
+      },
+      strates: {
+        title: "Strates - how old is Paris?",
+        desc: "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
+      },
+      air: {
+        title: "Respire - the air you breathe",
+        desc: "Seven years of hourly air quality breathing over the map: winter smog, clean windy days, and the 2020 lockdown clearing the sky in a week.",
+      },
+      crue: {
+        title: "Crue - the Seine rising",
+        desc: "Raise the river through the 3D city, centimeter by centimeter over the real terrain: the quays go under at 6 m, and at 8.62 m the flood of 1910 returns.",
+      },
+      canicule: {
+        title: "Canicule - the heat island",
+        desc: "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
+      },
+    },
     aboutTitle: "About the data",
     aboutBody:
       "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
@@ -68,34 +69,50 @@ export const SITE: Record<
   },
   fr: {
     tagline:
-      "Visualisations interactives des données ouvertes de Paris et d'Île-de-France.",
-    fluxTitle: "Flux - le réseau en mouvement",
-    fluxDesc:
-      "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
-    airTitle: "Respire - l'air que vous respirez",
-    airDesc:
-      "Sept ans de qualité de l'air horaire qui respirent sur la carte : smog d'hiver, journées de vent, et le confinement 2020 qui purifie le ciel en une semaine.",
-    noctTitle: "Noctilien - bus de nuit",
-    noctDesc:
-      "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
-    horizonTitle: "Horizon - jusqu'où pouvez-vous aller ?",
-    horizonDesc:
-      "Choisissez une station et regardez 75 minutes se propager sur la région : partout où le réseau ferré peut vous emmener, marche comprise.",
-    vertigeTitle: "Vertige - quelle hauteur fait Paris ?",
-    vertigeDesc:
-      "Tous les bâtiments intra-muros en 3D, apparaissant étage par étage : toute la ville s'arrête à la corniche haussmannienne, puis quelques tours continuent de grimper seules.",
-    stratesTitle: "Strates - quel âge a Paris ?",
-    stratesDesc:
-      "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
-    crueTitle: "Crue - la Seine qui monte",
-    crueDesc:
-      "Faites monter le fleuve dans la ville en 3D, centimètre par centimètre sur le vrai terrain : les quais disparaissent à 6 m, et à 8,62 m la crue de 1910 revient.",
-    caniculeTitle: "Canicule - l'îlot de chaleur",
-    caniculeDesc:
-      "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
-    reliefTitle: "Relief - le paysage de l'affluence",
-    reliefDesc:
-      "Chaque gare est une montagne qui monte avec ses validations par heure : mer calme à 3h, chaînes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
+      "Un atlas vivant de Paris et d'Île-de-France, dessiné à partir des données ouvertes.",
+    themeNotes: {
+      mouvement: "la ville en mouvement",
+      matiere: "la ville bâtie",
+      elements: "l'air, la chaleur et l'eau",
+    },
+    cards: {
+      flux: {
+        title: "Flux - le réseau en mouvement",
+        desc: "Tous les trajets d'une journée se déplacent sur la carte : 20 000 courses de métro, RER et tramway, et 90 000 bus en option.",
+      },
+      horizon: {
+        title: "Horizon - jusqu'où pouvez-vous aller ?",
+        desc: "Choisissez une station et regardez 75 minutes se propager sur la région : partout où le réseau ferré peut vous emmener, marche comprise.",
+      },
+      relief: {
+        title: "Relief - le paysage de l'affluence",
+        desc: "Chaque gare est une montagne qui monte avec ses validations par heure : mer calme à 3h, chaînes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
+      },
+      noctilien: {
+        title: "Noctilien - bus de nuit",
+        desc: "Carte de chaleur de la fréquence des bus de nuit : quels quartiers sont desservis après minuit, et lesquels ne le sont pas.",
+      },
+      vertige: {
+        title: "Vertige - quelle hauteur fait Paris ?",
+        desc: "Tous les bâtiments intra-muros en 3D, apparaissant étage par étage : toute la ville s'arrête à la corniche haussmannienne, puis quelques tours continuent de grimper seules.",
+      },
+      strates: {
+        title: "Strates - quel âge a Paris ?",
+        desc: "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
+      },
+      air: {
+        title: "Respire - l'air que vous respirez",
+        desc: "Sept ans de qualité de l'air horaire qui respirent sur la carte : smog d'hiver, journées de vent, et le confinement 2020 qui purifie le ciel en une semaine.",
+      },
+      crue: {
+        title: "Crue - la Seine qui monte",
+        desc: "Faites monter le fleuve dans la ville en 3D, centimètre par centimètre sur le vrai terrain : les quais disparaissent à 6 m, et à 8,62 m la crue de 1910 revient.",
+      },
+      canicule: {
+        title: "Canicule - l'îlot de chaleur",
+        desc: "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
+      },
+    },
     aboutTitle: "À propos des données",
     aboutBody:
       "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",

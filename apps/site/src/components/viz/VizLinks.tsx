@@ -1,22 +1,12 @@
 "use client";
 
 import type { Lang } from "@/lib/lang";
+import { THEMES, type VizKey } from "@/lib/vizCatalog";
 
-const PAGES = [
-  { key: "flux", href: "/flux", label: "Flux" },
-  { key: "air", href: "/air", label: "Respire" },
-  { key: "horizon", href: "/horizon", label: "Horizon" },
-  { key: "vertige", href: "/vertige", label: "Vertige" },
-  { key: "strates", href: "/strates", label: "Strates" },
-  { key: "crue", href: "/crue", label: "Crue" },
-  { key: "canicule", href: "/canicule", label: "Canicule" },
-  { key: "relief", href: "/relief", label: "Relief" },
-  { key: "noctilien", href: "/noctilien", label: "Noctilien" },
-] as const;
+export type { VizKey };
 
-export type VizKey = (typeof PAGES)[number]["key"];
-
-/** Cross-links between the visualizations, shown above each panel footer. */
+/** Cross-links between the visualizations, grouped by theme like the
+ * landing page, shown above each panel footer. */
 export default function VizLinks({
   current,
   lang,
@@ -25,14 +15,27 @@ export default function VizLinks({
   lang: Lang;
 }) {
   return (
-    <p className="viz-links sheet-hide">
-      {lang === "fr" ? "Voir aussi : " : "See also: "}
-      {PAGES.filter((page) => page.key !== current).map((page, i) => (
-        <span key={page.key}>
-          {i > 0 && " · "}
-          <a href={page.href}>{page.label}</a>
-        </span>
-      ))}
-    </p>
+    <div className="viz-links sheet-hide">
+      <p className="viz-links-head">
+        {lang === "fr" ? "Voir aussi" : "See also"}
+      </p>
+      {THEMES.map((theme) => {
+        const others = theme.vizzes.filter((viz) => viz.key !== current);
+        if (others.length === 0) return null;
+        return (
+          <p className="viz-links-row" key={theme.key}>
+            <span className="viz-links-theme">{theme.label}</span>
+            <span>
+              {others.map((viz, i) => (
+                <span key={viz.key}>
+                  {i > 0 && " · "}
+                  <a href={viz.href}>{viz.label}</a>
+                </span>
+              ))}
+            </span>
+          </p>
+        );
+      })}
+    </div>
   );
 }

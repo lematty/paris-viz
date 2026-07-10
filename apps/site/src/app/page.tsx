@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { SITE } from "@/lib/siteStrings";
+import { THEMES } from "@/lib/vizCatalog";
 import LangToggle from "@/components/LangToggle";
 
 export default function Home() {
@@ -27,62 +28,28 @@ export default function Home() {
           }}
         />
       </div>
-      <div className="cards">
-        <Link className="card" href="/flux">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/flux.png" alt="" />
-          <h2>{strings.fluxTitle}</h2>
-          <p>{strings.fluxDesc}</p>
-        </Link>
-        <Link className="card" href="/air">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/air.png" alt="" />
-          <h2>{strings.airTitle}</h2>
-          <p>{strings.airDesc}</p>
-        </Link>
-        <Link className="card" href="/horizon">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/horizon.png" alt="" />
-          <h2>{strings.horizonTitle}</h2>
-          <p>{strings.horizonDesc}</p>
-        </Link>
-        <Link className="card" href="/vertige">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/vertige.png" alt="" />
-          <h2>{strings.vertigeTitle}</h2>
-          <p>{strings.vertigeDesc}</p>
-        </Link>
-        <Link className="card" href="/strates">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/strates.png" alt="" />
-          <h2>{strings.stratesTitle}</h2>
-          <p>{strings.stratesDesc}</p>
-        </Link>
-        <Link className="card" href="/crue">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/crue.png" alt="" />
-          <h2>{strings.crueTitle}</h2>
-          <p>{strings.crueDesc}</p>
-        </Link>
-        <Link className="card" href="/canicule">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/canicule.png" alt="" />
-          <h2>{strings.caniculeTitle}</h2>
-          <p>{strings.caniculeDesc}</p>
-        </Link>
-        <Link className="card" href="/relief">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/relief.png" alt="" />
-          <h2>{strings.reliefTitle}</h2>
-          <p>{strings.reliefDesc}</p>
-        </Link>
-        <Link className="card" href="/noctilien">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />
-          <h2>{strings.noctTitle}</h2>
-          <p>{strings.noctDesc}</p>
-        </Link>
-      </div>
+      {THEMES.map((theme) => (
+        <section className="home-theme" key={theme.key}>
+          <h2 className="theme-title">
+            {theme.label}
+            <span className="theme-note">{strings.themeNotes[theme.key]}</span>
+          </h2>
+          <div className="cards">
+            {theme.vizzes.map((viz) => (
+              <Link className="card" href={viz.href} key={viz.key}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="card-thumb"
+                  src={`/thumbs/${viz.key}.png`}
+                  alt=""
+                />
+                <h3>{strings.cards[viz.key].title}</h3>
+                <p>{strings.cards[viz.key].desc}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
       <section className="about">
         <h2>{strings.aboutTitle}</h2>
         <p>{strings.aboutBody}</p>
