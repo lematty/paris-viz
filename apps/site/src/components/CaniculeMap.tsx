@@ -168,8 +168,6 @@ export default function CaniculeMap() {
   dataRef.current = data;
   const axisRef = useRef(axis);
   axisRef.current = axis;
-  const momentRef = useRef(moment);
-  momentRef.current = moment;
 
   useEffect(() => {
     Promise.all([
@@ -254,18 +252,20 @@ export default function CaniculeMap() {
             if (!data || !meta) return null;
             const strings = CANICULE[langRef.current];
             const block = object as Block;
-            const moment = momentRef.current;
-            const aleaNote = (moment === "jour" ? data.aleaJ : data.aleaN)[block.idx];
-            const vulnNote = (moment === "jour" ? data.vulnJ : data.vulnN)[block.idx];
             const lczCode = meta.lcz[data.lcz[block.idx]];
-            const parts = [
-              strings.lcz[lczCode] ?? lczCode,
-              strings.alea(aleaNote),
-              vulnNote > 0 ? strings.vuln(vulnNote) : strings.vulnUnknown,
-              strings.built(data.bati[block.idx]),
-              strings.permeable(data.permeable[block.idx]),
-            ];
-            return { text: parts.join(" · "), style: DECK_TOOLTIP_STYLE };
+            const sign = (note: number) => `${note > 0 ? "+" : ""}${note}`;
+            const vulnJ = data.vulnJ[block.idx];
+            const vulnN = data.vulnN[block.idx];
+            return {
+              html:
+                `<div style="font-weight:600;margin-bottom:3px">${strings.lcz[lczCode] ?? lczCode}</div>` +
+                `<div>${strings.axisAlea} · ${strings.day} ${sign(data.aleaJ[block.idx])} · ${strings.night} ${sign(data.aleaN[block.idx])}</div>` +
+                (vulnJ > 0 && vulnN > 0
+                  ? `<div>${strings.axisVuln} · ${strings.day} ${vulnJ}/9 · ${strings.night} ${vulnN}/9</div>`
+                  : `<div>${strings.vulnUnknown}</div>`) +
+                `<div style="color:#8b93a3;margin-top:3px">${strings.built(data.bati[block.idx])} · ${strings.permeable(data.permeable[block.idx])}</div>`,
+              style: DECK_TOOLTIP_STYLE,
+            };
           },
           layers: [basemapRef.current],
         });
@@ -339,6 +339,7 @@ export default function CaniculeMap() {
         <p className="sub sheet-hide">{subtitle}</p>
         <div className="flow-controls">
           <button
+            className="moment-toggle"
             aria-label={strings.momentAria}
             aria-pressed={moment === "nuit"}
             onClick={() => setMoment(moment === "nuit" ? "jour" : "nuit")}

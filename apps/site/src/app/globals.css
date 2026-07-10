@@ -248,6 +248,12 @@ a {
   cursor: pointer;
 }
 
+.flow-controls button.moment-toggle {
+  width: auto;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .flow-controls select {
   height: 32px;
   border: 1px solid var(--panel-border);

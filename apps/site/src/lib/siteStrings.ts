@@ -372,8 +372,6 @@ export interface CaniculeStrings {
   legend: string;
   storyVuln: string;
   storyAlea: string;
-  alea: (note: number) => string;
-  vuln: (note: number) => string;
   vulnUnknown: string;
   built: (pct: number) => string;
   permeable: (pct: number) => string;
@@ -401,8 +399,6 @@ export const CANICULE: Record<Lang, CaniculeStrings> = {
       "Each block is scored by the Institut Paris Region for its heat-island behavior: hazard is how much the block itself overheats (its shape, minerality and lack of sky view trap the day's heat), vulnerability is how exposed its residents are. Flip between day and night: the dense city keeps its heat long after dark. Hover a block for its climate class and scores; the gaps between blocks are the streets.",
     storyVuln: "✦ Who the night heat endangers",
     storyAlea: "✦ Back to the heat itself",
-    alea: (note) => `heat hazard ${note > 0 ? "+" : ""}${note}`,
-    vuln: (note) => `vulnerability ${note}/9`,
     vulnUnknown: "vulnerability not scored",
     built: (pct) => `${pct}% built`,
     permeable: (pct) => `${pct}% permeable`,
@@ -448,8 +444,6 @@ export const CANICULE: Record<Lang, CaniculeStrings> = {
       "Chaque îlot est noté par l'Institut Paris Region pour son comportement d'îlot de chaleur : l'aléa mesure combien l'îlot lui-même surchauffe (sa forme, sa minéralité et son ciel masqué piègent la chaleur du jour), la vulnérabilité mesure l'exposition de ses habitants. Basculez entre jour et nuit : la ville dense garde sa chaleur longtemps après la tombée du soir. Survolez un îlot pour sa classe climatique et ses notes ; les vides entre les îlots sont les rues.",
     storyVuln: "✦ Qui la chaleur nocturne menace",
     storyAlea: "✦ Retour à la chaleur elle-même",
-    alea: (note) => `aléa chaleur ${note > 0 ? "+" : ""}${note}`,
-    vuln: (note) => `vulnérabilité ${note}/9`,
     vulnUnknown: "vulnérabilité non notée",
     built: (pct) => `${pct} % bâti`,
     permeable: (pct) => `${pct} % perméable`,
