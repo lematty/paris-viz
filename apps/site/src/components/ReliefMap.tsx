@@ -10,7 +10,7 @@ import {
 import { ColumnLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX, RELIEF } from "@/lib/siteStrings";
-import { currentSearchParams, fmtClock } from "@/lib/viz";
+import { currentSearchParams, fmtClock, hexToRgb } from "@/lib/viz";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
 import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
@@ -48,11 +48,15 @@ const PARAM_OF_DAY: Record<DayType, "weekday" | "saturday" | "sunday"> = {
 };
 
 const DAY_SECONDS = 86400;
-// spikes in the site's gold, brighter when the station runs hot
-const SPIKE_RGB: [number, number, number] = [255, 209, 102];
-const SPIKE_HOT_RGB: [number, number, number] = [255, 240, 200];
+// height is linear in validations/hour (the honest length encoding: the
+// summits tower, the sea stays calm); color carries the mid-range through
+// the site's amber ramp, dark bronze to white-hot
+const SPIKE_HEX = ["#8a6a28", "#a9832c", "#c99e33", "#e9bc44", "#ffd166", "#fff0c2"];
+const SPIKE_RGB = SPIKE_HEX.map(hexToRgb);
+const SPIKE_BINS = [0.12, 0.25, 0.4, 0.6, 0.8]; // sqrt share of the peak
 const BASE_DOT_RGBA: [number, number, number, number] = [230, 232, 238, 60];
-const MAX_SPIKE_M = 5200; // La Défense at 6pm, in meters of column
+const MAX_SPIKE_M = 7000; // Saint-Lazare at 6pm, in meters of column
+const MIN_SPIKE_M = 40; // active stations register at least as a nub
 
 const SPEEDS = [
   { value: 600, label: "1×" },
@@ -145,6 +149,12 @@ export default function ReliefMap() {
     appliedRef.current = { quantized, day, meta };
 
     const sqrtMax = Math.sqrt(meta.maxPerHour);
+    const colorOf = (value: number): [number, number, number] => {
+      const share = Math.sqrt(value) / sqrtMax;
+      for (let bin = 0; bin < SPIKE_BINS.length; bin++)
+        if (share < SPIKE_BINS[bin]) return SPIKE_RGB[bin];
+      return SPIKE_RGB[SPIKE_BINS.length];
+    };
     deck.setProps({
       layers: [
         basemap,
@@ -167,12 +177,11 @@ export default function ReliefMap() {
           getPosition: (station) => [station.lon, station.lat],
           getElevation: (station) => {
             const value = valueAt(station[day], quantized);
-            return value <= 0 ? 0 : MAX_SPIKE_M * (Math.sqrt(value) / sqrtMax);
+            return value <= 0
+              ? 0
+              : Math.max(MIN_SPIKE_M, MAX_SPIKE_M * (value / meta.maxPerHour));
           },
-          getFillColor: (station) => {
-            const share = Math.sqrt(valueAt(station[day], quantized)) / sqrtMax;
-            return share > 0.62 ? SPIKE_HOT_RGB : SPIKE_RGB;
-          },
+          getFillColor: (station) => colorOf(valueAt(station[day], quantized)),
           updateTriggers: { getElevation: [quantized, day], getFillColor: [quantized, day] },
           material: {
             ambient: 0.55,

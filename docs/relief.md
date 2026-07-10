@@ -40,12 +40,13 @@ few stops publish duplicated percentage rows upstream (profiles summing to
 400%+), so profiles are normalized by their own sum when they overshoot.
 
 On the client the landscape is a deck.gl spike map over the shared dark
-basemap: one column per station at its true coordinates, its height the
-square root of validations per hour (so the huge hubs do not crush the
-rest), the hour interpolated continuously as the clock advances, and the
-hottest spikes brightened. An earlier version drew an abstract ridgeline
-(latitude rows, joyplot style); it looked striking but carried no
-geography, so it was replaced by the map.
+basemap: one column per station at its true coordinates, its height linear
+in validations per hour (the honest length encoding: the summits tower,
+the sea stays calm), with the amber ramp from dark bronze to white-hot
+carrying the mid-range in color, and the hour interpolated continuously as
+the clock advances. An earlier version drew an abstract ridgeline (latitude
+rows, joyplot style); it looked striking but carried no geography, so it
+was replaced by the map.
 
 ## Data artifacts
 
