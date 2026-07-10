@@ -1,6 +1,6 @@
 # `/crue` - the Seine rising
 
-Live: [paris-viz.vercel.app/crue](https://paris-viz.vercel.app/crue)
+Live: [parisviz.com/crue](https://parisviz.com/crue)
 
 ![The 1910 flood level over the 3D city](../apps/site/public/crue-og.png)
 

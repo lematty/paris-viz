@@ -1,6 +1,6 @@
 # `/vertige` - how tall is Paris?
 
-Live: [paris-viz.vercel.app/vertige](https://paris-viz.vercel.app/vertige)
+Live: [parisviz.com/vertige](https://parisviz.com/vertige)
 
 ![Every building inside the périphérique extruded to its measured height](../apps/site/public/vertige-og.png)
 

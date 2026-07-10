@@ -1,6 +1,6 @@
 # `/relief` - the ridership landscape
 
-Live: [paris-viz.vercel.app/relief](https://paris-viz.vercel.app/relief)
+Live: [parisviz.com/relief](https://parisviz.com/relief)
 
 ![The ridership landscape at 8:30 on a weekday](../apps/site/public/relief-og.png)
 

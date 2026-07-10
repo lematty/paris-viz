@@ -1,7 +1,7 @@
 # Paris Viz
 
 Interactive visualizations of Paris / Île-de-France open data, live at
-**[paris-viz.vercel.app](https://paris-viz.vercel.app)**. pnpm monorepo:
+**[parisviz.com](https://parisviz.com)**. pnpm monorepo:
 
 ```
 apps/site/        Next.js site - each visualization is a route
@@ -24,7 +24,7 @@ params, the data pipeline, and the artifact format.
 
 Every scheduled trip of a full service day moving across the map: ~20,000
 métro, RER and tram runs as glowing comets on real track geometry, plus
-90,000 buses one checkbox away. [Read more →](docs/flux.md) · [open live](https://paris-viz.vercel.app/flux)
+90,000 buses one checkbox away. [Read more →](docs/flux.md) · [open live](https://parisviz.com/flux)
 
 ### [`/air` - a year of Paris air, hour by hour](docs/air.md)
 
@@ -32,7 +32,7 @@ métro, RER and tram runs as glowing comets on real track geometry, plus
 
 Seven years of hourly Airparif measurements breathing over the map as an
 interpolated veil: winter smog, clean windy days, and the March 2020
-lockdown clearing the sky in a week. [Read more →](docs/air.md) · [open live](https://paris-viz.vercel.app/air)
+lockdown clearing the sky in a week. [Read more →](docs/air.md) · [open live](https://parisviz.com/air)
 
 ### [`/horizon` - how far can you get?](docs/horizon.md)
 
@@ -40,7 +40,7 @@ lockdown clearing the sky in a week. [Read more →](docs/air.md) · [open live]
 
 Animated isochrones over the rail network: pick any of ~940 stations and
 watch 75 minutes of travel ripple outward in 15-minute bands, transfers and
-walking included. [Read more →](docs/horizon.md) · [open live](https://paris-viz.vercel.app/horizon)
+walking included. [Read more →](docs/horizon.md) · [open live](https://parisviz.com/horizon)
 
 ### [`/vertige` - how tall is Paris?](docs/vertige.md)
 
@@ -48,7 +48,7 @@ walking included. [Read more →](docs/horizon.md) · [open live](https://paris-
 
 Every building inside the périphérique in 3D at its IGN-measured height:
 a rising ceiling assembles the city floor by floor until only the towers
-are left climbing. [Read more →](docs/vertige.md) · [open live](https://paris-viz.vercel.app/vertige)
+are left climbing. [Read more →](docs/vertige.md) · [open live](https://parisviz.com/vertige)
 
 ### [`/strates` - how old is Paris?](docs/strates.md)
 
@@ -57,7 +57,7 @@ are left climbing. [Read more →](docs/vertige.md) · [open live](https://paris
 Every building inside the périphérique colored by construction period and
 assembled year by year: the medieval core, the 1851-1914 explosion that
 built half of Paris, then the concrete century. Dating by the Apur.
-[Read more →](docs/strates.md) · [open live](https://paris-viz.vercel.app/strates)
+[Read more →](docs/strates.md) · [open live](https://parisviz.com/strates)
 
 ### [`/crue` - the Seine rising](docs/crue.md)
 
@@ -66,7 +66,7 @@ built half of Paris, then the concrete century. Dating by the Apur.
 Raise the Seine through the 3D city over the real IGN terrain: the quays go
 under at 6 m on the Austerlitz gauge, and at 8.62 m the flood of 1910
 returns. A connectivity-aware flood fill, checked against history.
-[Read more →](docs/crue.md) · [open live](https://paris-viz.vercel.app/crue)
+[Read more →](docs/crue.md) · [open live](https://parisviz.com/crue)
 
 ### [`/canicule` - the heat island](docs/canicule.md)
 
@@ -75,7 +75,7 @@ returns. A connectivity-aware flood fill, checked against history.
 39,000 blocks of Paris and the petite couronne scored for heat by the
 Institut Paris Region: the dense mineral city glows long after dark while
 parks and rivers stay cool, and the vulnerability view shows who cannot
-escape it. [Read more →](docs/canicule.md) · [open live](https://paris-viz.vercel.app/canicule)
+escape it. [Read more →](docs/canicule.md) · [open live](https://parisviz.com/canicule)
 
 ### [`/relief` - the ridership landscape](docs/relief.md)
 
@@ -84,7 +84,7 @@ escape it. [Read more →](docs/canicule.md) · [open live](https://paris-viz.ve
 Every rail station of Île-de-France rising from its real place on the map
 as a golden spike, its height the ticket validations per hour, breathing
 through the day: a calm sea at 3am, ranges along the RER at 8:30, La
-Défense towering over the west at 6pm. [Read more →](docs/relief.md) · [open live](https://paris-viz.vercel.app/relief)
+Défense towering over the west at 6pm. [Read more →](docs/relief.md) · [open live](https://parisviz.com/relief)
 
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
@@ -92,7 +92,7 @@ Défense towering over the west at 6pm. [Read more →](docs/relief.md) · [open
 
 Heatmap of night-bus service after midnight: which neighbourhoods the
 Noctilien network covers, weeknights vs weekends, with address search and
-walking times. [Read more →](docs/noctilien.md) · [open live](https://paris-viz.vercel.app/noctilien)
+walking times. [Read more →](docs/noctilien.md) · [open live](https://parisviz.com/noctilien)
 
 ## Develop
 

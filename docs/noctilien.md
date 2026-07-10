@@ -1,6 +1,6 @@
 # `/noctilien` - night-bus frequency
 
-Live: [paris-viz.vercel.app/noctilien](https://paris-viz.vercel.app/noctilien)
+Live: [parisviz.com/noctilien](https://parisviz.com/noctilien)
 
 ![Noctilien frequency heatmap](../apps/site/public/noctilien-og.png)
 

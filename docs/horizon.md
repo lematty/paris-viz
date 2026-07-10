@@ -1,6 +1,6 @@
 # `/horizon` - how far can you get?
 
-Live: [paris-viz.vercel.app/horizon](https://paris-viz.vercel.app/horizon)
+Live: [parisviz.com/horizon](https://parisviz.com/horizon)
 
 ![75 minutes of travel from Châtelet - Les Halles, in 15-minute bands](../apps/site/public/horizon-og.png)
 

@@ -1,6 +1,6 @@
 # `/air` - a year of Paris air, hour by hour
 
-Live: [paris-viz.vercel.app/air](https://paris-viz.vercel.app/air)
+Live: [parisviz.com/air](https://parisviz.com/air)
 
 ![NO2 veil over Île-de-France on a December evening](images/air-veil.png)
 

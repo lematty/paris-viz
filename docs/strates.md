@@ -1,6 +1,6 @@
 # `/strates` - how old is Paris?
 
-Live: [paris-viz.vercel.app/strates](https://paris-viz.vercel.app/strates)
+Live: [parisviz.com/strates](https://parisviz.com/strates)
 
 ![Every building inside the périphérique colored by construction period](../apps/site/public/strates-og.png)
 

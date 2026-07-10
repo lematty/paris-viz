@@ -1,6 +1,6 @@
 # `/canicule` - the heat island
 
-Live: [paris-viz.vercel.app/canicule](https://paris-viz.vercel.app/canicule)
+Live: [parisviz.com/canicule](https://parisviz.com/canicule)
 
 ![Night heat hazard over Paris and the petite couronne](../apps/site/public/canicule-og.png)
 

@@ -1,6 +1,6 @@
 # `/flux` - the transit network in motion
 
-Live: [paris-viz.vercel.app/flux](https://paris-viz.vercel.app/flux)
+Live: [parisviz.com/flux](https://parisviz.com/flux)
 
 ![Every métro and tram of Île-de-France moving at 08:45](../apps/site/public/og.png)
 
