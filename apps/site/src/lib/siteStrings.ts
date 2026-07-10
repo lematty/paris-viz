@@ -17,6 +17,8 @@ export const SITE: Record<
     horizonDesc: string;
     vertigeTitle: string;
     vertigeDesc: string;
+    stratesTitle: string;
+    stratesDesc: string;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
@@ -40,9 +42,12 @@ export const SITE: Record<
     vertigeTitle: "Vertige - how tall is Paris?",
     vertigeDesc:
       "Every building inside the périphérique in 3D, appearing floor by floor: the whole city tops out at the Haussmann roofline, then a handful of towers keep climbing alone.",
+    stratesTitle: "Strates - how old is Paris?",
+    stratesDesc:
+      "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -64,9 +69,12 @@ export const SITE: Record<
     vertigeTitle: "Vertige - quelle hauteur fait Paris ?",
     vertigeDesc:
       "Tous les bâtiments intra-muros en 3D, apparaissant étage par étage : toute la ville s'arrête à la corniche haussmannienne, puis quelques tours continuent de grimper seules.",
+    stratesTitle: "Strates - quel âge a Paris ?",
+    stratesDesc:
+      "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -258,6 +266,84 @@ export const VERTIGE: Record<Lang, VertigeStrings> = {
       Agricole: "agricole",
     },
     footer: "Bâtiments : IGN BD TOPO · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface StratesStrings {
+  title: string;
+  loading: string;
+  subtitle: (count: string) => string;
+  noteBefore: string;
+  noteAfter: string;
+  modeAria: string;
+  modeBefore: string;
+  modeAfter: string;
+  dirAria: string;
+  dirForward: string;
+  dirBack: string;
+  legend: string;
+  legendNew: string;
+  undatedNote: (pct: number) => string;
+  storyBefore: string;
+  storyAfter: string;
+  built: (year: number) => string;
+  periodBefore: (year: number) => string;
+  periodSince: (year: number) => string;
+  period: (from: number, to: number) => string;
+  undated: string;
+  footer: string;
+}
+
+export const STRATES: Record<Lang, StratesStrings> = {
+  en: {
+    title: "Strates - how old is Paris?",
+    loading: "loading buildings…",
+    subtitle: (count) => `${count} building footprints intra-muros · dated by Apur`,
+    noteBefore: "everything standing at this date",
+    noteAfter: "only what came after this date",
+    modeAria: "Time filter",
+    modeBefore: "already built",
+    modeAfter: "built after",
+    dirAria: "Time direction",
+    dirForward: "time flowing forward, click to rewind",
+    dirBack: "time rewinding, click to flow forward",
+    legend:
+      "Every footprint inside the périphérique, extruded to its measured height and colored by construction period: dark wine for the oldest, pale rose for the newest, slate gray where the Apur could not date the building. Press play and the city assembles year by year: the medieval core, the faubourgs, the 1851-1914 explosion that built half of Paris, then the concrete century. Drag with the right mouse button or two fingers to tilt and turn.",
+    legendNew: "2000+",
+    undatedNote: (pct) => `undated: ${pct}% of footprints`,
+    storyBefore: "✦ Paris in 1914, half the city already there",
+    storyAfter: "✦ Everything built after 1914",
+    built: (year) => `built in ${year}`,
+    periodBefore: (year) => `before ${year}`,
+    periodSince: (year) => `since ${year}`,
+    period: (from, to) => `${from}-${to}`,
+    undated: "construction date unknown",
+    footer: "Footprints and dating: Apur (ODbL) · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Strates - quel âge a Paris ?",
+    loading: "chargement des bâtiments…",
+    subtitle: (count) => `${count} emprises bâties intra-muros · datation Apur`,
+    noteBefore: "tout ce qui existe à cette date",
+    noteAfter: "seulement ce qui vient après",
+    modeAria: "Filtre temporel",
+    modeBefore: "déjà construit",
+    modeAfter: "construit après",
+    dirAria: "Sens du temps",
+    dirForward: "le temps avance, cliquez pour remonter",
+    dirBack: "le temps remonte, cliquez pour avancer",
+    legend:
+      "Chaque emprise bâtie intra-muros, extrudée à sa hauteur mesurée et colorée par période de construction : lie-de-vin pour les plus anciennes, rose pâle pour les plus récentes, gris ardoise quand l'Apur n'a pas pu dater le bâtiment. Lancez la lecture et la ville s'assemble année après année : le cœur médiéval, les faubourgs, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton. Bouton droit ou deux doigts pour incliner et pivoter.",
+    legendNew: "2000+",
+    undatedNote: (pct) => `non datées : ${pct} % des emprises`,
+    storyBefore: "✦ Paris en 1914, la moitié de la ville déjà là",
+    storyAfter: "✦ Tout ce qui s'est construit après 1914",
+    built: (year) => `construit en ${year}`,
+    periodBefore: (year) => `avant ${year}`,
+    periodSince: (year) => `depuis ${year}`,
+    period: (from, to) => `${from}-${to}`,
+    undated: "date de construction inconnue",
+    footer: "Emprises et datation : Apur (ODbL) · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

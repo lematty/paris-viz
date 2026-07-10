@@ -50,6 +50,15 @@ Every building inside the périphérique in 3D at its IGN-measured height:
 a rising ceiling assembles the city floor by floor until only the towers
 are left climbing. [Read more →](docs/vertige.md) · [open live](https://paris-viz.vercel.app/vertige)
 
+### [`/strates` - how old is Paris?](docs/strates.md)
+
+![Every building inside the périphérique colored by construction period](apps/site/public/strates-og.png)
+
+Every building inside the périphérique colored by construction period and
+assembled year by year: the medieval core, the 1851-1914 explosion that
+built half of Paris, then the concrete century. Dating by the Apur.
+[Read more →](docs/strates.md) · [open live](https://paris-viz.vercel.app/strates)
+
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)

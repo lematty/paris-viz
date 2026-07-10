@@ -11,7 +11,8 @@
     "build:horizon": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-horizon-data.ts",
     "test": "playwright test",
     "build:air": "tsx scripts/build-air-data.ts",
-    "build:vertige": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-vertige-data.ts"
+    "build:vertige": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-vertige-data.ts",
+    "build:strates": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-strates-data.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",

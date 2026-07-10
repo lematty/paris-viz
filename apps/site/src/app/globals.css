@@ -936,3 +936,10 @@ a {
 .iso-swatch:last-child {
   border-radius: 0 4px 4px 0;
 }
+
+.undated-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  border-radius: 4px;
+}
