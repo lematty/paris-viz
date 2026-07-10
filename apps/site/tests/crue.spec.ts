@@ -55,23 +55,6 @@ test("story button pins the 1910 record, then offers 2016", async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
-test("?dir=down starts the water receding and the toggle flips it", async ({
-  page,
-}) => {
-  const errors = await setup(page);
-  await page.goto("/crue?paused=1&g=6.1&dir=down");
-  await expect(page.locator(".sub")).toContainText("buildings", {
-    timeout: 30_000,
-  });
-  const toggle = page.locator('button[aria-label="Water direction"]');
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await expect(toggle).toHaveText("▼");
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  await expect(toggle).toHaveText("▲");
-  expect(errors).toEqual([]);
-});
-
 test("pressing play raises the water", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/crue?paused=1&g=3");

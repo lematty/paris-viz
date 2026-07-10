@@ -494,9 +494,6 @@ export interface CrueStrings {
   subtitle: (count: string) => string;
   noteDefault: string;
   noteMark: (label: string) => string;
-  dirAria: string;
-  dirUp: string;
-  dirDown: string;
   legendDry: string;
   legendFlooded: string;
   legend: string;
@@ -514,9 +511,6 @@ export const CRUE: Record<Lang, CrueStrings> = {
       `${count} buildings · IGN terrain · Austerlitz gauge heights`,
     noteDefault: "height on the Austerlitz gauge",
     noteMark: (label) => `the ${label} flood`,
-    dirAria: "Water direction",
-    dirUp: "water rising, click to recede",
-    dirDown: "water receding, click to rise",
     legendDry: "dry",
     legendFlooded: "flooded",
     legend:
@@ -534,9 +528,6 @@ export const CRUE: Record<Lang, CrueStrings> = {
       `${count} bâtiments · terrain IGN · hauteurs à l'échelle d'Austerlitz`,
     noteDefault: "hauteur à l'échelle d'Austerlitz",
     noteMark: (label) => `la crue de ${label}`,
-    dirAria: "Sens de l'eau",
-    dirUp: "l'eau monte, cliquez pour la décrue",
-    dirDown: "décrue, cliquez pour faire monter",
     legendDry: "au sec",
     legendFlooded: "inondé",
     legend:

@@ -12,8 +12,8 @@ their street floods.
 
 ## Using it
 
-- Play raises the water (a direction toggle drains it back); the slider is
-  the Austerlitz gauge, from 1 m to 9 m.
+- Play raises the water; the slider is the Austerlitz gauge, from 1 m to
+  9 m, and dragging it back drains the city.
 - The clock names the historical floods as the water passes them: January
   1910 (8.62 m), January 1955 (7.12 m), December 1982 (6.15 m), June 2016
   (6.10 m), January 2018 (5.85 m). The story button jumps to 1910, then
@@ -21,7 +21,7 @@ their street floods.
 - When the Hub'Eau API answers, a second button shows the Seine's level
   right now, fetched in your browser, and jumps the water there.
 - Hover a building for its height and the gauge at which its street floods.
-- URL params: `?g=6.1&dir=down&paused=1` (`g` in gauge meters).
+- URL params: `?g=6.1&paused=1` (`g` in gauge meters).
 
 ## How it is built
 

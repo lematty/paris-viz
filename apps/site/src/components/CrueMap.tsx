@@ -68,7 +68,6 @@ function readParams() {
       ? Math.max(MIN_GAUGE, Math.min(MAX_GAUGE, gauge))
       : MIN_GAUGE,
     paused: searchParams.get("paused") === "1",
-    down: searchParams.get("dir") === "down",
   };
 }
 
@@ -389,7 +388,7 @@ export default function CrueMap() {
   const clock = useAnimationClock({
     initialTime: params.g,
     autoplay: !params.paused,
-    initialSpeed: params.down ? -0.2 : 0.2,
+    initialSpeed: 0.2,
     normalize: (t) => {
       const span = MAX_GAUGE + WRAP_HOLD - MIN_GAUGE;
       return MIN_GAUGE + ((((t - MIN_GAUGE) % span) + span) % span);
@@ -397,7 +396,6 @@ export default function CrueMap() {
     onFrame,
   });
   const { timeRef } = clock;
-  const goingDown = clock.speed < 0;
 
   useEffect(() => {
     basemapRef.current = createBasemapLayer();
@@ -521,9 +519,9 @@ export default function CrueMap() {
         }
         playing={clock.playing}
         onTogglePlay={() => clock.setPlaying((playing) => !playing)}
-        speed={Math.abs(clock.speed)}
+        speed={clock.speed}
         speeds={SPEEDS}
-        onSpeed={(value) => clock.setSpeed(goingDown ? -value : value)}
+        onSpeed={(value) => clock.setSpeed(value)}
         labels={{
           play: commonStrings.play,
           pause: commonStrings.pause,
@@ -531,16 +529,6 @@ export default function CrueMap() {
           time: commonStrings.time,
           sheetToggle: commonStrings.sheetToggle,
         }}
-        controlsExtra={
-          <button
-            aria-label={strings.dirAria}
-            aria-pressed={goingDown}
-            title={goingDown ? strings.dirDown : strings.dirUp}
-            onClick={() => clock.setSpeed(-clock.speed)}
-          >
-            {goingDown ? "▼" : "▲"}
-          </button>
-        }
         slider={{
           ref: sliderRef,
           min: MIN_GAUGE,
