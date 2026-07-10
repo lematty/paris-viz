@@ -13,7 +13,8 @@
     "build:air": "tsx scripts/build-air-data.ts",
     "build:vertige": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-vertige-data.ts",
     "build:strates": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-strates-data.ts",
-    "build:canicule": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-canicule-data.ts"
+    "build:canicule": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-canicule-data.ts",
+    "build:relief": "tsx scripts/build-relief-data.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",

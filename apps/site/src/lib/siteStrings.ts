@@ -21,6 +21,8 @@ export const SITE: Record<
     stratesDesc: string;
     caniculeTitle: string;
     caniculeDesc: string;
+    reliefTitle: string;
+    reliefDesc: string;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
@@ -50,9 +52,12 @@ export const SITE: Record<
     caniculeTitle: "Canicule - the heat island",
     caniculeDesc:
       "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
+    reliefTitle: "Relief - the ridership landscape",
+    reliefDesc:
+      "Every station as a mountain rising with its validations per hour: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering alone at 6pm.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -80,9 +85,12 @@ export const SITE: Record<
     caniculeTitle: "Canicule - l'îlot de chaleur",
     caniculeDesc:
       "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
+    reliefTitle: "Relief - le paysage de l'affluence",
+    reliefDesc:
+      "Chaque gare est une montagne qui monte avec ses validations par heure : mer calme à 3h, chaînes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -472,24 +480,30 @@ export const CANICULE: Record<Lang, CaniculeStrings> = {
   },
 };
 
-export interface PulseStrings {
+export interface ReliefStrings {
   title: string;
   loading: string;
   subtitle: (count: string, start: string, end: string) => string;
+  note: (day: string, period: string) => string;
+  days: { w: string; s: string; d: string };
   perHour: (count: string) => string;
   legend: string;
+  story: string;
   footer: string;
 }
 
-export const PULSE: Record<Lang, PulseStrings> = {
+export const RELIEF: Record<Lang, ReliefStrings> = {
   en: {
     title: "Relief - the ridership landscape",
     loading: "loading ridership data…",
     subtitle: (count, start, end) =>
       `${count} rail stations · ticket validations ${start} → ${end}`,
+    note: (day, period) => `${day} · ${period}`,
+    days: { w: "a typical weekday", s: "a typical Saturday", d: "a typical Sunday" },
     perHour: (count) => `≈ ${count} validations/h`,
     legend:
-      "Each line is a west-east slice of the region, north at the back. Every peak is a station rising with its validations per hour: a calm sea at 3am, mountain ranges along the RER lines at 8:30, La Défense towering alone at 6pm.",
+      "Each line is a west-east slice of the region, north at the back. Every peak is a station rising with its validations per hour: a calm sea at 3am, mountain ranges along the RER lines at 8:30, La Défense towering alone at 6pm. Move along a line to name the summits.",
+    story: "✦ 6pm at La Défense, the evening tide",
     footer: "Validations: Île-de-France Mobilités open data",
   },
   fr: {
@@ -497,9 +511,12 @@ export const PULSE: Record<Lang, PulseStrings> = {
     loading: "chargement des validations…",
     subtitle: (count, start, end) =>
       `${count} gares et stations · validations ${start} → ${end}`,
+    note: (day, period) => `${day} · ${period}`,
+    days: { w: "un jour ouvré type", s: "un samedi type", d: "un dimanche type" },
     perHour: (count) => `≈ ${count} validations/h`,
     legend:
-      "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
+      "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h. Longez une ligne pour nommer les sommets.",
+    story: "✦ 18h à La Défense, la marée du soir",
     footer: "Validations : données ouvertes Île-de-France Mobilités",
   },
 };

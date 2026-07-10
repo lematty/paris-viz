@@ -68,6 +68,15 @@ Institut Paris Region: the dense mineral city glows long after dark while
 parks and rivers stay cool, and the vulnerability view shows who cannot
 escape it. [Read more →](docs/canicule.md) · [open live](https://paris-viz.vercel.app/canicule)
 
+### [`/relief` - the ridership landscape](docs/relief.md)
+
+![The ridership landscape at 8:30 on a weekday](apps/site/public/relief-og.png)
+
+Every rail station of Île-de-France as a mountain rising with its ticket
+validations per hour, in a ridgeline landscape that breathes through the
+day: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering
+alone at 6pm. [Read more →](docs/relief.md) · [open live](https://paris-viz.vercel.app/relief)
+
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)

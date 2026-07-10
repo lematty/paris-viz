@@ -9,6 +9,7 @@ const PAGES = [
   { key: "vertige", href: "/vertige", label: "Vertige" },
   { key: "strates", href: "/strates", label: "Strates" },
   { key: "canicule", href: "/canicule", label: "Canicule" },
+  { key: "relief", href: "/relief", label: "Relief" },
   { key: "noctilien", href: "/noctilien", label: "Noctilien" },
 ] as const;
 

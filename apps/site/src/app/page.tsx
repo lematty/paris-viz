@@ -64,6 +64,12 @@ export default function Home() {
           <h2>{strings.caniculeTitle}</h2>
           <p>{strings.caniculeDesc}</p>
         </Link>
+        <Link className="card" href="/relief">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="card-thumb" src="/thumbs/relief.png" alt="" />
+          <h2>{strings.reliefTitle}</h2>
+          <p>{strings.reliefDesc}</p>
+        </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />

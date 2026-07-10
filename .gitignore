@@ -16,6 +16,7 @@ apps/site/public/horizon/
 apps/site/public/vertige/
 apps/site/public/strates/
 apps/site/public/canicule/
+apps/site/public/relief/
 
 # misc
 *.tsbuildinfo
