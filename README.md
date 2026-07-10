@@ -59,6 +59,15 @@ assembled year by year: the medieval core, the 1851-1914 explosion that
 built half of Paris, then the concrete century. Dating by the Apur.
 [Read more →](docs/strates.md) · [open live](https://paris-viz.vercel.app/strates)
 
+### [`/canicule` - the heat island](docs/canicule.md)
+
+![Night heat hazard over Paris and the petite couronne](apps/site/public/canicule-og.png)
+
+39,000 blocks of Paris and the petite couronne scored for heat by the
+Institut Paris Region: the dense mineral city glows long after dark while
+parks and rivers stay cool, and the vulnerability view shows who cannot
+escape it. [Read more →](docs/canicule.md) · [open live](https://paris-viz.vercel.app/canicule)
+
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 
 ![Noctilien frequency heatmap](apps/site/public/noctilien-og.png)

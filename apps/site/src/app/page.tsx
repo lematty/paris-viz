@@ -58,6 +58,12 @@ export default function Home() {
           <h2>{strings.stratesTitle}</h2>
           <p>{strings.stratesDesc}</p>
         </Link>
+        <Link className="card" href="/canicule">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="card-thumb" src="/thumbs/canicule.png" alt="" />
+          <h2>{strings.caniculeTitle}</h2>
+          <p>{strings.caniculeDesc}</p>
+        </Link>
         <Link className="card" href="/noctilien">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="card-thumb" src="/thumbs/noctilien.png" alt="" />
@@ -83,6 +89,8 @@ export default function Home() {
           <a href="https://geoservices.ign.fr/bdtopo">IGN BD TOPO</a>
           {" · "}
           <a href="https://opendata.apur.org">opendata.apur.org</a>
+          {" · "}
+          <a href="https://data.iledefrance.fr">Institut Paris Region</a>
           {" · "}
           <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
           {" · "}

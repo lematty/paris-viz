@@ -38,4 +38,4 @@ counts, clustered stops (position, lines, per-night stats) and route
 polylines.
 ---
 
-[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md)
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Canicule](canicule.md)

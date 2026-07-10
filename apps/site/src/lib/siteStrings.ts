@@ -19,6 +19,8 @@ export const SITE: Record<
     vertigeDesc: string;
     stratesTitle: string;
     stratesDesc: string;
+    caniculeTitle: string;
+    caniculeDesc: string;
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
@@ -45,9 +47,12 @@ export const SITE: Record<
     stratesTitle: "Strates - how old is Paris?",
     stratesDesc:
       "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
+    caniculeTitle: "Canicule - the heat island",
+    caniculeDesc:
+      "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -72,9 +77,12 @@ export const SITE: Record<
     stratesTitle: "Strates - quel âge a Paris ?",
     stratesDesc:
       "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
+    caniculeTitle: "Canicule - l'îlot de chaleur",
+    caniculeDesc:
+      "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -344,6 +352,129 @@ export const STRATES: Record<Lang, StratesStrings> = {
     period: (from, to) => `${from}-${to}`,
     undated: "date de construction inconnue",
     footer: "Emprises et datation : Apur (ODbL) · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface CaniculeStrings {
+  title: string;
+  loading: string;
+  subtitle: (count: string) => string;
+  axisAria: string;
+  axisAlea: string;
+  axisVuln: string;
+  momentAria: string;
+  day: string;
+  night: string;
+  legendCool: string;
+  legendHot: string;
+  legendVulnLow: string;
+  legendVulnHigh: string;
+  legend: string;
+  storyVuln: string;
+  storyAlea: string;
+  alea: (note: number) => string;
+  vuln: (note: number) => string;
+  vulnUnknown: string;
+  built: (pct: number) => string;
+  permeable: (pct: number) => string;
+  lcz: Record<string, string>;
+  footer: string;
+}
+
+export const CANICULE: Record<Lang, CaniculeStrings> = {
+  en: {
+    title: "Canicule - the heat island",
+    loading: "loading blocks…",
+    subtitle: (count) =>
+      `${count} blocks, Paris + petite couronne · Institut Paris Region`,
+    axisAria: "Map variable",
+    axisAlea: "heat hazard",
+    axisVuln: "vulnerability",
+    momentAria: "Day or night",
+    day: "day",
+    night: "night",
+    legendCool: "cool",
+    legendHot: "scorching",
+    legendVulnLow: "low",
+    legendVulnHigh: "high",
+    legend:
+      "Each block is scored by the Institut Paris Region for its heat-island behavior: hazard is how much the block itself overheats (its shape, minerality and lack of sky view trap the day's heat), vulnerability is how exposed its residents are. Flip between day and night: the dense city keeps its heat long after dark. Hover a block for its climate class and scores; the gaps between blocks are the streets.",
+    storyVuln: "✦ Who the night heat endangers",
+    storyAlea: "✦ Back to the heat itself",
+    alea: (note) => `heat hazard ${note > 0 ? "+" : ""}${note}`,
+    vuln: (note) => `vulnerability ${note}/9`,
+    vulnUnknown: "vulnerability not scored",
+    built: (pct) => `${pct}% built`,
+    permeable: (pct) => `${pct}% permeable`,
+    lcz: {
+      "1": "LCZ 1 · compact high-rise",
+      "2": "LCZ 2 · compact mid-rise",
+      "3": "LCZ 3 · compact low-rise",
+      "4": "LCZ 4 · open high-rise",
+      "5": "LCZ 5 · open mid-rise",
+      "6": "LCZ 6 · open low-rise",
+      "7": "LCZ 7 · lightweight low-rise",
+      "8": "LCZ 8 · large low-rise",
+      "9": "LCZ 9 · sparsely built",
+      "10": "LCZ 10 · heavy industry",
+      A: "dense trees",
+      B: "scattered trees",
+      C: "bush and scrub",
+      D: "low plants",
+      E: "bare rock or paved",
+      "E.b": "paved, scattered buildings",
+      F: "bare soil",
+      G: "water",
+    },
+    footer:
+      "Heat blocks: Institut Paris Region (ICU/LCZ) · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Canicule - l'îlot de chaleur",
+    loading: "chargement des îlots…",
+    subtitle: (count) =>
+      `${count} îlots, Paris + petite couronne · Institut Paris Region`,
+    axisAria: "Variable affichée",
+    axisAlea: "aléa chaleur",
+    axisVuln: "vulnérabilité",
+    momentAria: "Jour ou nuit",
+    day: "jour",
+    night: "nuit",
+    legendCool: "frais",
+    legendHot: "surchauffe",
+    legendVulnLow: "faible",
+    legendVulnHigh: "forte",
+    legend:
+      "Chaque îlot est noté par l'Institut Paris Region pour son comportement d'îlot de chaleur : l'aléa mesure combien l'îlot lui-même surchauffe (sa forme, sa minéralité et son ciel masqué piègent la chaleur du jour), la vulnérabilité mesure l'exposition de ses habitants. Basculez entre jour et nuit : la ville dense garde sa chaleur longtemps après la tombée du soir. Survolez un îlot pour sa classe climatique et ses notes ; les vides entre les îlots sont les rues.",
+    storyVuln: "✦ Qui la chaleur nocturne menace",
+    storyAlea: "✦ Retour à la chaleur elle-même",
+    alea: (note) => `aléa chaleur ${note > 0 ? "+" : ""}${note}`,
+    vuln: (note) => `vulnérabilité ${note}/9`,
+    vulnUnknown: "vulnérabilité non notée",
+    built: (pct) => `${pct} % bâti`,
+    permeable: (pct) => `${pct} % perméable`,
+    lcz: {
+      "1": "LCZ 1 · bâti compact haut",
+      "2": "LCZ 2 · bâti compact moyen",
+      "3": "LCZ 3 · bâti compact bas",
+      "4": "LCZ 4 · bâti ouvert haut",
+      "5": "LCZ 5 · bâti ouvert moyen",
+      "6": "LCZ 6 · bâti ouvert bas",
+      "7": "LCZ 7 · bâti léger",
+      "8": "LCZ 8 · grandes halles basses",
+      "9": "LCZ 9 · bâti épars",
+      "10": "LCZ 10 · industrie lourde",
+      A: "arbres denses",
+      B: "arbres épars",
+      C: "broussailles",
+      D: "végétation basse",
+      E: "minéral nu",
+      "E.b": "minéral, bâti épars",
+      F: "sol nu",
+      G: "eau",
+    },
+    footer:
+      "Îlots de chaleur : Institut Paris Region (ICU/LCZ) · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 
