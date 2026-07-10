@@ -8,6 +8,7 @@ const PAGES = [
   { key: "horizon", href: "/horizon", label: "Horizon" },
   { key: "vertige", href: "/vertige", label: "Vertige" },
   { key: "strates", href: "/strates", label: "Strates" },
+  { key: "crue", href: "/crue", label: "Crue" },
   { key: "canicule", href: "/canicule", label: "Canicule" },
   { key: "relief", href: "/relief", label: "Relief" },
   { key: "noctilien", href: "/noctilien", label: "Noctilien" },

@@ -19,6 +19,8 @@ export const SITE: Record<
     vertigeDesc: string;
     stratesTitle: string;
     stratesDesc: string;
+    crueTitle: string;
+    crueDesc: string;
     caniculeTitle: string;
     caniculeDesc: string;
     reliefTitle: string;
@@ -49,6 +51,9 @@ export const SITE: Record<
     stratesTitle: "Strates - how old is Paris?",
     stratesDesc:
       "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
+    crueTitle: "Crue - the Seine rising",
+    crueDesc:
+      "Raise the river through the 3D city, centimeter by centimeter over the real terrain: the quays go under at 6 m, and at 8.62 m the flood of 1910 returns.",
     caniculeTitle: "Canicule - the heat island",
     caniculeDesc:
       "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
@@ -57,7 +62,7 @@ export const SITE: Record<
       "Every station as a mountain rising with its validations per hour: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering alone at 6pm.",
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights from the IGN topographic database (BD TOPO), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -82,6 +87,9 @@ export const SITE: Record<
     stratesTitle: "Strates - quel âge a Paris ?",
     stratesDesc:
       "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
+    crueTitle: "Crue - la Seine qui monte",
+    crueDesc:
+      "Faites monter le fleuve dans la ville en 3D, centimètre par centimètre sur le vrai terrain : les quais disparaissent à 6 m, et à 8,62 m la crue de 1910 revient.",
     caniculeTitle: "Canicule - l'îlot de chaleur",
     caniculeDesc:
       "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
@@ -90,7 +98,7 @@ export const SITE: Record<
       "Chaque gare est une montagne qui monte avec ses validations par heure : mer calme à 3h, chaînes le long des RER à 8h30, La Défense en sommet solitaire à 18h.",
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments de la BD TOPO de l'IGN, les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -477,6 +485,67 @@ export const CANICULE: Record<Lang, CaniculeStrings> = {
     },
     footer:
       "Îlots de chaleur : Institut Paris Region (ICU/LCZ) · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface CrueStrings {
+  title: string;
+  loading: string;
+  subtitle: (count: string) => string;
+  noteDefault: string;
+  noteMark: (label: string) => string;
+  dirAria: string;
+  dirUp: string;
+  dirDown: string;
+  legendDry: string;
+  legendFlooded: string;
+  legend: string;
+  story1910: string;
+  story2016: string;
+  live: (level: string) => string;
+  footer: string;
+}
+
+export const CRUE: Record<Lang, CrueStrings> = {
+  en: {
+    title: "Crue - the Seine rising",
+    loading: "loading the terrain…",
+    subtitle: (count) =>
+      `${count} buildings · IGN terrain · Austerlitz gauge heights`,
+    noteDefault: "height on the Austerlitz gauge",
+    noteMark: (label) => `the ${label} flood`,
+    dirAria: "Water direction",
+    dirUp: "water rising, click to recede",
+    dirDown: "water receding, click to rise",
+    legendDry: "dry",
+    legendFlooded: "flooded",
+    legend:
+      "The Seine rises through the city over the IGN terrain model: a flood fill from the river computes where each extra centimeter can actually reach, so basins behind higher ground stay dry until the water gets around. Buildings turn steel blue as their street floods. A visualization, not a forecast: the 10 m terrain smooths parapets and ignores protection works and the underground.",
+    story1910: "✦ January 1910, 8.62 m, the flood of the century",
+    story2016: "✦ June 2016, 6.10 m, the quays go under",
+    live: (level) => `✦ The Seine right now: ${level} m`,
+    footer:
+      "Terrain: IGN RGE ALTI · Levels: Vigicrues / Hub'Eau · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Crue - la Seine qui monte",
+    loading: "chargement du terrain…",
+    subtitle: (count) =>
+      `${count} bâtiments · terrain IGN · hauteurs à l'échelle d'Austerlitz`,
+    noteDefault: "hauteur à l'échelle d'Austerlitz",
+    noteMark: (label) => `la crue de ${label}`,
+    dirAria: "Sens de l'eau",
+    dirUp: "l'eau monte, cliquez pour la décrue",
+    dirDown: "décrue, cliquez pour faire monter",
+    legendDry: "au sec",
+    legendFlooded: "inondé",
+    legend:
+      "La Seine monte dans la ville sur le modèle de terrain IGN : un remplissage depuis le fleuve calcule où chaque centimètre supplémentaire peut réellement s'étendre, si bien que les cuvettes derrière un terrain plus haut restent sèches tant que l'eau ne les atteint pas. Les bâtiments passent au bleu acier quand leur rue est inondée. Une visualisation, pas une prévision : le terrain à 10 m lisse les parapets et ignore les protections et le sous-sol.",
+    story1910: "✦ Janvier 1910, 8,62 m, la crue du siècle",
+    story2016: "✦ Juin 2016, 6,10 m, les quais sous l'eau",
+    live: (level) => `✦ La Seine en ce moment : ${level} m`,
+    footer:
+      "Terrain : IGN RGE ALTI · Niveaux : Vigicrues / Hub'Eau · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

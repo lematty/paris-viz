@@ -59,6 +59,15 @@ assembled year by year: the medieval core, the 1851-1914 explosion that
 built half of Paris, then the concrete century. Dating by the Apur.
 [Read more →](docs/strates.md) · [open live](https://paris-viz.vercel.app/strates)
 
+### [`/crue` - the Seine rising](docs/crue.md)
+
+![The 1910 flood level over the 3D city](apps/site/public/crue-og.png)
+
+Raise the Seine through the 3D city over the real IGN terrain: the quays go
+under at 6 m on the Austerlitz gauge, and at 8.62 m the flood of 1910
+returns. A connectivity-aware flood fill, checked against history.
+[Read more →](docs/crue.md) · [open live](https://paris-viz.vercel.app/crue)
+
 ### [`/canicule` - the heat island](docs/canicule.md)
 
 ![Night heat hazard over Paris and the petite couronne](apps/site/public/canicule-og.png)
