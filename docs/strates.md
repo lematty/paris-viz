@@ -5,8 +5,9 @@ Live: [paris-viz.vercel.app/strates](https://paris-viz.vercel.app/strates)
 ![Every building inside the périphérique colored by construction period](../apps/site/public/strates-og.png)
 
 Every built footprint inside the périphérique (~128,000) extruded in 3D and
-colored by construction period, on a rose ramp from dark wine (before 1800)
-to pale rose (since 2000). Press play and the city assembles year by year:
+colored by construction period, on a spectral scale in age order: deep red
+(before 1800) through Haussmann gold (1851-1914) to violet (since 2000).
+Press play and the city assembles year by year:
 the medieval core along the Seine, the faubourgs, the 1851-1914 explosion
 that built almost half of today's Paris, then the concrete century filling
 the edges.
@@ -22,9 +23,10 @@ the edges.
 - The story button pins 1914: the Belle Époque city, half of today's Paris
   already standing. Frozen there, it flips to offer everything built after.
 - Hover a building for its construction year (or period, when only the
-  period is known) and its height. Undated buildings (~6%) stay slate gray
-  and are visible from the start. Right-drag or two fingers to tilt and
-  turn.
+  period is known) and its height. Undated buildings (~6%, slate gray) join
+  only when the sweep completes, and are excluded from "built after" mode:
+  their position in the animation is display, not a date. Right-drag or two
+  fingers to tilt and turn.
 - URL params: `?t=60&mode=after&dir=back&paused=1` (`t` in clock units,
   0-90; 24 = 1850, 60 = 1914).
 

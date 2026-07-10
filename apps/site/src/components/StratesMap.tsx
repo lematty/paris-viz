@@ -53,6 +53,8 @@ const UNDATED = 255;
 
 type TimeMode = "before" | "after";
 
+const END_YEAR = 2026;
+
 // piecewise clock: the sweep lingers where Paris actually built (64 years of
 // 1850-1914 hold 44% of the city), and compresses the thin centuries
 const TIMELINE: [number, number][] = [
@@ -62,7 +64,7 @@ const TIMELINE: [number, number][] = [
   [60, 1914],
   [70, 1940],
   [80, 1975],
-  [90, 2026],
+  [90, END_YEAR],
 ];
 const MAX_T = 90;
 const WRAP_T = 96; // a short hold on the full city before the loop restarts
@@ -88,18 +90,20 @@ const timeForYear = (year: number): number => {
 };
 const STORY_YEAR = 1914; // half the city already built, the Belle Époque peak
 
-// display bands merge the 11 Apur periods along their own edges; the ramp is
-// one rose family, monotone lightness, oldest darkest (validated on the dark
-// basemap: adjacent steps distinct, dark end still clears the surface)
+// display bands merge the 11 Apur periods along their own edges; a binned
+// spectral scale in age order, warm to cool, with the Haussmann wave in gold
+// (validated on the dark basemap: every pair separable under CVD, ΔE >= 15;
+// lightness deliberately leaves the flat-chart band so bright bands pop
+// under the 3D lighting)
 const BAND_ENDS = [1800, 1850, 1914, 1939, 1975, 1999];
 const BAND_HEX = [
-  "#6d3540",
-  "#8a4650",
-  "#a5555a",
-  "#c06563",
-  "#da766d",
-  "#f28878",
-  "#ffa48a",
+  "#c23a3a",
+  "#e07b39",
+  "#f0c04a",
+  "#7dbf6e",
+  "#3fbfb2",
+  "#4f8fe6",
+  "#cfa9fb",
 ];
 const BAND_RGB = BAND_HEX.map(hexToRgb);
 const UNDATED_HEX = "#40454e";
@@ -165,11 +169,17 @@ function parseBuildings(
   const displayYear = new Float32Array(buildingCount);
   for (let i = 0; i < buildingCount; i++) {
     let year = yearExact[i];
-    if (year === 0 && band[i] !== UNDATED && bands[band[i]]) {
-      const { from, to } = bands[band[i]];
-      // deterministic per-building hash so the spread is stable across loads
-      const h = (Math.imul(i ^ (i >>> 13), 2654435761) >>> 0) / 4294967296;
-      year = from + h * (to - from);
+    if (year === 0) {
+      if (band[i] !== UNDATED && bands[band[i]]) {
+        const { from, to } = bands[band[i]];
+        // deterministic per-building hash so the spread is stable across loads
+        const h = (Math.imul(i ^ (i >>> 13), 2654435761) >>> 0) / 4294967296;
+        year = from + h * (to - from);
+      } else {
+        // undated: join only in the sweep's final beat, when the complete
+        // city assembles, instead of posing as pre-1600 fabric
+        year = END_YEAR;
+      }
     }
     displayYear[i] = year;
   }
@@ -296,17 +306,34 @@ export default function StratesMap() {
           autoHighlight: true,
           highlightColor: [255, 255, 255, 110],
           // GPU filter: sweeping the year only updates a uniform, the 1.2
-          // M-vertex geometry is tessellated and uploaded exactly once
-          extensions: [new DataFilterExtension({ filterSize: 1 })],
-          getFilterValue: (building: Building) => displayYear[building.idx],
+          // M-vertex geometry is tessellated and uploaded exactly once. The
+          // second dimension flags undated buildings so "built after" can
+          // exclude them (their placement at the end is display, not a date)
+          extensions: [new DataFilterExtension({ filterSize: 2 })],
+          getFilterValue: (building: Building) => [
+            displayYear[building.idx],
+            band[building.idx] === UNDATED ? 1 : 0,
+          ],
           filterRange:
             mode === "before"
-              ? [-1, quantizedYear]
-              : [quantizedYear, 3000],
+              ? [
+                  [-1, quantizedYear],
+                  [-0.5, 1.5],
+                ]
+              : [
+                  [quantizedYear, 3000],
+                  [-0.5, 0.5],
+                ],
           filterSoftRange:
             mode === "before"
-              ? [-1, Math.max(-1, quantizedYear - 4)]
-              : [Math.min(3000, quantizedYear + 4), 3000],
+              ? [
+                  [-1, Math.max(-1, quantizedYear - 4)],
+                  [-0.5, 1.5],
+                ]
+              : [
+                  [Math.min(3000, quantizedYear + 4), 3000],
+                  [-0.5, 0.5],
+                ],
         }),
       ],
     });

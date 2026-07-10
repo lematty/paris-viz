@@ -308,7 +308,7 @@ export const STRATES: Record<Lang, StratesStrings> = {
     dirForward: "time flowing forward, click to rewind",
     dirBack: "time rewinding, click to flow forward",
     legend:
-      "Every footprint inside the périphérique, extruded to its measured height and colored by construction period: dark wine for the oldest, pale rose for the newest, slate gray where the Apur could not date the building. Press play and the city assembles year by year: the medieval core, the faubourgs, the 1851-1914 explosion that built half of Paris, then the concrete century. Drag with the right mouse button or two fingers to tilt and turn.",
+      "Every footprint inside the périphérique, extruded to its measured height and colored by construction period: deep red for the oldest, Haussmann's wave in gold, violet for the newest. Buildings the Apur could not date (slate gray) only join once the city is complete. Press play and the city assembles year by year: the medieval core, the faubourgs, the 1851-1914 explosion that built half of Paris, then the concrete century. Drag with the right mouse button or two fingers to tilt and turn.",
     legendNew: "2000+",
     undatedNote: (pct) => `undated: ${pct}% of footprints`,
     storyBefore: "✦ Paris in 1914, half the city already there",
@@ -333,7 +333,7 @@ export const STRATES: Record<Lang, StratesStrings> = {
     dirForward: "le temps avance, cliquez pour remonter",
     dirBack: "le temps remonte, cliquez pour avancer",
     legend:
-      "Chaque emprise bâtie intra-muros, extrudée à sa hauteur mesurée et colorée par période de construction : lie-de-vin pour les plus anciennes, rose pâle pour les plus récentes, gris ardoise quand l'Apur n'a pas pu dater le bâtiment. Lancez la lecture et la ville s'assemble année après année : le cœur médiéval, les faubourgs, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton. Bouton droit ou deux doigts pour incliner et pivoter.",
+      "Chaque emprise bâtie intra-muros, extrudée à sa hauteur mesurée et colorée par période de construction : rouge profond pour les plus anciennes, la vague haussmannienne en or, violet pour les plus récentes. Les bâtiments que l'Apur n'a pas pu dater (gris ardoise) n'apparaissent qu'une fois la ville complète. Lancez la lecture et la ville s'assemble année après année : le cœur médiéval, les faubourgs, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton. Bouton droit ou deux doigts pour incliner et pivoter.",
     legendNew: "2000+",
     undatedNote: (pct) => `non datées : ${pct} % des emprises`,
     storyBefore: "✦ Paris en 1914, la moitié de la ville déjà là",
