@@ -81,10 +81,10 @@ escape it. [Read more →](docs/canicule.md) · [open live](https://paris-viz.ve
 
 ![The ridership landscape at 8:30 on a weekday](apps/site/public/relief-og.png)
 
-Every rail station of Île-de-France as a mountain rising with its ticket
-validations per hour, in a ridgeline landscape that breathes through the
-day: a calm sea at 3am, ranges along the RER at 8:30, La Défense towering
-alone at 6pm. [Read more →](docs/relief.md) · [open live](https://paris-viz.vercel.app/relief)
+Every rail station of Île-de-France rising from its real place on the map
+as a golden spike, its height the ticket validations per hour, breathing
+through the day: a calm sea at 3am, ranges along the RER at 8:30, La
+Défense towering over the west at 6pm. [Read more →](docs/relief.md) · [open live](https://paris-viz.vercel.app/relief)
 
 ### [`/noctilien` - night-bus frequency](docs/noctilien.md)
 

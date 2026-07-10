@@ -571,9 +571,9 @@ export const RELIEF: Record<Lang, ReliefStrings> = {
     days: { w: "a typical weekday", s: "a typical Saturday", d: "a typical Sunday" },
     perHour: (count) => `≈ ${count} validations/h`,
     legend:
-      "Each line is a west-east slice of the region, north at the back. Every peak is a station rising with its validations per hour: a calm sea at 3am, mountain ranges along the RER lines at 8:30, La Défense towering alone at 6pm. Move along a line to name the summits.",
+      "Every rail station rises from its real place on the map as a golden spike, its height the validations per hour at the current time: a calm sea of dots at 3am, ranges climbing along the RER lines at 8:30, La Défense and Saint-Lazare towering over the west at 6pm. Hover a spike to name it; the brightest spikes are the network's summits.",
     story: "✦ 6pm at La Défense, the evening tide",
-    footer: "Validations: Île-de-France Mobilités open data",
+    footer: "Validations: Île-de-France Mobilités open data · Basemap © OpenStreetMap © CARTO",
   },
   fr: {
     title: "Relief - le paysage de l'affluence",
@@ -584,9 +584,10 @@ export const RELIEF: Record<Lang, ReliefStrings> = {
     days: { w: "un jour ouvré type", s: "un samedi type", d: "un dimanche type" },
     perHour: (count) => `≈ ${count} validations/h`,
     legend:
-      "Chaque ligne est une tranche ouest-est de la région, le nord au fond. Chaque pic est une gare qui monte avec ses validations par heure : mer calme à 3h, chaînes de montagnes le long des RER à 8h30, La Défense en sommet solitaire à 18h. Longez une ligne pour nommer les sommets.",
+      "Chaque gare s'élève à sa vraie place sur la carte comme un pic doré, sa hauteur donnée par les validations par heure à l'instant affiché : mer de points calme à 3h, chaînes qui grimpent le long des RER à 8h30, La Défense et Saint-Lazare en tours au-dessus de l'ouest à 18h. Survolez un pic pour le nommer ; les plus brillants sont les sommets du réseau.",
     story: "✦ 18h à La Défense, la marée du soir",
-    footer: "Validations : données ouvertes Île-de-France Mobilités",
+    footer:
+      "Validations : données ouvertes Île-de-France Mobilités · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

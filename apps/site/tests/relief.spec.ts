@@ -1,10 +1,18 @@
 import { test, expect, type Page } from "@playwright/test";
 
-/** Smoke tests for the /relief ridership ridgeline (pure canvas, no tiles). */
+/** Smoke tests for the /relief ridership spike map (tiles mocked). */
+
+const TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAABAAAAAQCAYAAAAf8/9hAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 async function setup(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await page.route("**/*.basemaps.cartocdn.com/**", (route) =>
+    route.fulfill({ contentType: "image/png", body: TILE_PNG }),
+  );
   return errors;
 }
 
@@ -21,7 +29,7 @@ test("relief loads the stations, pinned time on the clock", async ({ page }) => 
   await json;
   await expect(page.locator(".flow-clock")).toHaveText("08:30");
   await expect(page.locator(".clock-note")).toContainText("weekday");
-  await expect(page.locator(".ridge-canvas")).toBeVisible();
+  await expect(page.locator(".flow-canvas")).toBeVisible();
   await expect(page.locator('.viz-links a[href="/canicule"]')).toHaveCount(1);
   expect(errors).toEqual([]);
 });

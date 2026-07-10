@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AmbientLight,
+  Deck,
+  DirectionalLight,
+  LightingEffect,
+} from "@deck.gl/core";
+import { ColumnLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { loadLang, saveLang, type Lang } from "@/lib/lang";
 import { FLUX, RELIEF } from "@/lib/siteStrings";
 import { currentSearchParams, fmtClock } from "@/lib/viz";
+import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
+import { mountDeck } from "./viz/deckMount";
 import { useAnimationClock } from "./viz/useAnimationClock";
 import VizLinks from "./viz/VizLinks";
 import VizPanel from "./viz/VizPanel";
@@ -39,9 +48,11 @@ const PARAM_OF_DAY: Record<DayType, "weekday" | "saturday" | "sunday"> = {
 };
 
 const DAY_SECONDS = 86400;
-const ROWS = 42; // latitude slices, north at the back
-const BG = "#06080d";
-const STROKE = "#ffd166"; // the site's gold, brighter toward the front
+// spikes in the site's gold, brighter when the station runs hot
+const SPIKE_RGB: [number, number, number] = [255, 209, 102];
+const SPIKE_HOT_RGB: [number, number, number] = [255, 240, 200];
+const BASE_DOT_RGBA: [number, number, number, number] = [230, 232, 238, 60];
+const MAX_SPIKE_M = 5200; // La Défense at 6pm, in meters of column
 
 const SPEEDS = [
   { value: 600, label: "1×" },
@@ -59,53 +70,6 @@ function readParams() {
   };
 }
 
-/** Stations arranged into west-east rows plus the region-wide hourly total. */
-interface Landscape {
-  rows: { station: ReliefStation; x: number }[][]; // x normalized 0..1
-  totals: Record<DayType, number[]>;
-  maxTotal: number;
-  sqrtMax: number;
-}
-
-function buildLandscape(meta: ReliefMeta): Landscape {
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  for (const station of meta.stations) {
-    if (station.lon < minLon) minLon = station.lon;
-    if (station.lon > maxLon) maxLon = station.lon;
-    if (station.lat < minLat) minLat = station.lat;
-    if (station.lat > maxLat) maxLat = station.lat;
-  }
-  const rows: { station: ReliefStation; x: number }[][] = Array.from(
-    { length: ROWS },
-    () => [],
-  );
-  for (const station of meta.stations) {
-    const row = Math.min(
-      ROWS - 1,
-      Math.floor(((maxLat - station.lat) / (maxLat - minLat + 1e-9)) * ROWS),
-    );
-    rows[row].push({
-      station,
-      x: (station.lon - minLon) / (maxLon - minLon + 1e-9),
-    });
-  }
-  for (const row of rows) row.sort((a, b) => a.x - b.x);
-
-  const totals: Record<DayType, number[]> = {
-    w: new Array(24).fill(0),
-    s: new Array(24).fill(0),
-    d: new Array(24).fill(0),
-  };
-  for (const station of meta.stations)
-    for (const type of ["w", "s", "d"] as const)
-      for (let hour = 0; hour < 24; hour++) totals[type][hour] += station[type][hour];
-  const maxTotal = Math.max(...totals.w, ...totals.s, ...totals.d);
-  return { rows, totals, maxTotal, sqrtMax: Math.sqrt(meta.maxPerHour) };
-}
-
 /** Validations/hour at a fractional hour, the day wrapping at midnight. */
 function valueAt(values: number[], hourFloat: number): number {
   const h0 = Math.floor(hourFloat) % 24;
@@ -117,9 +81,8 @@ function valueAt(values: number[], hourFloat: number): number {
 export default function ReliefMap() {
   // read once per mount (module-level reads go stale across client navs)
   const [params] = useState(readParams);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const curveRef = useRef<HTMLCanvasElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
   const [meta, setMeta] = useState<ReliefMeta | null>(null);
@@ -132,11 +95,11 @@ export default function ReliefMap() {
   langRef.current = lang;
   const dayRef = useRef(day);
   dayRef.current = day;
-  const landscapeRef = useRef<Landscape | null>(null);
   const metaRef = useRef(meta);
   metaRef.current = meta;
-  // hovered station and pointer position, updated without re-rendering
-  const hoverRef = useRef<{ station: ReliefStation; x: number; row: number } | null>(null);
+  const totalsRef = useRef<Record<DayType, number[]> | null>(null);
+  const maxTotalRef = useRef(1);
+  const hourRef = useRef(params.t / 3600);
 
   useEffect(() => {
     fetch("/relief/stations.json")
@@ -146,128 +109,120 @@ export default function ReliefMap() {
         return response.json() as Promise<ReliefMeta>;
       })
       .then((nextMeta) => {
-        landscapeRef.current = buildLandscape(nextMeta);
+        const totals: Record<DayType, number[]> = {
+          w: new Array(24).fill(0),
+          s: new Array(24).fill(0),
+          d: new Array(24).fill(0),
+        };
+        for (const station of nextMeta.stations)
+          for (const type of ["w", "s", "d"] as const)
+            for (let hour = 0; hour < 24; hour++)
+              totals[type][hour] += station[type][hour];
+        totalsRef.current = totals;
+        maxTotalRef.current = Math.max(...totals.w, ...totals.s, ...totals.d);
         setMeta(nextMeta);
       })
       .catch((e: Error) => setError(e.message));
   }, []);
 
-  // canvas geometry, shared by drawing and hit testing
-  const layout = (width: number, height: number) => {
-    const left = Math.max(24, width * 0.03);
-    const right = width - left;
-    const top = height * 0.17;
-    const bottom = height * 0.94;
-    const rowY = (row: number) => top + ((bottom - top) * row) / (ROWS - 1);
-    const peak = height * 0.16;
-    const bump = Math.max(5, width * 0.005);
-    return { left, right, top, bottom, rowY, peak, bump };
-  };
+  const deckRef = useRef<Deck | null>(null);
+  const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
+  const appliedRef = useRef({ quantized: -1, day: "w" as DayType, meta: null as ReliefMeta | null });
 
   const draw = (t: number) => {
-    const canvas = canvasRef.current;
-    const landscape = landscapeRef.current;
-    if (!canvas || !landscape) return;
-    const dpr = window.devicePixelRatio || 1;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    if (canvas.width !== Math.round(width * dpr)) {
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-    }
-    const ctx = canvas.getContext("2d")!;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, width, height);
-
-    const { left, right, rowY, peak, bump } = layout(width, height);
-    const span = right - left;
+    const deck = deckRef.current;
+    const basemap = basemapRef.current;
+    const meta = metaRef.current;
+    if (!deck || !basemap || !meta) return;
     const hourFloat = t / 3600;
+    hourRef.current = hourFloat;
+    // quantize so paused frames and sub-frame ticks skip redraws
+    const quantized = Math.round(hourFloat * 60) / 60;
     const day = dayRef.current;
-    const hover = hoverRef.current;
+    const applied = appliedRef.current;
+    if (quantized === applied.quantized && day === applied.day && meta === applied.meta)
+      return;
+    appliedRef.current = { quantized, day, meta };
 
-    for (let row = 0; row < ROWS; row++) {
-      const y = rowY(row);
-      ctx.beginPath();
-      ctx.moveTo(left, y);
-      for (const { station, x } of landscape.rows[row]) {
-        const value = valueAt(station[day], hourFloat);
-        const h = value <= 0 ? 0 : peak * (Math.sqrt(value) / landscape.sqrtMax);
-        const cx = left + x * span;
-        if (h > 0.4) {
-          ctx.lineTo(cx - bump, y);
-          ctx.lineTo(cx, y - h);
-          ctx.lineTo(cx + bump, y);
-        }
-      }
-      ctx.lineTo(right, y);
-      // fill under the line first so nearer rows occlude the ones behind
-      ctx.fillStyle = BG;
-      ctx.fill();
-      ctx.strokeStyle = STROKE;
-      ctx.globalAlpha = 0.4 + 0.55 * (row / (ROWS - 1));
-      ctx.lineWidth = 1.1;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
+    const sqrtMax = Math.sqrt(meta.maxPerHour);
+    deck.setProps({
+      layers: [
+        basemap,
+        // every station keeps a faint footprint, so the quiet network stays
+        // visible on the map at 3am
+        new ScatterplotLayer<ReliefStation>({
+          id: "relief-dots",
+          data: meta.stations,
+          getPosition: (station) => [station.lon, station.lat],
+          getRadius: 90,
+          radiusUnits: "meters",
+          getFillColor: BASE_DOT_RGBA,
+        }),
+        new ColumnLayer<ReliefStation>({
+          id: "relief-spikes",
+          data: meta.stations,
+          diskResolution: 10,
+          radius: 130,
+          extruded: true,
+          getPosition: (station) => [station.lon, station.lat],
+          getElevation: (station) => {
+            const value = valueAt(station[day], quantized);
+            return value <= 0 ? 0 : MAX_SPIKE_M * (Math.sqrt(value) / sqrtMax);
+          },
+          getFillColor: (station) => {
+            const share = Math.sqrt(valueAt(station[day], quantized)) / sqrtMax;
+            return share > 0.62 ? SPIKE_HOT_RGB : SPIKE_RGB;
+          },
+          updateTriggers: { getElevation: [quantized, day], getFillColor: [quantized, day] },
+          material: {
+            ambient: 0.55,
+            diffuse: 0.6,
+            shininess: 40,
+            specularColor: [80, 70, 40],
+          },
+          pickable: true,
+          autoHighlight: true,
+          highlightColor: [255, 255, 255, 120],
+        }),
+      ],
+    });
+  };
 
-    // hovered summit: a small ring and the tooltip pinned to the peak
-    const tooltip = tooltipRef.current;
-    if (hover && tooltip) {
-      const value = valueAt(hover.station[day], hourFloat);
-      const h = value <= 0 ? 0 : peak * (Math.sqrt(value) / landscape.sqrtMax);
-      const cx = left + hover.x * span;
-      const cy = rowY(hover.row) - h;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      const strings = RELIEF[langRef.current];
-      const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
-      tooltip.style.display = "block";
-      tooltip.style.left = `${Math.min(cx + 14, width - 220)}px`;
-      tooltip.style.top = `${Math.max(8, cy - 34)}px`;
-      tooltip.textContent = `${hover.station.n} · ${strings.perHour(
-        (Math.round(value / 10) * 10).toLocaleString(locale),
-      )}`;
-    } else if (tooltip) {
-      tooltip.style.display = "none";
-    }
-
-    // the day curve in the panel: region total with a playhead
+  const drawCurve = (t: number) => {
     const curve = curveRef.current;
-    if (curve) {
-      const curveWidth = curve.clientWidth;
-      const curveHeight = curve.clientHeight;
-      if (curveWidth > 0 && curve.width !== Math.round(curveWidth * dpr)) {
-        curve.width = Math.round(curveWidth * dpr);
-        curve.height = Math.round(curveHeight * dpr);
-      }
-      const curveCtx = curve.getContext("2d")!;
-      curveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      curveCtx.clearRect(0, 0, curveWidth, curveHeight);
-      curveCtx.beginPath();
-      const totals = landscape.totals[day];
-      for (let i = 0; i <= 96; i++) {
-        const x = (i / 96) * curveWidth;
-        const v = valueAt(totals, (i / 96) * 24);
-        const y = curveHeight - 3 - (curveHeight - 8) * (v / landscape.maxTotal);
-        if (i === 0) curveCtx.moveTo(x, y);
-        else curveCtx.lineTo(x, y);
-      }
-      curveCtx.strokeStyle = STROKE;
-      curveCtx.globalAlpha = 0.9;
-      curveCtx.lineWidth = 1.25;
-      curveCtx.stroke();
-      curveCtx.globalAlpha = 1;
-      const playX = (t / DAY_SECONDS) * curveWidth;
-      curveCtx.strokeStyle = "#e6e8ee";
-      curveCtx.beginPath();
-      curveCtx.moveTo(playX, 0);
-      curveCtx.lineTo(playX, curveHeight);
-      curveCtx.stroke();
+    const totals = totalsRef.current;
+    if (!curve || !totals) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = curve.clientWidth;
+    const height = curve.clientHeight;
+    if (width === 0) return;
+    if (curve.width !== Math.round(width * dpr)) {
+      curve.width = Math.round(width * dpr);
+      curve.height = Math.round(height * dpr);
     }
+    const ctx = curve.getContext("2d")!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.beginPath();
+    const values = totals[dayRef.current];
+    for (let i = 0; i <= 96; i++) {
+      const x = (i / 96) * width;
+      const v = valueAt(values, (i / 96) * 24);
+      const y = height - 3 - (height - 8) * (v / maxTotalRef.current);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = "#ffd166";
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    const playX = (t / DAY_SECONDS) * width;
+    ctx.strokeStyle = "#e6e8ee";
+    ctx.beginPath();
+    ctx.moveTo(playX, 0);
+    ctx.lineTo(playX, height);
+    ctx.stroke();
   };
 
   const onFrame = (t: number) => {
@@ -275,6 +230,7 @@ export default function ReliefMap() {
     if (sliderRef.current && document.activeElement !== sliderRef.current)
       sliderRef.current.value = String(Math.round(t / 60) * 60);
     draw(t);
+    drawCurve(t);
   };
 
   const clock = useAnimationClock({
@@ -286,39 +242,77 @@ export default function ReliefMap() {
   });
   const { timeRef } = clock;
 
-  // hit test: nearest station peak around the pointer
-  const onPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    const landscape = landscapeRef.current;
-    if (!canvas || !landscape) return;
-    const rect = canvas.getBoundingClientRect();
-    const px = event.clientX - rect.left;
-    const py = event.clientY - rect.top;
-    const { left, right, rowY, peak } = layout(rect.width, rect.height);
-    const span = right - left;
-    const hourFloat = timeRef.current / 3600;
-    const day = dayRef.current;
-    let best: { station: ReliefStation; x: number; row: number } | null = null;
-    let bestDist = 18;
-    for (let row = 0; row < ROWS; row++) {
-      const y = rowY(row);
-      if (y - py > peak + 20 || py - y > 24) continue;
-      for (const { station, x } of landscape.rows[row]) {
-        const cx = left + x * span;
-        const dx = Math.abs(cx - px);
-        if (dx > bestDist) continue;
-        const value = valueAt(station[day], hourFloat);
-        const h = value <= 0 ? 0 : peak * (Math.sqrt(value) / landscape.sqrtMax);
-        if (py < y - h - 16 || py > y + 12) continue;
-        bestDist = dx;
-        best = { station, x, row };
-      }
-    }
-    hoverRef.current = best;
-  };
-  const onPointerLeave = () => {
-    hoverRef.current = null;
-  };
+  useEffect(() => {
+    basemapRef.current = createBasemapLayer();
+    return mountDeck(
+      () => {
+        const deck = new Deck({
+          parent: containerRef.current!,
+          initialViewState: {
+            longitude: 2.36,
+            latitude: 48.83,
+            zoom: 9.7,
+            pitch: 52,
+            bearing: 0,
+            minZoom: 8.5,
+            maxZoom: 14,
+            maxPitch: 65,
+          },
+          controller: true,
+          effects: [
+            new LightingEffect({
+              ambient: new AmbientLight({ color: [255, 255, 255], intensity: 1.2 }),
+              sun: new DirectionalLight({
+                color: [255, 235, 205],
+                intensity: 1.2,
+                direction: [-1, -0.7, -2],
+              }),
+            }),
+          ],
+          getCursor: ({ isDragging, isHovering }) =>
+            isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
+          getTooltip: ({ object, layer }) => {
+            if (!object || layer?.id !== "relief-spikes") return null;
+            const strings = RELIEF[langRef.current];
+            const locale = langRef.current === "fr" ? "fr-FR" : "en-GB";
+            const station = object as ReliefStation;
+            const value = valueAt(station[dayRef.current], hourRef.current);
+            return {
+              text: `${station.n} · ${strings.perHour(
+                (Math.round(value / 10) * 10).toLocaleString(locale),
+              )}`,
+              style: DECK_TOOLTIP_STYLE,
+            };
+          },
+          layers: [basemapRef.current],
+        });
+        deckRef.current = deck;
+        (window as unknown as Record<string, unknown>).__relief = {
+          setTime: (t: number) => {
+            timeRef.current = t;
+          },
+          getTime: () => timeRef.current,
+          // camera override for tests and promo screenshots
+          setView: (viewState: Record<string, number>) =>
+            deck.setProps({
+              initialViewState: {
+                longitude: 2.36,
+                latitude: 48.83,
+                zoom: 9.7,
+                pitch: 52,
+                bearing: 0,
+                ...viewState,
+              },
+            }),
+        };
+        return deck;
+      },
+      () => {
+        deckRef.current = null;
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // the small curve is also a scrubber: drag to move through the day
   const scrub = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -328,22 +322,22 @@ export default function ReliefMap() {
     timeRef.current = frac * DAY_SECONDS;
   };
 
+  const [, storyTick] = useState(0);
   const story = () => {
     setDay("w");
     timeRef.current = 18 * 3600;
     clock.setPlaying(false);
+    // the clock is a ref, so jumping from an already-paused weekday changes
+    // no React state: force the re-render anyway
+    storyTick((n) => n + 1);
   };
 
   const locale = lang === "fr" ? "fr-FR" : "en-GB";
   const period = useMemo(() => {
     if (!meta) return "";
     const format = (iso: string) =>
-      new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, {
-        month: "short",
-        year: undefined,
-      });
-    const year = meta.end.slice(0, 4);
-    return `${format(meta.start)}-${format(meta.end)} ${year}`;
+      new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, { month: "short" });
+    return `${format(meta.start)}-${format(meta.end)} ${meta.end.slice(0, 4)}`;
   }, [meta, locale]);
 
   const subtitle = useMemo(() => {
@@ -364,26 +358,7 @@ export default function ReliefMap() {
 
   return (
     <div className="flow">
-      <canvas
-        ref={canvasRef}
-        className="ridge-canvas"
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-      />
-      <div
-        ref={tooltipRef}
-        style={{
-          display: "none",
-          position: "fixed",
-          zIndex: 5,
-          pointerEvents: "none",
-          background: "#101828",
-          color: "#e6e8ee",
-          fontSize: "12px",
-          borderRadius: "6px",
-          padding: "4px 8px",
-        }}
-      />
+      <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
         onLang={(nextLang) => {

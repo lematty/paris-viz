@@ -4,12 +4,13 @@ Live: [paris-viz.vercel.app/relief](https://paris-viz.vercel.app/relief)
 
 ![The ridership landscape at 8:30 on a weekday](../apps/site/public/relief-og.png)
 
-Every rail station of Île-de-France (~700) drawn as a mountain in a
-ridgeline landscape: each line is a west-east slice of the region, north at
-the back, and every peak rises with that station's ticket validations per
-hour. Press play and the day breathes: a calm sea at 3am, the morning tide
-at 8:30 with ranges along the RER lines, La Défense towering alone at 6pm,
-then the evening ebb.
+Every rail station of Île-de-France (~700) rising from its real place on
+the map as a golden spike, its height the station's ticket validations per
+hour. Press play and the day breathes over the region: a calm sea of dots
+at 3am, the morning tide at 8:30 with ranges climbing along the RER lines,
+La Défense and Saint-Lazare towering over the west at 6pm, then the evening
+ebb. The dark basemap keeps the geography under the data: the Seine, the
+street grid, the suburbs.
 
 ## Using it
 
@@ -21,8 +22,9 @@ then the evening ebb.
   the sea toward the afternoon.
 - The story button pins 6pm on a weekday: the evening tide, La Défense at
   its highest.
-- Move along a ridge to name the summits: the tooltip gives the station and
-  its validations per hour at the current time.
+- Hover a spike to name it and read its validations per hour at the current
+  time; every station keeps a faint dot even when silent. Right-drag or two
+  fingers to tilt and turn.
 - URL params: `?t=30600&day=saturday&paused=1` (`t` in seconds of day).
 
 ## How it is built
@@ -37,11 +39,13 @@ joined to its registry point by `ida` = `id_ref_zdc` (97% direct match). A
 few stops publish duplicated percentage rows upstream (profiles summing to
 400%+), so profiles are normalized by their own sum when they overshoot.
 
-On the client the landscape is a single hand-drawn 2D canvas (no map
-library): 42 latitude rows painted back to front, each filled with the
-background color so nearer ridges occlude the ones behind, peaks scaled by
-the square root of validations per hour, and the hour interpolated
-continuously as the clock advances.
+On the client the landscape is a deck.gl spike map over the shared dark
+basemap: one column per station at its true coordinates, its height the
+square root of validations per hour (so the huge hubs do not crush the
+rest), the hour interpolated continuously as the clock advances, and the
+hottest spikes brightened. An earlier version drew an abstract ridgeline
+(latitude rows, joyplot style); it looked striking but carried no
+geography, so it was replaced by the map.
 
 ## Data artifacts
 
