@@ -40,9 +40,10 @@ quantized to a ~0.65 m grid and lightly simplified.
 
 On the client the whole map is one flat deck.gl SolidPolygonLayer; switching
 variable or moment only re-evaluates the fill colors, with a short
-transition. The hazard ramp is diverging by hue but monotone by lightness
-(cool blocks recede into the dark basemap, overheating blocks glow), so the
-ordering stays readable under color-vision deficiencies.
+transition. The hazard scale is a thermal-camera ramp, dark violet through
+wine and vermilion to incandescent yellow: monotone in lightness (the
+ordering stays readable under color-vision deficiencies, and the hot city
+glows on the dark basemap) with the red band that heat iconography expects.
 
 ## Data artifacts
 

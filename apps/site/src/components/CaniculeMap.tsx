@@ -42,18 +42,19 @@ interface BlockData {
 type Axis = "alea" | "vuln";
 type Moment = "jour" | "nuit";
 
-// diverging-by-hue, monotone-by-lightness heat ramp: cool blocks recede into
-// the dark basemap, overheating blocks glow (validated: visible step gaps,
-// order readable under CVD via lightness; the hue spread is the point)
+// thermal-camera heat scale, dark violet through wine and vermilion to
+// incandescent yellow: monotone lightness (order survives CVD, hot glows on
+// the dark basemap) with the red band that heat iconography expects; cool
+// blocks recede into the dark like a cold spot on an infrared photo
 const ALEA_BINS = [-2, 2, 6, 10, 14, 18]; // note < bin; last bin catches the rest
 const ALEA_HEX = [
-  "#2b5273",
-  "#48678b",
-  "#847b70",
-  "#b48a38",
-  "#dc9a37",
-  "#ffa96e",
-  "#ffd2bc",
+  "#5b3690",
+  "#a03a68",
+  "#cb4f42",
+  "#ea6d2a",
+  "#f89322",
+  "#fbba4a",
+  "#fce38a",
 ];
 const ALEA_RGB = ALEA_HEX.map(hexToRgb);
 const aleaBin = (note: number) => {
