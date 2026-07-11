@@ -48,6 +48,10 @@ export const SITE: Record<
         title: "Strates - how old is Paris?",
         desc: "The same city assembled year by year: the medieval core, the 1851-1914 explosion that built half of Paris, then the concrete century filling the edges.",
       },
+      mirage: {
+        title: "Mirage - the tourist flats",
+        desc: "Every Airbnb in Paris colored by registration status: watch today's 78,000 listings arrive year by year, half of them since mid-2023.",
+      },
       air: {
         title: "Respire - the air you breathe",
         desc: "Seven years of hourly air quality breathing over the map: winter smog, clean windy days, and the 2020 lockdown clearing the sky in a week.",
@@ -63,7 +67,7 @@ export const SITE: Record<
     },
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, short-term rental listings from Inside Airbnb, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
   },
@@ -100,6 +104,10 @@ export const SITE: Record<
         title: "Strates - quel âge a Paris ?",
         desc: "La même ville assemblée année après année : le cœur médiéval, l'explosion de 1851-1914 qui bâtit la moitié de Paris, puis le siècle du béton qui remplit les bords.",
       },
+      mirage: {
+        title: "Mirage - les meublés touristiques",
+        desc: "Chaque Airbnb de Paris coloré par statut d'enregistrement : regardez les 78 000 annonces d'aujourd'hui apparaître année après année, la moitié depuis mi-2023.",
+      },
       air: {
         title: "Respire - l'air que vous respirez",
         desc: "Sept ans de qualité de l'air horaire qui respirent sur la carte : smog d'hiver, journées de vent, et le confinement 2020 qui purifie le ciel en une semaine.",
@@ -115,7 +123,7 @@ export const SITE: Record<
     },
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, les annonces de meublés touristiques d'Inside Airbnb, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
   },
@@ -385,6 +393,107 @@ export const STRATES: Record<Lang, StratesStrings> = {
     period: (from, to) => `${from}-${to}`,
     undated: "date de construction inconnue",
     footer: "Emprises et datation : Apur (ODbL) · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface MirageStrings {
+  title: string;
+  loading: string;
+  subtitle: (count: string, date: string) => string;
+  noteCumul: string;
+  noteActif: string;
+  modeAria: string;
+  modeCumul: string;
+  modeActif: string;
+  statutAria: string;
+  statutAll: string;
+  statuses: { declared: string; none: string; bail: string; exempt: string };
+  rooms: { entire: string; private: string; shared: string; hotel: string };
+  since: (month: string) => string;
+  never: string;
+  reviews: (count: string) => string;
+  hostListings: (count: string) => string;
+  perNight: (price: string) => string;
+  legend: string;
+  neverNote: (pct: number) => string;
+  storyHalf: (month: string) => string;
+  storyBack: (month: string) => string;
+  footer: string;
+}
+
+export const MIRAGE: Record<Lang, MirageStrings> = {
+  en: {
+    title: "Mirage - the tourist flats",
+    loading: "loading listings…",
+    subtitle: (count, date) => `${count} Airbnb listings · Inside Airbnb scrape of ${date}`,
+    noteCumul: "today's listings already present by this date",
+    noteActif: "today's listings with reviews around this date",
+    modeAria: "Time window",
+    modeCumul: "already arrived",
+    modeActif: "active then",
+    statutAria: "Registration status",
+    statutAll: "all statuses",
+    statuses: {
+      declared: "registration shown",
+      none: "no valid number",
+      bail: "mobility lease",
+      exempt: "hotel-type, exempt",
+    },
+    rooms: {
+      entire: "entire home",
+      private: "private room",
+      shared: "shared room",
+      hotel: "hotel room",
+    },
+    since: (month) => `first reviewed ${month}`,
+    never: "never reviewed",
+    reviews: (count) => `${count} reviews`,
+    hostListings: (count) => `host with ${count} listings`,
+    perNight: (price) => `€${price}/night`,
+    legend:
+      "Every dot is one listing from the snapshot, colored by the registration status its host displays: Paris requires most short-term rentals to show a 13-character city number, mobility leases and hotels are exempt. Press play and today's stock assembles by first review date. The sweep shows when the current listings arrived, not the market's past size: flats delisted since have left the scrape. Airbnb blurs each position by up to 150 m.",
+    neverNote: (pct) =>
+      `never reviewed: ${pct}% of listings, shown at the snapshot date only`,
+    storyHalf: (month) => `✦ ${month}: half of today's listings are not there yet`,
+    storyBack: (month) => `✦ Back to ${month}, the full tide`,
+    footer: "Listings: Inside Airbnb (CC BY 4.0) · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Mirage - les meublés touristiques",
+    loading: "chargement des annonces…",
+    subtitle: (count, date) => `${count} annonces Airbnb · relevé Inside Airbnb du ${date}`,
+    noteCumul: "les annonces d'aujourd'hui déjà apparues à cette date",
+    noteActif: "les annonces d'aujourd'hui commentées autour de cette date",
+    modeAria: "Fenêtre temporelle",
+    modeCumul: "déjà apparues",
+    modeActif: "en activité",
+    statutAria: "Statut d'enregistrement",
+    statutAll: "tous les statuts",
+    statuses: {
+      declared: "numéro affiché",
+      none: "sans numéro valide",
+      bail: "bail mobilité",
+      exempt: "hôtelier, exempté",
+    },
+    rooms: {
+      entire: "logement entier",
+      private: "chambre privée",
+      shared: "chambre partagée",
+      hotel: "chambre d'hôtel",
+    },
+    since: (month) => `premier commentaire ${month}`,
+    never: "jamais commentée",
+    reviews: (count) => `${count} commentaires`,
+    hostListings: (count) => `hôte à ${count} annonces`,
+    perNight: (price) => `${price} €/nuit`,
+    legend:
+      "Chaque point est une annonce du relevé, colorée par le statut d'enregistrement que son hôte affiche : Paris impose à la plupart des meublés touristiques un numéro de 13 caractères, les baux mobilité et les hôtels en sont exemptés. Lancez la lecture et le parc actuel s'assemble par date de premier commentaire. Le balayage montre quand les annonces d'aujourd'hui sont apparues, pas la taille passée du marché : les annonces retirées depuis ont quitté le relevé. Airbnb floute chaque position jusqu'à 150 m.",
+    neverNote: (pct) =>
+      `jamais commentées : ${pct} % des annonces, visibles à la date du relevé seulement`,
+    storyHalf: (month) => `✦ ${month} : la moitié du parc n'est pas encore là`,
+    storyBack: (month) => `✦ Retour à ${month}, la marée complète`,
+    footer:
+      "Annonces : Inside Airbnb (CC BY 4.0) · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

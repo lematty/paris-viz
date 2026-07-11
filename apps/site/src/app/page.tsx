@@ -73,6 +73,8 @@ export default function Home() {
           {" · "}
           <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
           {" · "}
+          <a href="https://insideairbnb.com">insideairbnb.com</a>
+          {" · "}
           <a href="https://github.com/lematty/paris-viz">GitHub</a>
         </p>
       </section>

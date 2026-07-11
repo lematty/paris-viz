@@ -44,4 +44,4 @@ animation stays cheap.
   255 = out of reach (~870 KB for 943 stations).
 ---
 
-[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)

@@ -59,6 +59,15 @@ assembled year by year: the medieval core, the 1851-1914 explosion that
 built half of Paris, then the concrete century. Dating by the Apur.
 [Read more →](docs/strates.md) · [open live](https://parisviz.com/strates)
 
+### [`/mirage` - the tourist flats](docs/mirage.md)
+
+![Every Airbnb listing in Paris colored by registration status](apps/site/public/mirage-og.png)
+
+Every Airbnb listing in Paris colored by the registration status its host
+displays, assembling by first review date: half of today's 78,000 tourist
+flats appeared after mid-2023, and one in five shows no valid number.
+[Read more →](docs/mirage.md) · [open live](https://parisviz.com/mirage)
+
 ### [`/crue` - the Seine rising](docs/crue.md)
 
 ![The 1910 flood level over the 3D city](apps/site/public/crue-og.png)

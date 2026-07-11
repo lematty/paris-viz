@@ -60,4 +60,4 @@ glows on the dark basemap) with the red band that heat iconography expects.
     to the bbox
 ---
 
-[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Crue](crue.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Relief](relief.md) · [Noctilien](noctilien.md)

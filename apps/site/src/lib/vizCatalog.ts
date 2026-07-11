@@ -21,6 +21,7 @@ export const THEMES = [
     vizzes: [
       { key: "vertige", href: "/vertige", label: "Vertige" },
       { key: "strates", href: "/strates", label: "Strates" },
+      { key: "mirage", href: "/mirage", label: "Mirage" },
     ],
   },
   {

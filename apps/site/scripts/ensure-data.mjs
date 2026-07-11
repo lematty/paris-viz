@@ -56,6 +56,7 @@ const needed = [
   "canicule/meta.json",
   "relief/stations.json",
   "crue/meta.json",
+  "mirage/meta.json",
 ];
 const missing = needed.filter((f) => !existsSync(path.join(pub, f)));
 
@@ -78,4 +79,5 @@ if (missing.length === 0) {
   execSync("pnpm run build:canicule", { stdio: "inherit", cwd: site, env });
   execSync("pnpm run build:relief", { stdio: "inherit", cwd: site, env });
   execSync("pnpm run build:crue", { stdio: "inherit", cwd: site, env });
+  execSync("pnpm run build:mirage", { stdio: "inherit", cwd: site, env });
 }

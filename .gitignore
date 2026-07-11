@@ -18,6 +18,7 @@ apps/site/public/strates/
 apps/site/public/canicule/
 apps/site/public/relief/
 apps/site/public/crue/
+apps/site/public/mirage/
 
 # misc
 *.tsbuildinfo

@@ -55,4 +55,4 @@ centroid to know their own flooding gauge, shown in the tooltip.
   resolution, for the building tint and the tooltip.
 ---
 
-[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
