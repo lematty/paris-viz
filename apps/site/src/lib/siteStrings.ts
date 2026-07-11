@@ -404,6 +404,7 @@ export interface MirageStrings {
   statutAria: string;
   filterHint: string;
   statuses: { declared: string; none: string; bail: string; exempt: string };
+  statusTips: { declared: string; none: string; bail: string; exempt: string };
   rooms: { entire: string; private: string; shared: string; hotel: string };
   since: (month: string) => string;
   never: string;
@@ -431,6 +432,14 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
       none: "no valid number",
       bail: "mobility lease",
       exempt: "hotel-type, exempt",
+    },
+    statusTips: {
+      declared:
+        "Shows a well-formed 13-character city registration number. Well-formed only: the number itself is not verified.",
+      none: "Empty or not a real number (fantasy digits, postal codes, obsolete formats). For an ordinary tourist rental, this is the non-compliant category.",
+      bail: "Rented only under a bail mobilité: 1 to 10 months for temporary work or study. Housing, not tourist rental, so no number is required.",
+      exempt:
+        "Hotel rooms, aparthotels and guesthouses: regulated as hotels, so the registration rule does not apply.",
     },
     rooms: {
       entire: "entire home",
@@ -464,6 +473,14 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
       none: "sans numéro valide",
       bail: "bail mobilité",
       exempt: "hôtelier, exempté",
+    },
+    statusTips: {
+      declared:
+        "Affiche un numéro d'enregistrement de 13 caractères bien formé. Bien formé seulement : le numéro lui-même n'est pas vérifié.",
+      none: "Vide, ou autre chose qu'un vrai numéro (chiffres fantaisistes, code postal, format caduc). Pour un meublé touristique ordinaire, c'est la catégorie hors règle.",
+      bail: "Loué uniquement en bail mobilité : 1 à 10 mois pour mission ou études. Du logement, pas du tourisme : aucun numéro requis.",
+      exempt:
+        "Chambres d'hôtel, apparthôtels et pensions : régulés comme des hôtels, la règle d'enregistrement ne s'applique pas.",
     },
     rooms: {
       entire: "logement entier",

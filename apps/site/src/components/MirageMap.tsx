@@ -462,6 +462,7 @@ export default function MirageMap() {
                   className={`mirage-legend-row${statut !== "tous" && !active ? " dimmed" : ""}`}
                   key={key}
                   aria-pressed={active}
+                  title={strings.statusTips[key]}
                   onClick={() => setStatut(active ? "tous" : value)}
                 >
                   <span

@@ -18,8 +18,9 @@ of the current listings first appeared after August 2023.
   date; at each month the map shows today's listings whose first review
   predates it.
 - The legend rows are the status filter: click one to keep only those
-  listings, click it again to show everything; `?statut=sans` opens
-  straight on the unregistered listings.
+  listings, click it again to show everything, and hover a row for what
+  the status means; `?statut=sans` opens straight on the unregistered
+  listings.
 - The story button pins the median arrival month (August 2023 on the June
   2026 scrape): half of today's tourist flats do not exist yet. Pinned
   there, it offers the completed tide.

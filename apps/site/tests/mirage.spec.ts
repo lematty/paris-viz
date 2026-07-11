@@ -36,6 +36,11 @@ test("mirage loads the listings, pinned month on the clock", async ({
   await expect(page.locator(".flow-clock")).toHaveText("Aug 2023");
   await expect(page.locator(".clock-note")).toContainText("already present");
   await expect(page.locator(".mirage-legend-row")).toHaveCount(4);
+  // each status row explains itself on hover
+  await expect(page.locator(".mirage-legend-row").nth(1)).toHaveAttribute(
+    "title",
+    /number/,
+  );
   await expect(page.locator('.viz-links a[href="/strates"]')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
