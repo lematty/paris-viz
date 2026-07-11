@@ -40,14 +40,10 @@ test("mirage loads the listings, pinned month on the clock", async ({
   expect(errors).toEqual([]);
 });
 
-test("the time window select and legend status filter apply", async ({
-  page,
-}) => {
+test("the legend status filter applies", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/mirage?paused=1&t=283");
   await loaded(page);
-  await page.locator('select[aria-label="Time window"]').selectOption("actif");
-  await expect(page.locator(".clock-note")).toContainText("reviews around");
   const rows = page.locator(".mirage-legend-row");
   await rows.nth(1).click();
   await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "true");

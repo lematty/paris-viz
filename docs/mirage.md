@@ -15,10 +15,8 @@ of the current listings first appeared after August 2023.
 ## Using it
 
 - Play/pause and a slider sweep the months from January 2010 to the scrape
-  date.
-- A window select flips between "already arrived" (today's listings whose
-  first review predates the current month) and "active then" (those whose
-  review lifespan spans it, plus a three-month tail).
+  date; at each month the map shows today's listings whose first review
+  predates it.
 - The legend rows are the status filter: click one to keep only those
   listings, click it again to show everything; `?statut=sans` opens
   straight on the unregistered listings.
@@ -27,7 +25,7 @@ of the current listings first appeared after August 2023.
   there, it offers the completed tide.
 - Hover a dot for its room type, host portfolio size, status, quarter,
   first-review month, review count and nightly price.
-- URL params: `?t=283&mode=actif&statut=sans&paused=1` (`t` in months since
+- URL params: `?t=283&statut=sans&paused=1` (`t` in months since
   January 2000; 283 = August 2023).
 
 ## What the sweep shows, honestly
@@ -61,7 +59,7 @@ room type and arrondissement. The scrape date is pinned in the script
 (`SNAPSHOT`); bump it to adopt a newer quarterly scrape.
 
 On the client the whole stock is one deck.gl ScatterplotLayer fed binary
-attributes; the month sweep and both selects are a three-dimensional
+attributes; the month sweep and the status filter are a two-dimensional
 `DataFilterExtension` range, i.e. GPU uniforms, so the 78k dots are
 uploaded exactly once. The median arrival month is computed at parse time
 and drives the story button.

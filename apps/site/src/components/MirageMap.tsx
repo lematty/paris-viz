@@ -31,8 +31,7 @@ interface ListingData {
   count: number;
   positions: Float32Array;
   colors: Uint8Array;
-  /** GPU filter dimensions per listing: display first month, display last
-   * month (review lifespan plus a short tail), status index. */
+  /** GPU filter dimensions per listing: display first month, status index. */
   filterValues: Float32Array;
   first: Uint16Array;
   reviews: Uint16Array;
@@ -46,14 +45,9 @@ interface ListingData {
 }
 
 const NEVER = 0xffff;
-/** Months a listing stays shown past its last review: a final review means
- * roughly a season of remaining activity, and single-review listings get a
- * visible lifespan instead of a one-month blip. */
-const GRACE = 3;
 /** Hold on the fully assembled city before the loop restarts, in months. */
 const HOLD = 12;
 
-type TimeMode = "cumul" | "actif";
 type StatusFilter = "tous" | "declare" | "sans" | "bail" | "exempt";
 
 const STATUS_INDEX: Record<Exclude<StatusFilter, "tous">, number> = {
@@ -98,7 +92,6 @@ function readParams() {
   return {
     t: Number.isFinite(t) ? Math.max(0, Math.min(5000, t)) : DEFAULT_MIN,
     paused: searchParams.get("paused") === "1",
-    mode: (searchParams.get("mode") === "actif" ? "actif" : "cumul") as TimeMode,
     statut: (statut in STATUS_INDEX ? statut : "tous") as StatusFilter,
   };
 }
@@ -119,8 +112,7 @@ function parseListings(buf: ArrayBuffer, meta: MirageMeta): ListingData {
   offset += 2 * count;
   const first = new Uint16Array(buf, offset, count);
   offset += 2 * count;
-  const last = new Uint16Array(buf, offset, count);
-  offset += 2 * count;
+  offset += 2 * count; // last review month: in the artifact, unused so far
   const reviews = new Uint16Array(buf, offset, count);
   offset += 2 * count;
   const hosts = new Uint16Array(buf, offset, count);
@@ -137,7 +129,7 @@ function parseListings(buf: ArrayBuffer, meta: MirageMeta): ListingData {
   const sx = (maxLon - minLon) / 65535;
   const sy = (maxLat - minLat) / 65535;
   const colors = new Uint8Array(4 * count);
-  const filterValues = new Float32Array(3 * count);
+  const filterValues = new Float32Array(2 * count);
   const monthHist = new Uint32Array(meta.maxMonth + 2);
   let dated = 0;
   for (let i = 0; i < count; i++) {
@@ -150,11 +142,8 @@ function parseListings(buf: ArrayBuffer, meta: MirageMeta): ListingData {
     colors[4 * i + 3] = 185;
     // never-reviewed listings cannot be dated: they exist in the snapshot,
     // so they join in the sweep's final beat instead of posing as history
-    const f = first[i] === NEVER ? meta.maxMonth : first[i];
-    const l = first[i] === NEVER ? meta.maxMonth : last[i] + GRACE;
-    filterValues[3 * i] = f;
-    filterValues[3 * i + 1] = l;
-    filterValues[3 * i + 2] = status[i];
+    filterValues[2 * i] = first[i] === NEVER ? meta.maxMonth : first[i];
+    filterValues[2 * i + 1] = status[i];
     if (first[i] !== NEVER) {
       monthHist[Math.min(first[i], meta.maxMonth)]++;
       dated++;
@@ -194,7 +183,6 @@ export default function MirageMap() {
   const [meta, setMeta] = useState<MirageMeta | null>(null);
   const [data, setData] = useState<ListingData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<TimeMode>(params.mode);
   const [statut, setStatut] = useState<StatusFilter>(params.statut);
   const [lang, setLang] = useState<Lang>(loadLang);
   const commonStrings = FLUX[lang];
@@ -206,8 +194,6 @@ export default function MirageMap() {
   metaRef.current = meta;
   const dataRef = useRef(data);
   dataRef.current = data;
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
   const statutRef = useRef(statut);
   statutRef.current = statut;
   const rangeRef = useRef({ min: DEFAULT_MIN, max: DEFAULT_MAX });
@@ -233,7 +219,6 @@ export default function MirageMap() {
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
   const appliedRef = useRef({
     quantizedMonth: -1,
-    mode: "cumul" as TimeMode,
     statut: "tous" as StatusFilter,
     data: null as ListingData | null,
   });
@@ -252,24 +237,18 @@ export default function MirageMap() {
     // quantize to half a month so paused frames and sub-frame ticks skip
     // redraws; the geometry uploads exactly once, the sweep is a GPU uniform
     const quantizedMonth = Math.round(displayTime * 2) / 2;
-    const mode = modeRef.current;
     const statut = statutRef.current;
     const applied = appliedRef.current;
     if (
       quantizedMonth === applied.quantizedMonth &&
-      mode === applied.mode &&
       statut === applied.statut &&
       data === applied.data
     )
       return;
-    appliedRef.current = { quantizedMonth, mode, statut, data };
+    appliedRef.current = { quantizedMonth, statut, data };
 
     const statusRange: [number, number] =
       statut === "tous" ? [-1, 9] : [STATUS_INDEX[statut] - 0.5, STATUS_INDEX[statut] + 0.5];
-    const lastRange: [number, number] =
-      mode === "actif" ? [quantizedMonth, 20000] : [-1, 20000];
-    const lastSoft: [number, number] =
-      mode === "actif" ? [Math.min(20000, quantizedMonth + 2), 20000] : [-1, 20000];
     deck.setProps({
       layers: [
         basemap,
@@ -280,7 +259,7 @@ export default function MirageMap() {
             attributes: {
               getPosition: { value: data.positions, size: 2 },
               getFillColor: { value: data.colors, size: 4 },
-              getFilterValue: { value: data.filterValues, size: 3 },
+              getFilterValue: { value: data.filterValues, size: 2 },
             },
           } as unknown as null[],
           radiusUnits: "meters",
@@ -291,11 +270,10 @@ export default function MirageMap() {
           pickable: true,
           autoHighlight: true,
           highlightColor: [255, 255, 255, 150],
-          extensions: [new DataFilterExtension({ filterSize: 3 })],
-          filterRange: [[min - 1, quantizedMonth], lastRange, statusRange],
+          extensions: [new DataFilterExtension({ filterSize: 2 })],
+          filterRange: [[min - 1, quantizedMonth], statusRange],
           filterSoftRange: [
             [min - 1, Math.max(min - 1, quantizedMonth - 2)],
-            lastSoft,
             statusRange,
           ],
         }),
@@ -393,7 +371,6 @@ export default function MirageMap() {
   // appeared. Pinned there, the button offers the completed tide instead.
   const [, storyTick] = useState(0);
   const atStory =
-    mode === "cumul" &&
     statut === "tous" &&
     !clock.playing &&
     data !== null &&
@@ -403,7 +380,6 @@ export default function MirageMap() {
     if (atStory) {
       timeRef.current = rangeRef.current.max;
     } else {
-      setMode("cumul");
       setStatut("tous");
       timeRef.current = data.medianMonth;
     }
@@ -443,11 +419,7 @@ export default function MirageMap() {
         subtitle={subtitle}
         clockRef={clockRef}
         clockInitial={monthLabel(Math.min(params.t, DEFAULT_MAX), locale)}
-        clockNote={
-          <div className="clock-note">
-            {mode === "cumul" ? strings.noteCumul : strings.noteActif}
-          </div>
-        }
+        clockNote={<div className="clock-note">{strings.note}</div>}
         playing={clock.playing}
         onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
@@ -460,16 +432,6 @@ export default function MirageMap() {
           time: commonStrings.time,
           sheetToggle: commonStrings.sheetToggle,
         }}
-        controlsExtra={
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as TimeMode)}
-            aria-label={strings.modeAria}
-          >
-            <option value="cumul">{strings.modeCumul}</option>
-            <option value="actif">{strings.modeActif}</option>
-          </select>
-        }
         slider={{
           ref: sliderRef,
           min: meta?.minMonth ?? DEFAULT_MIN,

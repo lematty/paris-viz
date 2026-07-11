@@ -400,11 +400,7 @@ export interface MirageStrings {
   title: string;
   loading: string;
   subtitle: (count: string, date: string) => string;
-  noteCumul: string;
-  noteActif: string;
-  modeAria: string;
-  modeCumul: string;
-  modeActif: string;
+  note: string;
   statutAria: string;
   filterHint: string;
   statuses: { declared: string; none: string; bail: string; exempt: string };
@@ -426,11 +422,7 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
     title: "Mirage - the tourist flats",
     loading: "loading listings…",
     subtitle: (count, date) => `${count} Airbnb listings · Inside Airbnb scrape of ${date}`,
-    noteCumul: "today's listings already present by this date",
-    noteActif: "today's listings with reviews around this date",
-    modeAria: "Time window",
-    modeCumul: "already arrived",
-    modeActif: "active then",
+    note: "today's listings already present by this date",
     statutAria: "Registration status",
     filterHint:
       "Click a status to keep only those listings; click it again to show everything.",
@@ -463,11 +455,7 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
     title: "Mirage - les meublés touristiques",
     loading: "chargement des annonces…",
     subtitle: (count, date) => `${count} annonces Airbnb · relevé Inside Airbnb du ${date}`,
-    noteCumul: "les annonces d'aujourd'hui déjà apparues à cette date",
-    noteActif: "les annonces d'aujourd'hui commentées autour de cette date",
-    modeAria: "Fenêtre temporelle",
-    modeCumul: "déjà apparues",
-    modeActif: "en activité",
+    note: "les annonces d'aujourd'hui déjà apparues à cette date",
     statutAria: "Statut d'enregistrement",
     filterHint:
       "Cliquez un statut pour ne garder que ces annonces ; recliquez pour tout réafficher.",
