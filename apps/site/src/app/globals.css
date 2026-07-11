@@ -34,8 +34,9 @@ a {
 }
 
 .home h1 {
-  font-size: 28px;
-  margin: 0 0 6px;
+  font-size: clamp(32px, 5vw, 42px);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
 }
 
 .home-header {
@@ -43,21 +44,26 @@ a {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  margin-top: 8px;
 }
 
 .home-sub {
   color: var(--text-dim);
-  margin: 0 0 32px;
+  font-size: 17px;
+  margin: 0 0 40px;
+}
+
+.card-media {
+  overflow: hidden;
 }
 
 .card-thumb {
+  display: block;
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--panel-border);
-  margin-bottom: 12px;
   background: #0d1320;
+  transition: transform 0.25s ease;
 }
 
 .flow-topbar {
@@ -136,17 +142,63 @@ a {
 
 .card {
   display: block;
-  padding: 18px;
+  overflow: hidden;
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: var(--panel);
   color: var(--text);
   text-decoration: none;
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card:hover {
   border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.card:hover .card-thumb {
+  transform: scale(1.03);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* on wide enough grids, the marked cards span two columns so the 4-card
+   Mouvement section fills both rows (2 columns from 576px, 3 from 852px) */
+@media (min-width: 576px) {
+  .card-wide {
+    grid-column: span 2;
+  }
+
+  .card-wide .card-thumb {
+    aspect-ratio: 21 / 9;
+  }
+
+  .card-wide .card-body p {
+    max-width: 64ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card-thumb {
+    transition: none;
+  }
+
+  .card:hover,
+  .card:hover .card-thumb {
+    transform: none;
+  }
+}
+
+.card-body {
+  padding: 14px 18px 18px;
 }
 
 .card h3 {

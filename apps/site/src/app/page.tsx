@@ -7,6 +7,10 @@ import { SITE } from "@/lib/siteStrings";
 import { THEMES } from "@/lib/vizCatalog";
 import LangToggle from "@/components/LangToggle";
 
+/** Cards that span two grid columns so the 4-viz Mouvement section fills
+ * both rows instead of orphaning its last card. */
+const WIDE_CARDS: ReadonlySet<string> = new Set(["flux", "noctilien"]);
+
 export default function Home() {
   // start with the SSR default and adopt the stored choice after hydration
   const [lang, setLang] = useState<Lang>("en");
@@ -28,25 +32,44 @@ export default function Home() {
           }}
         />
       </div>
-      {THEMES.map((theme) => (
+      {THEMES.map((theme, themeIdx) => (
         <section className="home-theme" key={theme.key}>
           <h2 className="theme-title">
             {theme.label}
             <span className="theme-note">{strings.themeNotes[theme.key]}</span>
           </h2>
           <div className="cards">
-            {theme.vizzes.map((viz) => (
-              <Link className="card" href={viz.href} key={viz.key}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="card-thumb"
-                  src={`/thumbs/${viz.key}.png`}
-                  alt=""
-                />
-                <h3>{strings.cards[viz.key].title}</h3>
-                <p>{strings.cards[viz.key].desc}</p>
-              </Link>
-            ))}
+            {theme.vizzes.map((viz, vizIdx) => {
+              // the first row is likely above the fold: load it eagerly
+              // and let the browser defer everything below
+              const aboveFold = themeIdx === 0 && vizIdx < 2;
+              return (
+                <Link
+                  className={
+                    WIDE_CARDS.has(viz.key) ? "card card-wide" : "card"
+                  }
+                  href={viz.href}
+                  key={viz.key}
+                >
+                  <div className="card-media">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      className="card-thumb"
+                      src={`/thumbs/${viz.key}.webp`}
+                      alt=""
+                      loading={aboveFold ? "eager" : "lazy"}
+                      fetchPriority={
+                        themeIdx === 0 && vizIdx === 0 ? "high" : undefined
+                      }
+                    />
+                  </div>
+                  <div className="card-body">
+                    <h3>{strings.cards[viz.key].title}</h3>
+                    <p>{strings.cards[viz.key].desc}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       ))}
