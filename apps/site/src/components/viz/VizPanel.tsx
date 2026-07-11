@@ -2,7 +2,9 @@
 
 import { useState, type ReactNode, type RefObject } from "react";
 import type { Lang } from "@/lib/lang";
+import type { VizKey } from "@/lib/vizCatalog";
 import LangToggle from "../LangToggle";
+import VizInfo from "./VizInfo";
 
 export interface VizPanelLabels {
   play: string;
@@ -22,6 +24,7 @@ export interface VizPanelLabels {
 export default function VizPanel({
   lang,
   onLang,
+  infoViz,
   title,
   subtitle,
   clockRef,
@@ -41,6 +44,8 @@ export default function VizPanel({
 }: {
   lang: Lang;
   onLang: (lang: Lang) => void;
+  /** Which visualization's "about this map" content to offer in the topbar. */
+  infoViz?: VizKey;
   title: string;
   subtitle: ReactNode;
   clockRef: RefObject<HTMLDivElement | null>;
@@ -79,6 +84,7 @@ export default function VizPanel({
           ← Paris Viz
         </a>
         <LangToggle lang={lang} onChange={onLang} />
+        {infoViz && <VizInfo viz={infoViz} lang={lang} />}
         <button
           className="sheet-toggle"
           aria-label={labels.sheetToggle}

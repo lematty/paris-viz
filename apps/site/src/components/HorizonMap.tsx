@@ -417,6 +417,7 @@ export default function HorizonMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="horizon"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);

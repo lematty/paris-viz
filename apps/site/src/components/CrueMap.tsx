@@ -502,6 +502,7 @@ export default function CrueMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="crue"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);

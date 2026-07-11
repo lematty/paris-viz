@@ -77,6 +77,9 @@ export default function Home() {
         <h2>{strings.aboutTitle}</h2>
         <p>{strings.aboutBody}</p>
         <p>{strings.aboutRefresh}</p>
+        <p>
+          <Link href="/about">{strings.aboutMore}</Link>
+        </p>
         <p className="about-links">
           <a href="https://data.iledefrance-mobilites.fr">
             data.iledefrance-mobilites.fr

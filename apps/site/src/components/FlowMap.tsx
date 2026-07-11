@@ -439,6 +439,7 @@ export default function FlowMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="flux"
         onLang={(newLang) => {
           setLang(newLang);
           saveLang(newLang);

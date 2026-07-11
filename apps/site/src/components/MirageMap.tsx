@@ -411,6 +411,7 @@ export default function MirageMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="mirage"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);

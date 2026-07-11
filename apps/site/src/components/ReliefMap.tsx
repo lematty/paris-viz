@@ -370,6 +370,7 @@ export default function ReliefMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="relief"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);

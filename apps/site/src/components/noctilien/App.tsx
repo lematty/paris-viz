@@ -6,6 +6,7 @@ import { nearestStops } from "@/lib/noctilien/geo";
 import { STRINGS, loadLang, saveLang, type Lang } from "@/lib/noctilien/i18n";
 import { buildHash, parseHash, type MapView } from "@/lib/noctilien/urlState";
 import LangToggle from "../LangToggle";
+import VizInfo from "../viz/VizInfo";
 import VizLinks from "../viz/VizLinks";
 import NoctilienMap from "./NoctilienMap";
 import SearchBox from "./SearchBox";
@@ -153,6 +154,7 @@ export default function App() {
             Noctilien <span className="panel-sub">{strings.subtitle}</span>
           </h1>
           <LangToggle lang={lang} onChange={switchLang} />
+          <VizInfo viz="noctilien" lang={lang} />
           <button
             className="sheet-toggle"
             aria-label={strings.sheetToggle}

@@ -393,6 +393,7 @@ export default function VertigeMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="vertige"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);

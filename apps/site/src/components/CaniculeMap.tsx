@@ -9,6 +9,7 @@ import { currentSearchParams, hexToRgb } from "@/lib/viz";
 import LangToggle from "./LangToggle";
 import { createBasemapLayer, DECK_TOOLTIP_STYLE } from "./viz/basemap";
 import { mountDeck } from "./viz/deckMount";
+import VizInfo from "./viz/VizInfo";
 import VizLinks from "./viz/VizLinks";
 
 interface CaniculeMeta {
@@ -326,6 +327,7 @@ export default function CaniculeMap() {
               saveLang(nextLang);
             }}
           />
+          <VizInfo viz="canicule" lang={lang} />
           <button
             className="sheet-toggle"
             aria-label={commonStrings.sheetToggle}

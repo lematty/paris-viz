@@ -519,6 +519,7 @@ export default function AirMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="air"
         onLang={(newLang) => {
           setLang(newLang);
           saveLang(newLang);

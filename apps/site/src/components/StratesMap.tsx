@@ -470,6 +470,7 @@ export default function StratesMap() {
       <div ref={containerRef} className="flow-canvas" />
       <VizPanel
         lang={lang}
+        infoViz="strates"
         onLang={(nextLang) => {
           setLang(nextLang);
           saveLang(nextLang);
