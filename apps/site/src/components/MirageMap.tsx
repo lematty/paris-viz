@@ -63,6 +63,7 @@ const STATUS_INDEX: Record<Exclude<StatusFilter, "tous">, number> = {
   exempt: 3,
 };
 const STATUS_KEYS = ["declared", "none", "bail", "exempt"] as const;
+const STATUS_FILTERS = ["declare", "sans", "bail", "exempt"] as const;
 
 // declared rentals in steel blue, the unregistered in vermilion, mobility
 // leases gold, hotel-type slate: every pair clears CVD deltaE >= 17 on the
@@ -460,27 +461,14 @@ export default function MirageMap() {
           sheetToggle: commonStrings.sheetToggle,
         }}
         controlsExtra={
-          <>
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as TimeMode)}
-              aria-label={strings.modeAria}
-            >
-              <option value="cumul">{strings.modeCumul}</option>
-              <option value="actif">{strings.modeActif}</option>
-            </select>
-            <select
-              value={statut}
-              onChange={(e) => setStatut(e.target.value as StatusFilter)}
-              aria-label={strings.statutAria}
-            >
-              <option value="tous">{strings.statutAll}</option>
-              <option value="declare">{strings.statuses.declared}</option>
-              <option value="sans">{strings.statuses.none}</option>
-              <option value="bail">{strings.statuses.bail}</option>
-              <option value="exempt">{strings.statuses.exempt}</option>
-            </select>
-          </>
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as TimeMode)}
+            aria-label={strings.modeAria}
+          >
+            <option value="cumul">{strings.modeCumul}</option>
+            <option value="actif">{strings.modeActif}</option>
+          </select>
         }
         slider={{
           ref: sliderRef,
@@ -502,16 +490,29 @@ export default function MirageMap() {
               )}
         </button>
         <div className="iso-legend sheet-hide">
-          {STATUS_KEYS.map((key, index) => (
-            <p className="mirage-legend-row" key={key}>
-              <span
-                className="undated-swatch"
-                style={{ background: STATUS_HEX[index] }}
-              />
-              {strings.statuses[key]}
-              <span>{statusCounts[index].toLocaleString(locale)}</span>
-            </p>
-          ))}
+          <div role="group" aria-label={strings.statutAria}>
+            {STATUS_KEYS.map((key, index) => {
+              const value = STATUS_FILTERS[index];
+              const active = statut === value;
+              return (
+                <button
+                  type="button"
+                  className={`mirage-legend-row${statut !== "tous" && !active ? " dimmed" : ""}`}
+                  key={key}
+                  aria-pressed={active}
+                  onClick={() => setStatut(active ? "tous" : value)}
+                >
+                  <span
+                    className="undated-swatch"
+                    style={{ background: STATUS_HEX[index] }}
+                  />
+                  {strings.statuses[key]}
+                  <span>{statusCounts[index].toLocaleString(locale)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="pulse-legend">{strings.filterHint}</p>
           <p className="pulse-legend">{strings.neverNote(neverPct)}</p>
           <p className="pulse-legend">{strings.legend}</p>
         </div>

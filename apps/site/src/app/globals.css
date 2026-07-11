@@ -990,11 +990,33 @@ a {
 
 .mirage-legend-row {
   display: flex;
+  width: 100%;
   align-items: baseline;
   gap: 7px;
   margin: 4px 0 0;
+  padding: 3px 5px;
+  font: inherit;
   font-size: 12px;
   color: var(--text-dim);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mirage-legend-row:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mirage-legend-row[aria-pressed="true"] {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.mirage-legend-row.dimmed {
+  opacity: 0.45;
 }
 
 .mirage-legend-row .undated-swatch {

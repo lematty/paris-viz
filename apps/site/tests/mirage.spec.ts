@@ -40,7 +40,7 @@ test("mirage loads the listings, pinned month on the clock", async ({
   expect(errors).toEqual([]);
 });
 
-test("the time window and status selects apply without errors", async ({
+test("the time window select and legend status filter apply", async ({
   page,
 }) => {
   const errors = await setup(page);
@@ -48,9 +48,14 @@ test("the time window and status selects apply without errors", async ({
   await loaded(page);
   await page.locator('select[aria-label="Time window"]').selectOption("actif");
   await expect(page.locator(".clock-note")).toContainText("reviews around");
-  const statut = page.locator('select[aria-label="Registration status"]');
-  for (const value of ["declare", "sans", "bail", "exempt", "tous"])
-    await statut.selectOption(value);
+  const rows = page.locator(".mirage-legend-row");
+  await rows.nth(1).click();
+  await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(rows.nth(0)).toHaveClass(/dimmed/);
+  // clicking the active row again returns to all statuses
+  await rows.nth(1).click();
+  await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "false");
+  await expect(rows.nth(0)).not.toHaveClass(/dimmed/);
   expect(errors).toEqual([]);
 });
 
@@ -58,9 +63,9 @@ test("?statut=sans preselects the unregistered filter", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/mirage?paused=1&t=283&statut=sans");
   await loaded(page);
-  await expect(
-    page.locator('select[aria-label="Registration status"]'),
-  ).toHaveValue("sans");
+  const rows = page.locator(".mirage-legend-row");
+  await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(rows.nth(3)).toHaveClass(/dimmed/);
   expect(errors).toEqual([]);
 });
 

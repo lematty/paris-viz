@@ -406,7 +406,7 @@ export interface MirageStrings {
   modeCumul: string;
   modeActif: string;
   statutAria: string;
-  statutAll: string;
+  filterHint: string;
   statuses: { declared: string; none: string; bail: string; exempt: string };
   rooms: { entire: string; private: string; shared: string; hotel: string };
   since: (month: string) => string;
@@ -432,7 +432,8 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
     modeCumul: "already arrived",
     modeActif: "active then",
     statutAria: "Registration status",
-    statutAll: "all statuses",
+    filterHint:
+      "Click a status to keep only those listings; click it again to show everything.",
     statuses: {
       declared: "registration shown",
       none: "no valid number",
@@ -468,7 +469,8 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
     modeCumul: "déjà apparues",
     modeActif: "en activité",
     statutAria: "Statut d'enregistrement",
-    statutAll: "tous les statuts",
+    filterHint:
+      "Cliquez un statut pour ne garder que ces annonces ; recliquez pour tout réafficher.",
     statuses: {
       declared: "numéro affiché",
       none: "sans numéro valide",

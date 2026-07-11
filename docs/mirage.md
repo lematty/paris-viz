@@ -19,7 +19,8 @@ of the current listings first appeared after August 2023.
 - A window select flips between "already arrived" (today's listings whose
   first review predates the current month) and "active then" (those whose
   review lifespan spans it, plus a three-month tail).
-- A status select filters to one registration status; `?statut=sans` opens
+- The legend rows are the status filter: click one to keep only those
+  listings, click it again to show everything; `?statut=sans` opens
   straight on the unregistered listings.
 - The story button pins the median arrival month (August 2023 on the June
   2026 scrape): half of today's tourist flats do not exist yet. Pinned
