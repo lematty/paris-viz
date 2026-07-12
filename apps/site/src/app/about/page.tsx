@@ -43,6 +43,27 @@ export default function About() {
           {t.code}{" "}
           <a href="https://github.com/lematty/paris-viz">{t.codeLink}</a>
         </p>
+        <p className="about-links">
+          <a href="https://data.iledefrance-mobilites.fr">
+            data.iledefrance-mobilites.fr
+          </a>
+          {" · "}
+          <a href="https://transport.data.gouv.fr/datasets/reseau-urbain-et-interurbain-dile-de-france-mobilites">
+            IDFM GTFS
+          </a>
+          {" · "}
+          <a href="https://www.airparif.fr">airparif.fr</a>
+          {" · "}
+          <a href="https://geoservices.ign.fr/bdtopo">IGN BD TOPO</a>
+          {" · "}
+          <a href="https://opendata.apur.org">opendata.apur.org</a>
+          {" · "}
+          <a href="https://data.iledefrance.fr">Institut Paris Region</a>
+          {" · "}
+          <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
+          {" · "}
+          <a href="https://insideairbnb.com">insideairbnb.com</a>
+        </p>
       </section>
       <h2 className="about-permap">{t.perMapTitle}</h2>
       {THEMES.map((theme) =>

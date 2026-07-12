@@ -14,7 +14,9 @@ export const SITE: Record<
     aboutTitle: string;
     aboutBody: string;
     aboutRefresh: string;
+    aboutTeaser: string;
     aboutMore: string;
+    aboutLink: string;
   }
 > = {
   en: {
@@ -71,7 +73,10 @@ export const SITE: Record<
       "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, short-term rental listings from Inside Airbnb, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
+    aboutTeaser:
+      "Every map on this site is built from open data and precomputed into a static file: no backend, no cookies, and each page shows the exact period its data covers.",
     aboutMore: "Sources and methods, map by map →",
+    aboutLink: "About",
   },
   fr: {
     tagline:
@@ -128,7 +133,10 @@ export const SITE: Record<
       "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, les annonces de meublés touristiques d'Inside Airbnb, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
+    aboutTeaser:
+      "Chaque carte de ce site est construite à partir de données ouvertes et précalculée en fichier statique : pas de backend, pas de cookies, et chaque page affiche la période exacte couverte par ses données.",
     aboutMore: "Sources et méthodes, carte par carte →",
+    aboutLink: "À propos",
   },
 };
 

@@ -1276,3 +1276,20 @@ a {
     width: 128px;
   }
 }
+
+.home-header-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.home-about-link {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.home-about-link:hover {
+  color: var(--accent);
+}
