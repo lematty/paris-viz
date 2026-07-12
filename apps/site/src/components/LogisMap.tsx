@@ -37,8 +37,8 @@ interface GroupData {
   positions: Float32Array;
   colors: Uint8Array;
   radii: Float32Array;
-  /** GPU filter dimensions per group: construction year, first-letting
-   * year, category index. */
+  /** GPU filter dimensions per group: first-letting year, category
+   * index. */
   filterValues: Float32Array;
   construct: Uint16Array;
   locat: Uint16Array;
@@ -51,7 +51,6 @@ interface GroupData {
   student: Uint8Array;
 }
 
-type TimeMode = "built" | "let";
 type FinanFilter = "tous" | "hbm" | "avant77" | "plai" | "plus" | "pls" | "autre";
 
 const CAT_KEYS = ["hbm", "avant77", "plai", "plus", "pls", "autre"] as const;
@@ -76,15 +75,15 @@ const DPE_LETTERS = ["", "A", "B", "C", "D", "E", "F", "G"];
 
 const END_YEAR = 2026;
 
-// piecewise clock: linger where Paris actually built and bought (the
-// interwar belt and the post-war estates), compress the thin centuries
+// piecewise clock: linger where Paris actually let its stock (the
+// interwar belt, the post-war estates, the buy-and-convert wave since
+// 2000); first lettings only start in 1864, so the sweep opens at 1850
 const TIMELINE: [number, number][] = [
-  [0, 1600],
-  [4, 1850],
-  [10, 1914],
-  [30, 1945],
-  [60, 1990],
-  [80, 2015],
+  [0, 1850],
+  [8, 1914],
+  [28, 1945],
+  [58, 1990],
+  [78, 2015],
   [90, END_YEAR],
 ];
 const MAX_T = 90;
@@ -125,7 +124,6 @@ function readParams() {
   return {
     t: Number.isFinite(t) ? Math.max(0, Math.min(MAX_T, t)) : 0,
     paused: searchParams.get("paused") === "1",
-    mode: (searchParams.get("mode") === "let" ? "let" : "built") as TimeMode,
     finan: (finan in CAT_INDEX ? finan : "tous") as FinanFilter,
   };
 }
@@ -167,7 +165,7 @@ function parseGroups(buf: ArrayBuffer): GroupData {
   const sy = (maxLat - minLat) / 65535;
   const colors = new Uint8Array(4 * count);
   const radii = new Float32Array(count);
-  const filterValues = new Float32Array(3 * count);
+  const filterValues = new Float32Array(2 * count);
   for (let i = 0; i < count; i++) {
     positions[2 * i] = minLon + x[i] * sx;
     positions[2 * i + 1] = minLat + y[i] * sy;
@@ -178,9 +176,8 @@ function parseGroups(buf: ArrayBuffer): GroupData {
     colors[4 * i + 3] = 205;
     // dot AREA carries the dwelling count
     radii[i] = 5 * Math.sqrt(dwellings[i]);
-    filterValues[3 * i] = construct[i];
-    filterValues[3 * i + 1] = locat[i];
-    filterValues[3 * i + 2] = cat[i];
+    filterValues[2 * i] = locat[i];
+    filterValues[2 * i + 1] = cat[i];
   }
 
   return {
@@ -210,7 +207,6 @@ export default function LogisMap() {
   const [meta, setMeta] = useState<LogisMeta | null>(null);
   const [data, setData] = useState<GroupData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<TimeMode>(params.mode);
   const [finan, setFinan] = useState<FinanFilter>(params.finan);
   const [lang, setLang] = useState<Lang>(loadLang);
   const commonStrings = FLUX[lang];
@@ -220,8 +216,6 @@ export default function LogisMap() {
   langRef.current = lang;
   const dataRef = useRef(data);
   dataRef.current = data;
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
   const finanRef = useRef(finan);
   finanRef.current = finan;
 
@@ -247,7 +241,6 @@ export default function LogisMap() {
   const basemapRef = useRef<ReturnType<typeof createBasemapLayer> | null>(null);
   const appliedRef = useRef({
     quantizedYear: -1,
-    mode: "built" as TimeMode,
     finan: "tous" as FinanFilter,
     data: null as GroupData | null,
   });
@@ -265,21 +258,18 @@ export default function LogisMap() {
     // quantize the year so paused frames and sub-frame ticks skip redraws;
     // the geometry uploads exactly once, the sweep is a GPU uniform
     const quantizedYear = Math.round(year * 4) / 4;
-    const mode = modeRef.current;
     const finan = finanRef.current;
     const applied = appliedRef.current;
     if (
       quantizedYear === applied.quantizedYear &&
-      mode === applied.mode &&
       finan === applied.finan &&
       data === applied.data
     )
       return;
-    appliedRef.current = { quantizedYear, mode, finan, data };
+    appliedRef.current = { quantizedYear, finan, data };
 
     const catRange: [number, number] =
       finan === "tous" ? [-1, 9] : [CAT_INDEX[finan] - 0.5, CAT_INDEX[finan] + 0.5];
-    const all: [number, number] = [-1, 3000];
     const swept: [number, number] = [-1, quantizedYear];
     const sweptSoft: [number, number] = [-1, Math.max(-1, quantizedYear - 4)];
     deck.setProps({
@@ -293,7 +283,7 @@ export default function LogisMap() {
               getPosition: { value: data.positions, size: 2 },
               getFillColor: { value: data.colors, size: 4 },
               getRadius: { value: data.radii, size: 1 },
-              getFilterValue: { value: data.filterValues, size: 3 },
+              getFilterValue: { value: data.filterValues, size: 2 },
             },
           } as unknown as null[],
           radiusUnits: "meters",
@@ -303,10 +293,9 @@ export default function LogisMap() {
           pickable: true,
           autoHighlight: true,
           highlightColor: [255, 255, 255, 150],
-          extensions: [new DataFilterExtension({ filterSize: 3 })],
-          filterRange: mode === "built" ? [swept, all, catRange] : [all, swept, catRange],
-          filterSoftRange:
-            mode === "built" ? [sweptSoft, all, catRange] : [all, sweptSoft, catRange],
+          extensions: [new DataFilterExtension({ filterSize: 2 })],
+          filterRange: [swept, catRange],
+          filterSoftRange: [sweptSoft, catRange],
         }),
       ],
     });
@@ -409,7 +398,6 @@ export default function LogisMap() {
   // around the city. Pinned there, the button offers today's full stock.
   const [, storyTick] = useState(0);
   const atStory =
-    mode === "built" &&
     finan === "tous" &&
     !clock.playing &&
     Math.abs(yearAt(Math.min(MAX_T, timeRef.current)) - STORY_YEAR) < 0.5;
@@ -417,7 +405,6 @@ export default function LogisMap() {
     if (atStory) {
       timeRef.current = MAX_T;
     } else {
-      setMode("built");
       setFinan("tous");
       timeRef.current = timeForYear(STORY_YEAR);
     }
@@ -455,11 +442,7 @@ export default function LogisMap() {
         subtitle={subtitle}
         clockRef={clockRef}
         clockInitial={String(Math.round(yearAt(params.t)))}
-        clockNote={
-          <div className="clock-note">
-            {mode === "built" ? strings.noteBuilt : strings.noteLet}
-          </div>
-        }
+        clockNote={<div className="clock-note">{strings.note}</div>}
         playing={clock.playing}
         onTogglePlay={() => clock.setPlaying((playing) => !playing)}
         speed={clock.speed}
@@ -472,16 +455,6 @@ export default function LogisMap() {
           time: commonStrings.time,
           sheetToggle: commonStrings.sheetToggle,
         }}
-        controlsExtra={
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as TimeMode)}
-            aria-label={strings.modeAria}
-          >
-            <option value="built">{strings.modeBuilt}</option>
-            <option value="let">{strings.modeLet}</option>
-          </select>
-        }
         slider={{
           ref: sliderRef,
           min: 0,

@@ -15,12 +15,10 @@ east-heavy, and the belt reads as a ring by 1935.
 
 ## Using it
 
-- Play/pause and a slider sweep the years on a piecewise timeline
-  (1600-2026, dense where Paris actually built); at each year the map
-  shows today's stock already present.
-- The year dimension select switches the sweep between "built in"
-  (construction year) and "first let in" (first letting as social
-  housing): the same stock tells two different stories.
+- Play/pause and a slider sweep the years of first letting as social
+  housing on a piecewise timeline (1850-2026, dense where the stock
+  actually entered service); at each year the map shows today's stock
+  already in service.
 - The legend rows are the financing filter: click one to keep only that
   family, click it again to show everything, hover a row for what the
   family means; `?finan=hbm` opens straight on the pink belt.
@@ -29,19 +27,22 @@ east-heavy, and the belt reads as a ring by 1935.
 - Hover a dot for its dwelling count, financing family, arrondissement,
   construction year, first-letting year when it differs, average size and
   modal DPE; student residences are flagged.
-- URL params: `?t=27&mode=let&finan=hbm&paused=1` (`t` in timeline units,
-  0-90; 27 = 1940, 60 = 1990).
+- URL params: `?t=28&finan=hbm&paused=1` (`t` in timeline units,
+  0-90; 28 = 1945, 58 = 1990).
 
 ## What the sweep shows, honestly
 
-By construction year the stock looks old (median 1970), but that is the
-age of the buildings, not of the social stock: switch to "first let in"
-and the median jumps to 1988, with the 2000s and 2010s as the two biggest
-decades. A quarter of the dwellings entered service more than twenty
-years after their construction - ordinary buildings bought and
-conventioned, the main way Paris has grown its stock since the SRU law
-(2000) pushed it toward 25% social housing. 35% of today's stock was
-first let after 2000.
+The sweep follows first letting as social housing, not construction: at
+each date the map shows the stock actually in service, which is what
+"social housing in 1980" should mean. By construction year the stock
+would look old (median 1970), but that is the age of the buildings, not
+of the social stock; by first letting the median is 1988, with the 2000s
+and 2010s as the two biggest decades. A quarter of the dwellings entered
+service more than twenty years after their construction - ordinary
+buildings bought and conventioned, the main way Paris has grown its
+stock since the SRU law (2000) pushed it toward 25% social housing. 35%
+of today's stock was first let after 2000; each dot's tooltip still
+carries its construction year.
 
 The open RPLS file carries no rent and no landlord identity, so the map
 shows where and what kind, never how much. About 0.9% of dwellings lack
@@ -64,9 +65,9 @@ family: 250k rows become 21k dots. The vintage is pinned in the script
 (`MILLESIME`); bump it when the next annual RPLS lands.
 
 On the client the whole stock is one deck.gl ScatterplotLayer fed binary
-attributes; the year sweep, the mode switch and the financing filter are
-a three-dimensional `DataFilterExtension` range, i.e. GPU uniforms, so
-the 21k dots upload exactly once. The categorical palette is
+attributes; the year sweep and the financing filter are a
+two-dimensional `DataFilterExtension` range, i.e. GPU uniforms, so the
+21k dots upload exactly once. The categorical palette is
 CVD-validated on the dark basemap (worst adjacent pair ΔE 16.3), with
 identity carried by the legend and tooltips beyond color.
 

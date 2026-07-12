@@ -529,11 +529,7 @@ export interface LogisStrings {
   title: string;
   loading: string;
   subtitle: (count: string) => string;
-  noteBuilt: string;
-  noteLet: string;
-  modeAria: string;
-  modeBuilt: string;
-  modeLet: string;
+  note: string;
   finanAria: string;
   filterHint: string;
   cats: { hbm: string; avant77: string; plai: string; plus: string; pls: string; autre: string };
@@ -557,11 +553,7 @@ export const LOGIS: Record<Lang, LogisStrings> = {
     title: "Logis - where social housing is",
     loading: "loading dwellings…",
     subtitle: (count) => `${count} social dwellings on January 1st, 2025 · RPLS`,
-    noteBuilt: "today's stock already built by this date",
-    noteLet: "today's stock already in service by this date",
-    modeAria: "Year dimension",
-    modeBuilt: "built in",
-    modeLet: "first let in",
+    note: "today's stock already in service by this date",
     finanAria: "Financing category",
     filterHint:
       "Click a category to keep only those dwellings; click it again to show everything.",
@@ -589,7 +581,7 @@ export const LOGIS: Record<Lang, LogisStrings> = {
     students: "student housing",
     arrondissement: (n) => `${n}ᵉ`,
     legend:
-      "Every dot is one address of the national social-housing register (RPLS), its area proportional to its dwellings and its color to their financing: the pink HBM belt, pre-1977 HLM in ochre, then a ladder of blues from the most subsidized to near-market. Press play and the stock assembles; switch the year dimension to 'first let in' and the story changes: a quarter of the dwellings entered service more than twenty years after construction, buildings bought and converted, most of them since 2000.",
+      "Every dot is one address of the national social-housing register (RPLS), its area proportional to its dwellings and its color to their financing: the pink HBM belt, pre-1977 HLM in ochre, then a ladder of blues from the most subsidized to near-market. Press play and the stock assembles by the year its dwellings were first let as social housing, so at each date the map shows the stock actually in service. A quarter of the dwellings entered service more than twenty years after construction, buildings bought and converted, most of them since 2000: hover a dot and its construction year tells that story.",
     missingNote: (pct) => `not mapped: ${pct}% of the stock, without coordinates`,
     storyBelt: "✦ 1935: the pink belt closes around Paris",
     storyBack: "✦ Back to today, the whole stock",
@@ -599,11 +591,7 @@ export const LOGIS: Record<Lang, LogisStrings> = {
     title: "Logis - où est le logement social",
     loading: "chargement des logements…",
     subtitle: (count) => `${count} logements sociaux au 1ᵉʳ janvier 2025 · RPLS`,
-    noteBuilt: "le parc actuel déjà construit à cette date",
-    noteLet: "le parc actuel déjà en service à cette date",
-    modeAria: "Dimension temporelle",
-    modeBuilt: "construit en",
-    modeLet: "mis en location en",
+    note: "le parc actuel déjà en service à cette date",
     finanAria: "Catégorie de financement",
     filterHint:
       "Cliquez une catégorie pour ne garder que ces logements ; recliquez pour tout réafficher.",
@@ -631,7 +619,7 @@ export const LOGIS: Record<Lang, LogisStrings> = {
     students: "logements étudiants",
     arrondissement: (n) => `${n}ᵉ`,
     legend:
-      "Chaque point est une adresse du répertoire national du logement social (RPLS), sa surface proportionnelle à son nombre de logements, sa couleur à leur financement : la ceinture rose des HBM, les HLM d'avant 1977 en ocre, puis une échelle de bleus du plus social au proche du marché. Lancez la lecture et le parc s'assemble ; basculez la dimension sur « mis en location en » et l'histoire change : un quart des logements sont entrés en service plus de vingt ans après leur construction, des immeubles achetés puis conventionnés, pour la plupart depuis 2000.",
+      "Chaque point est une adresse du répertoire national du logement social (RPLS), sa surface proportionnelle à son nombre de logements, sa couleur à leur financement : la ceinture rose des HBM, les HLM d'avant 1977 en ocre, puis une échelle de bleus du plus social au proche du marché. Lancez la lecture et le parc s'assemble par année de première mise en location comme logement social : à chaque date, la carte montre le parc réellement en service. Un quart des logements sont entrés en service plus de vingt ans après leur construction, des immeubles achetés puis conventionnés, pour la plupart depuis 2000 : survolez un point, son année de construction raconte cette histoire.",
     missingNote: (pct) => `non cartographiés : ${pct} % du parc, sans coordonnées`,
     storyBelt: "✦ 1935 : la ceinture rose se referme sur Paris",
     storyBack: "✦ Retour à aujourd'hui, tout le parc",

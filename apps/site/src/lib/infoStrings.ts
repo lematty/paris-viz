@@ -256,7 +256,7 @@ export const INFO: Record<VizKey, Record<Lang, VizInfoContent>> = {
   logis: {
     en: {
       body: [
-        "Every address of the Paris social-housing stock as a dot sized by its dwellings and colored by financing category, from the HBM belt of the 1920s-30s to today's PLAI. Two time sweeps: by construction year, or by the year the dwellings were first let as social housing - a quarter of the stock entered service more than twenty years after it was built, buildings bought and converted, mostly since 2000.",
+        "Every address of the Paris social-housing stock as a dot sized by its dwellings and colored by financing category, from the HBM belt of the 1920s-30s to today's PLAI. The years sweep by first letting as social housing, so each date shows the stock actually in service: a quarter of it entered service more than twenty years after it was built, buildings bought and converted, mostly since 2000.",
         "The data is the RPLS, the national register of social landlords' rental stock (situation on January 1st, 2025), published address by address by the ministry's statistical service under an open license. The open file carries no rent and no landlord identity, and about 1% of dwellings lack coordinates and are left off the map. Financing codes are grouped into six families; 'first let' dates for the oldest buildings are the register's, sometimes reconstructed.",
       ],
       sources: [
@@ -268,7 +268,7 @@ export const INFO: Record<VizKey, Record<Lang, VizInfoContent>> = {
     },
     fr: {
       body: [
-        "Chaque adresse du parc social parisien en un point dimensionné par son nombre de logements et coloré par famille de financement, de la ceinture des HBM des années 1920-30 au PLAI d'aujourd'hui. Deux balayages temporels : par année de construction, ou par année de première mise en location comme logement social - un quart du parc est entré en service plus de vingt ans après sa construction, des immeubles achetés puis conventionnés, surtout depuis 2000.",
+        "Chaque adresse du parc social parisien en un point dimensionné par son nombre de logements et coloré par famille de financement, de la ceinture des HBM des années 1920-30 au PLAI d'aujourd'hui. Le balayage suit l'année de première mise en location comme logement social : à chaque date, le parc réellement en service - un quart du parc est entré en service plus de vingt ans après sa construction, des immeubles achetés puis conventionnés, surtout depuis 2000.",
         "Les données sont le RPLS, le répertoire national des logements locatifs des bailleurs sociaux (situation au 1ᵉʳ janvier 2025), publié adresse par adresse par le service statistique du ministère sous licence ouverte. Le fichier ouvert ne contient ni loyer ni identité du bailleur, et environ 1 % des logements, sans coordonnées, restent hors carte. Les codes de financement sont regroupés en six familles ; les dates de première location des immeubles les plus anciens sont celles du répertoire, parfois reconstituées.",
       ],
       sources: [
