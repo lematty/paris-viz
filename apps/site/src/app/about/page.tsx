@@ -50,22 +50,31 @@ export default function About() {
           const info = INFO[viz.key][lang];
           return (
             <section className="about-viz" key={viz.key}>
-              <h2>
-                <Link href={viz.href}>{site.cards[viz.key].title}</Link>
-              </h2>
-              {info.body.map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-              <p className="viz-sources">
-                {sourcesLabel}
-                {lang === "fr" ? " : " : ": "}
-                {info.sources.map((source, i) => (
-                  <span key={source.href}>
-                    {i > 0 && " · "}
-                    <a href={source.href}>{source.label}</a>
-                  </span>
+              <div className="about-viz-text">
+                <h2>
+                  <Link href={viz.href}>{site.cards[viz.key].title}</Link>
+                </h2>
+                {info.body.map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
                 ))}
-              </p>
+                <p className="viz-sources">
+                  {sourcesLabel}
+                  {lang === "fr" ? " : " : ": "}
+                  {info.sources.map((source, i) => (
+                    <span key={source.href}>
+                      {i > 0 && " · "}
+                      <a href={source.href}>{source.label}</a>
+                    </span>
+                  ))}
+                </p>
+                <p className="about-open">
+                  <Link href={viz.href}>{t.openMap}</Link>
+                </p>
+              </div>
+              <Link className="about-thumb" href={viz.href}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/thumbs/${viz.key}.webp`} alt="" loading="lazy" />
+              </Link>
             </section>
           );
         }),

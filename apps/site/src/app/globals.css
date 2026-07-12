@@ -1234,3 +1234,45 @@ a {
   border-top: 1px solid var(--panel-border);
   font-size: 16px;
 }
+
+.about-open {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+}
+
+.about-open a {
+  color: var(--accent);
+}
+
+.about-viz {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.about-viz-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.about-thumb {
+  flex-shrink: 0;
+  width: 200px;
+  margin-top: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.about-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .about-thumb {
+    width: 128px;
+  }
+}

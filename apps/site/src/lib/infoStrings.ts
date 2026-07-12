@@ -42,6 +42,7 @@ export const ABOUT: Record<
   {
     title: string;
     perMapTitle: string;
+    openMap: string;
     code: string;
     codeLink: string;
   }
@@ -49,12 +50,14 @@ export const ABOUT: Record<
   en: {
     title: "About the data",
     perMapTitle: "Map by map",
+    openMap: "Open the map →",
     code: "The whole site is open source:",
     codeLink: "github.com/lematty/paris-viz",
   },
   fr: {
     title: "À propos des données",
     perMapTitle: "Carte par carte",
+    openMap: "Ouvrir la carte →",
     code: "Tout le site est open source :",
     codeLink: "github.com/lematty/paris-viz",
   },
