@@ -287,6 +287,18 @@ async function main() {
   }
 
   const list = [...groups.values()];
+  // big discs first: overlapping same-point programs then draw small on
+  // top, so every group stays visible and hoverable; full tie-break keeps
+  // the artifact byte-reproducible regardless of CSV row order
+  list.sort(
+    (a, b) =>
+      b.count - a.count ||
+      a.lon - b.lon ||
+      a.lat - b.lat ||
+      a.construct - b.construct ||
+      a.locat - b.locat ||
+      a.cat - b.cat,
+  );
   const count = list.length;
   const catHist = new Array(CATEGORY_COUNT).fill(0);
   let students = 0;
