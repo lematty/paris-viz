@@ -42,4 +42,4 @@ follow `shapes.txt` geometry, simplified with a ~11 m tolerance.
   (~1.5 MB).
 ---
 
-[← All visualizations](../README.md) · See also: [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
+[← All visualizations](../README.md) · See also: [Respire](air.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md) · [Logis](logis.md)

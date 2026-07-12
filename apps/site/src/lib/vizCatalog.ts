@@ -33,6 +33,11 @@ export const THEMES = [
       { key: "canicule", href: "/canicule", label: "Canicule" },
     ],
   },
+  {
+    key: "societe",
+    label: "Société",
+    vizzes: [{ key: "logis", href: "/logis", label: "Logis" }],
+  },
 ] as const;
 
 export type ThemeKey = (typeof THEMES)[number]["key"];

@@ -16,7 +16,8 @@
     "build:canicule": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-canicule-data.ts",
     "build:relief": "tsx scripts/build-relief-data.ts",
     "build:crue": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-crue-data.ts",
-    "build:mirage": "tsx scripts/build-mirage-data.ts"
+    "build:mirage": "tsx scripts/build-mirage-data.ts",
+    "build:logis": "tsx scripts/build-logis-data.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",

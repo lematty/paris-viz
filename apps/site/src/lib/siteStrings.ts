@@ -25,6 +25,7 @@ export const SITE: Record<
       mouvement: "the city in motion",
       matiere: "the built city",
       elements: "air, heat and water",
+      societe: "who lives where",
     },
     cards: {
       flux: {
@@ -67,10 +68,14 @@ export const SITE: Record<
         title: "Canicule - the heat island",
         desc: "39,000 blocks scored for heat: the dense mineral city glows long after dark while parks and rivers stay cool, and the night map shows who cannot escape it.",
       },
+      logis: {
+        title: "Logis - where social housing is",
+        desc: "A quarter-million social dwellings dot by dot: the pink HBM belt on the old fortifications, the post-war estates, and since 2000 a wave of buildings bought and converted.",
+      },
     },
     aboutTitle: "About the data",
     aboutBody:
-      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, short-term rental listings from Inside Airbnb, and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
+      "Everything on this site is built from open data: scheduled timetables (GTFS) and ticket validation counts published by Île-de-France Mobilités, hourly air quality measurements from Airparif, building heights and terrain from IGN databases (BD TOPO, RGE ALTI), construction periods from the Apur building footprints, heat-island scores from the Institut Paris Region, short-term rental listings from Inside Airbnb, the national register of social housing (RPLS), and the national address base for geocoding. No cookies and no backend, only anonymous aggregate page counts: each visualization is precomputed into a static file, and each page shows the exact period its data covers.",
     aboutRefresh:
       "Data is regenerated automatically twice a month, since published timetables only cover about 30 days ahead.",
     aboutTeaser:
@@ -85,6 +90,7 @@ export const SITE: Record<
       mouvement: "la ville en mouvement",
       matiere: "la ville bâtie",
       elements: "l'air, la chaleur et l'eau",
+      societe: "qui habite où",
     },
     cards: {
       flux: {
@@ -127,10 +133,14 @@ export const SITE: Record<
         title: "Canicule - l'îlot de chaleur",
         desc: "39 000 îlots notés pour la chaleur : la ville dense et minérale rougeoie longtemps après la tombée du soir quand les parcs et la Seine restent frais, et la carte de nuit montre qui ne peut pas y échapper.",
       },
+      logis: {
+        title: "Logis - où est le logement social",
+        desc: "Un quart de million de logements sociaux point par point : la ceinture rose des HBM sur les anciennes fortifications, les ensembles d'après-guerre, et depuis 2000 une vague d'immeubles achetés puis conventionnés.",
+      },
     },
     aboutTitle: "À propos des données",
     aboutBody:
-      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, les annonces de meublés touristiques d'Inside Airbnb, et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
+      "Tout ce site repose sur des données ouvertes : les horaires théoriques (GTFS) et les comptages de validations publiés par Île-de-France Mobilités, les mesures horaires de qualité de l'air d'Airparif, les hauteurs de bâtiments et le terrain des bases IGN (BD TOPO, RGE ALTI), les périodes de construction des emprises bâties de l'Apur, les notes d'îlot de chaleur de l'Institut Paris Region, les annonces de meublés touristiques d'Inside Airbnb, le répertoire national du logement social (RPLS), et la Base Adresse Nationale pour le géocodage. Pas de cookies, pas de backend, seulement des comptages de pages anonymes et agrégés : chaque visualisation est précalculée dans un fichier statique, et chaque page affiche la période exacte couverte par ses données.",
     aboutRefresh:
       "Les données sont régénérées automatiquement deux fois par mois, car les horaires publiés ne couvrent qu'environ 30 jours.",
     aboutTeaser:
@@ -512,6 +522,120 @@ export const MIRAGE: Record<Lang, MirageStrings> = {
     storyBack: (month) => `✦ Retour à ${month}, la marée complète`,
     footer:
       "Annonces : Inside Airbnb (CC BY 4.0) · Fond de carte © OpenStreetMap © CARTO",
+  },
+};
+
+export interface LogisStrings {
+  title: string;
+  loading: string;
+  subtitle: (count: string) => string;
+  noteBuilt: string;
+  noteLet: string;
+  modeAria: string;
+  modeBuilt: string;
+  modeLet: string;
+  finanAria: string;
+  filterHint: string;
+  cats: { hbm: string; avant77: string; plai: string; plus: string; pls: string; autre: string };
+  catTips: { hbm: string; avant77: string; plai: string; plus: string; pls: string; autre: string };
+  dwellings: (count: string, one: boolean) => string;
+  builtIn: (year: number) => string;
+  letSince: (year: number) => string;
+  avg: (surface: string, rooms: string) => string;
+  dpe: (letter: string) => string;
+  students: string;
+  arrondissement: (n: number) => string;
+  legend: string;
+  missingNote: (pct: string) => string;
+  storyBelt: string;
+  storyBack: string;
+  footer: string;
+}
+
+export const LOGIS: Record<Lang, LogisStrings> = {
+  en: {
+    title: "Logis - where social housing is",
+    loading: "loading dwellings…",
+    subtitle: (count) => `${count} social dwellings on January 1st, 2025 · RPLS`,
+    noteBuilt: "today's stock already built by this date",
+    noteLet: "today's stock already in service by this date",
+    modeAria: "Year dimension",
+    modeBuilt: "built in",
+    modeLet: "first let in",
+    finanAria: "Financing category",
+    filterHint:
+      "Click a category to keep only those dwellings; click it again to show everything.",
+    cats: {
+      hbm: "HBM, the pink belt",
+      avant77: "pre-1977 HLM",
+      plai: "most social (PLAI)",
+      plus: "standard social (PLUS)",
+      pls: "intermediate (PLS, PLI)",
+      autre: "other financing",
+    },
+    catTips: {
+      hbm: "Habitations à bon marché, 1894-1953: the red-brick belt raised mostly on the razed fortifications between the wars.",
+      avant77: "Ordinary HLM, ILM, ILN and the other regimes that predate the 1977 financing reform: most of the post-war estates.",
+      plai: "PLAI and its predecessors: the lowest rents, reserved for the poorest households.",
+      plus: "PLUS and ordinary PLA: the standard social product, the bulk of the stock financed since 1977.",
+      pls: "PLS and PLI: rent and income ceilings close to the market, often student or intermediate housing.",
+      autre: "Financing not recorded or outside the standard ladder.",
+    },
+    dwellings: (count, one) => (one ? "1 dwelling" : `${count} dwellings`),
+    builtIn: (year) => `built ${year}`,
+    letSince: (year) => `social housing since ${year}`,
+    avg: (surface, rooms) => `on average ${surface} m², ${rooms} rooms`,
+    dpe: (letter) => `DPE ${letter}`,
+    students: "student housing",
+    arrondissement: (n) => `${n}ᵉ`,
+    legend:
+      "Every dot is one address of the national social-housing register (RPLS), its area proportional to its dwellings and its color to their financing: the pink HBM belt, pre-1977 HLM in ochre, then a ladder of blues from the most subsidized to near-market. Press play and the stock assembles; switch the year dimension to 'first let in' and the story changes: a quarter of the dwellings entered service more than twenty years after construction, buildings bought and converted, most of them since 2000.",
+    missingNote: (pct) => `not mapped: ${pct}% of the stock, without coordinates`,
+    storyBelt: "✦ 1935: the pink belt closes around Paris",
+    storyBack: "✦ Back to today, the whole stock",
+    footer: "Dwellings: SDES, RPLS 2025 (licence ouverte) · Basemap © OpenStreetMap © CARTO",
+  },
+  fr: {
+    title: "Logis - où est le logement social",
+    loading: "chargement des logements…",
+    subtitle: (count) => `${count} logements sociaux au 1ᵉʳ janvier 2025 · RPLS`,
+    noteBuilt: "le parc actuel déjà construit à cette date",
+    noteLet: "le parc actuel déjà en service à cette date",
+    modeAria: "Dimension temporelle",
+    modeBuilt: "construit en",
+    modeLet: "mis en location en",
+    finanAria: "Catégorie de financement",
+    filterHint:
+      "Cliquez une catégorie pour ne garder que ces logements ; recliquez pour tout réafficher.",
+    cats: {
+      hbm: "HBM, la ceinture rose",
+      avant77: "HLM d'avant 1977",
+      plai: "très social (PLAI)",
+      plus: "social (PLUS)",
+      pls: "intermédiaire (PLS, PLI)",
+      autre: "autre financement",
+    },
+    catTips: {
+      hbm: "Habitations à bon marché, 1894-1953 : la ceinture de briques rouges, bâtie surtout sur l'emprise des fortifications entre les deux guerres.",
+      avant77: "HLM ordinaires, ILM, ILN et les autres régimes d'avant la réforme du financement de 1977 : l'essentiel des ensembles d'après-guerre.",
+      plai: "Le PLAI et ses ancêtres : les loyers les plus bas, réservés aux ménages les plus modestes.",
+      plus: "PLUS et PLA ordinaire : le logement social standard, le cœur du parc financé depuis 1977.",
+      pls: "PLS et PLI : plafonds de loyers et de ressources proches du marché, souvent du logement étudiant ou intermédiaire.",
+      autre: "Financement non renseigné ou hors nomenclature.",
+    },
+    dwellings: (count, one) => (one ? "1 logement" : `${count} logements`),
+    builtIn: (year) => `construit en ${year}`,
+    letSince: (year) => `logement social depuis ${year}`,
+    avg: (surface, rooms) => `en moyenne ${surface} m², ${rooms} pièces`,
+    dpe: (letter) => `DPE ${letter}`,
+    students: "logements étudiants",
+    arrondissement: (n) => `${n}ᵉ`,
+    legend:
+      "Chaque point est une adresse du répertoire national du logement social (RPLS), sa surface proportionnelle à son nombre de logements, sa couleur à leur financement : la ceinture rose des HBM, les HLM d'avant 1977 en ocre, puis une échelle de bleus du plus social au proche du marché. Lancez la lecture et le parc s'assemble ; basculez la dimension sur « mis en location en » et l'histoire change : un quart des logements sont entrés en service plus de vingt ans après leur construction, des immeubles achetés puis conventionnés, pour la plupart depuis 2000.",
+    missingNote: (pct) => `non cartographiés : ${pct} % du parc, sans coordonnées`,
+    storyBelt: "✦ 1935 : la ceinture rose se referme sur Paris",
+    storyBack: "✦ Retour à aujourd'hui, tout le parc",
+    footer: "Logements : SDES, RPLS 2025 (licence ouverte) · Fond de carte © OpenStreetMap © CARTO",
   },
 };
 

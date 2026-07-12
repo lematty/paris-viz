@@ -103,6 +103,15 @@ Heatmap of night-bus service after midnight: which neighbourhoods the
 Noctilien network covers, weeknights vs weekends, with address search and
 walking times. [Read more →](docs/noctilien.md) · [open live](https://parisviz.com/noctilien)
 
+### [`/logis` - where social housing is](docs/logis.md)
+
+![Every social dwelling in Paris colored by financing category](apps/site/public/logis-og.png)
+
+A quarter-million social dwellings dot by dot, colored by financing family
+and assembling year by year: the pink HBM belt closes around the city by
+1935, and the "first let" sweep shows the post-2000 wave of buildings
+bought and converted. [Read more →](docs/logis.md) · [open live](https://parisviz.com/logis)
+
 ## Develop
 
 ```bash

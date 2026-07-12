@@ -33,8 +33,8 @@ test("landing page lists the visualizations", async ({ page }) => {
   const errors = await setup(page);
   await page.goto("/");
   await expect(page.locator("h1")).toHaveText("Paris Viz");
-  await expect(page.locator(".home-theme")).toHaveCount(3);
-  await expect(page.locator(".card")).toHaveCount(10);
+  await expect(page.locator(".home-theme")).toHaveCount(4);
+  await expect(page.locator(".card")).toHaveCount(11);
   await page.click('.card:has-text("Flux")');
   await expect(page).toHaveURL(/\/flux/);
   expect(errors).toEqual([]);

@@ -63,6 +63,10 @@ export default function About() {
           <a href="https://adresse.data.gouv.fr">adresse.data.gouv.fr</a>
           {" · "}
           <a href="https://insideairbnb.com">insideairbnb.com</a>
+          {" · "}
+          <a href="https://www.data.gouv.fr/datasets/donnees-detaillees-au-logement-du-repertoire-des-logements-locatifs-des-bailleurs-sociaux-rpls">
+            RPLS
+          </a>
         </p>
       </section>
       <h2 className="about-permap">{t.perMapTitle}</h2>

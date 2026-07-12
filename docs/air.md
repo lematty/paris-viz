@@ -39,4 +39,4 @@ fades the veil where no station is close.
   capped at 250, 255 = missing. ~350 KB per pollutant-year.
 ---
 
-[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md)
+[← All visualizations](../README.md) · See also: [Flux](flux.md) · [Horizon](horizon.md) · [Vertige](vertige.md) · [Strates](strates.md) · [Mirage](mirage.md) · [Crue](crue.md) · [Canicule](canicule.md) · [Relief](relief.md) · [Noctilien](noctilien.md) · [Logis](logis.md)
