@@ -299,7 +299,7 @@ export default function VertigeMap() {
             maxZoom: 16.5,
             maxPitch: 70,
           },
-          controller: true,
+          controller: { touchRotate: true },
           effects: [
             new LightingEffect({
               ambient: new AmbientLight({
@@ -345,6 +345,14 @@ export default function VertigeMap() {
             timeRef.current = t;
           },
           getTime: () => timeRef.current,
+          getView: () => {
+            const { pitch, bearing, zoom } = deck.getViewports()[0] as unknown as {
+              pitch: number;
+              bearing: number;
+              zoom: number;
+            };
+            return { pitch, bearing, zoom };
+          },
           // camera override for tests and promo screenshots
           setView: (viewState: Record<string, number>) =>
             deck.setProps({
