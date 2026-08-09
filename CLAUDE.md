@@ -16,9 +16,16 @@ Monorepo for Paris open-data visualizations. pnpm workspace:
 - Never use em dashes anywhere in the project: code, UI strings, docs,
   comments, or commit messages. Use a colon, comma, or hyphen instead.
 
-## Git commits
+## Git commits & pull requests
 
 - Single-line commit messages only (no body or multi-line descriptions)
 - Use conventional commit prefixes: `feat:`, `fix:`, `refactor:`, etc.
 - Do not add `Co-Authored-By` lines
 - Only commit when explicitly asked
+- Never commit directly to `main`. When asked to commit, deliver the change as a pull request: branch from `main` (`feat/...`, `fix/...`), commit there, push, and open a PR.
+- Start new branches from a fresh `main`: `git pull --ff-only` before branching
+- PRs are reviewed and merged manually by the user; never merge one yourself.
+- After a PR merges: `git pull --ff-only` on `main`, delete the local branch, `git fetch --prune` (remote branches auto-delete on merge)
+- Open PRs with `gh pr create` when available; otherwise push the branch and share the PR-creation URL from the push output.
+- PR titles and bodies: plain prose, no em dashes, no "Generated with Claude Code" attribution
+- Verify the change before committing where possible (build, lint, tests)
