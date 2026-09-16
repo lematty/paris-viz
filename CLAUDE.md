@@ -15,10 +15,3 @@ Monorepo for Paris open-data visualizations. pnpm workspace:
 - Use pnpm, never npm.
 - Never use em dashes anywhere in the project: code, UI strings, docs,
   comments, or commit messages. Use a colon, comma, or hyphen instead.
-
-## Git commits
-
-- Single-line commit messages only (no body or multi-line descriptions)
-- Use conventional commit prefixes: `feat:`, `fix:`, `refactor:`, etc.
-- Do not add `Co-Authored-By` lines
-- Only commit when explicitly asked
