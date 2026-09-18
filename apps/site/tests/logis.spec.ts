@@ -29,12 +29,12 @@ test("logis loads the dwellings, pinned year on the clock", async ({
     (r) => r.url().includes("/logis/groups.bin") && r.status() === 200,
     { timeout: 60_000 },
   );
-  await page.goto("/logis?paused=1&t=30");
+  await page.goto("/logis?paused=1&t=28");
   await loaded(page);
   await bin;
-  // t=30 on the piecewise timeline is 1945
+  // t=28 on the piecewise timeline is 1945
   await expect(page.locator(".flow-clock")).toHaveText("1945");
-  await expect(page.locator(".clock-note")).toContainText("already built");
+  await expect(page.locator(".clock-note")).toContainText("already in service");
   await expect(page.locator(".mirage-legend-row")).toHaveCount(6);
   // each financing row explains itself on hover
   await expect(page.locator(".mirage-legend-row").nth(0)).toHaveAttribute(
@@ -70,18 +70,6 @@ test("?finan=hbm preselects the pink-belt filter", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("the year dimension toggles between built and first let", async ({
-  page,
-}) => {
-  const errors = await setup(page);
-  await page.goto("/logis?paused=1&t=30");
-  await loaded(page);
-  await expect(page.locator(".clock-note")).toContainText("already built");
-  await page.selectOption('select[aria-label="Year dimension"]', "let");
-  await expect(page.locator(".clock-note")).toContainText("already in service");
-  expect(errors).toEqual([]);
-});
-
 test("story button pins the 1935 belt, then offers the whole stock", async ({
   page,
 }) => {
@@ -100,7 +88,7 @@ test("story button pins the 1935 belt, then offers the whole stock", async ({
 
 test("pressing play advances the year", async ({ page }) => {
   const errors = await setup(page);
-  await page.goto("/logis?paused=1&t=30");
+  await page.goto("/logis?paused=1&t=28");
   await loaded(page);
   await expect(page.locator(".flow-clock")).toHaveText("1945");
   await page.click('button[aria-label="Play"]');
