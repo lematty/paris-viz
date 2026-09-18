@@ -82,7 +82,37 @@ function* rows(text: string): Generator<string[]> {
   }
 }
 
+/** Column lookup by header name; the header line is trimmed of its BOM and CR. */
+function columnIndex(text: string): (name: string) => number {
+  const header = splitCsv(text.slice(0, text.indexOf("\n")).trim());
+  return (name) => {
+    const index = header.indexOf(name);
+    if (index === -1) throw new Error(`missing column ${name} in: ${header.join(";")}`);
+    return index;
+  };
+}
+
 const normalizeIda = (raw: string) => raw.replace(/\.0$/, "");
+
+/** Export date to calendar date; days 1-12 have day and month swapped back
+ * when one of them names a month absent from days 13 and up. */
+function calendarDates(raw: Iterable<string>): Map<string, string> {
+  const dates = [...new Set(raw)];
+  const day = (date: string) => +date.slice(8, 10);
+  const month = (date: string) => date.slice(0, 7);
+  const sureMonths = new Set(dates.filter((date) => day(date) > 12).map(month));
+  const swapped =
+    sureMonths.size > 0 &&
+    dates.some((date) => day(date) <= 12 && !sureMonths.has(month(date)));
+  return new Map(
+    dates.map((date) => [
+      date,
+      swapped && day(date) <= 12
+        ? `${date.slice(0, 4)}-${date.slice(8, 10)}-${date.slice(5, 7)}`
+        : date,
+    ]),
+  );
+}
 
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
@@ -91,26 +121,39 @@ async function main() {
   // A zone (ida) groups several stops (code_stif_arret) whose hourly profiles
   // are published separately, so levels are kept per stop and only the final
   // absolute validations/hour are summed into the zone.
-  // jour;code_stif_trns;code_stif_res;code_stif_arret;libelle_arret;ida;categorie_titre;nb_vald
   const dailyText = await fetchCached(DAILY, "jour;");
+  const dailyCol = columnIndex(dailyText);
+  const DAILY_IDX = {
+    date: dailyCol("jour"),
+    stop: dailyCol("code_stif_arret"),
+    ida: dailyCol("ida"),
+    count: dailyCol("nb_vald"),
+  };
   const dayTotals = new Map<string, Map<string, number>>(); // ida|arret -> date -> sum
   const zoneOfStop = new Map<string, string>();
-  let minDate = "9999";
-  let maxDate = "";
+  const rawDates = new Set<string>();
   for (const cols of rows(dailyText)) {
-    const ida = normalizeIda(cols[5]);
+    const ida = normalizeIda(cols[DAILY_IDX.ida]);
     if (!ida || ida === "ND") continue;
-    const count = +cols[7];
+    const count = +cols[DAILY_IDX.count];
     if (!Number.isFinite(count)) continue;
-    const stop = `${ida}|${cols[3]}`;
+    const stop = `${ida}|${cols[DAILY_IDX.stop]}`;
     zoneOfStop.set(stop, ida);
-    const date = cols[0];
-    if (date < minDate) minDate = date;
-    if (date > maxDate) maxDate = date;
+    const date = cols[DAILY_IDX.date];
+    rawDates.add(date);
     let perDate = dayTotals.get(stop);
     if (!perDate) dayTotals.set(stop, (perDate = new Map()));
     perDate.set(date, (perDate.get(date) ?? 0) + count);
   }
+  const calendar = calendarDates(rawDates);
+  if ([...calendar].some(([raw, date]) => raw !== date))
+    console.log("Daily levels: day and month swapped upstream, dates corrected");
+  const dates = [...calendar.values()].sort();
+  const minDate = dates[0];
+  const maxDate = dates[dates.length - 1];
+  const spanDays = (Date.parse(maxDate) - Date.parse(minDate)) / 86_400_000;
+  if (!(spanDays > 0 && spanDays < 200))
+    throw new Error(`Suspicious date span ${minDate} → ${maxDate} - upstream change?`);
 
   const typeOfDate = (date: string): DayType => {
     const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
@@ -121,7 +164,7 @@ async function main() {
     const sums: Record<DayType, number> = { w: 0, s: 0, d: 0 };
     const counts: Record<DayType, number> = { w: 0, s: 0, d: 0 };
     for (const [date, total] of perDate) {
-      const type = typeOfDate(date);
+      const type = typeOfDate(calendar.get(date) ?? date);
       sums[type] += total;
       counts[type]++;
     }
@@ -134,19 +177,26 @@ async function main() {
   console.log(`Daily levels: ${meanDaily.size} stops, ${minDate} → ${maxDate}`);
 
   // --- hourly profiles (percentages per day type) ------------------------------
-  // code_stif_trns;code_stif_res;code_stif_arret;libelle_arret;ida;cat_jour;trnc_horr_60;pourcentage_validations
   const profileText = await fetchCached(PROFILES, "code_stif_trns;");
+  const profileCol = columnIndex(profileText);
+  const PROFILE_IDX = {
+    stop: profileCol("code_stif_arret"),
+    ida: profileCol("ida"),
+    dayType: profileCol("cat_jour"),
+    slot: profileCol("trnc_horr_60"),
+    pct: profileCol("pourcentage_validations"),
+  };
   const profiles = new Map<string, Record<DayType, Float64Array>>();
   for (const cols of rows(profileText)) {
-    const type = CAT_JOUR[cols[5]];
+    const type = CAT_JOUR[cols[PROFILE_IDX.dayType]];
     if (!type) continue;
-    const ida = normalizeIda(cols[4]);
-    const slot = cols[6]; // "8H-9H"
+    const ida = normalizeIda(cols[PROFILE_IDX.ida]);
+    const slot = cols[PROFILE_IDX.slot]; // "8H-9H"
     const hour = parseInt(slot, 10);
     if (!ida || ida === "ND" || !Number.isFinite(hour)) continue;
-    const pct = +cols[7];
+    const pct = +cols[PROFILE_IDX.pct];
     if (!Number.isFinite(pct)) continue;
-    const stop = `${ida}|${cols[2]}`;
+    const stop = `${ida}|${cols[PROFILE_IDX.stop]}`;
     zoneOfStop.set(stop, ida);
     let perType = profiles.get(stop);
     if (!perType)
@@ -164,13 +214,12 @@ async function main() {
 
   // --- station registry: one point and name per zone de correspondance --------
   const garesText = await fetchCached(GARES, "geo_point_2d;");
-  const garesHeader = splitCsv(garesText.slice(0, garesText.indexOf("\n")).replace(/^﻿/, ""));
-  const col = (name: string) => garesHeader.indexOf(name);
+  const garesCol = columnIndex(garesText);
   const IDX = {
-    point: col("geo_point_2d"),
-    zdc: col("id_ref_zdc"),
-    nom: col("nom_zdc"),
-    principal: col("principal"),
+    point: garesCol("geo_point_2d"),
+    zdc: garesCol("id_ref_zdc"),
+    nom: garesCol("nom_zdc"),
+    principal: garesCol("principal"),
   };
   const points = new Map<string, { name: string; lon: number; lat: number; n: number; principal: boolean }>();
   for (const cols of rows(garesText)) {

@@ -35,9 +35,12 @@ stop, the hourly percentage profiles per day type, and the station registry.
 Daily levels are averaged per weekday/Saturday/Sunday over the covered
 quarter, multiplied by each stop's hourly profile (JOHV/SAHV/DIJFP), and the
 absolute validations per hour are summed into each zone de correspondance,
-joined to its registry point by `ida` = `id_ref_zdc` (97% direct match). A
-few stops publish duplicated percentage rows upstream (profiles summing to
-400%+), so profiles are normalized by their own sum when they overshoot.
+joined to its registry point by `ida` = `id_ref_zdc` (97% direct match).
+Columns are looked up by header name, and an export whose dates arrive with
+day and month swapped is put back on the calendar before day types are
+assigned. A few stops publish duplicated percentage rows upstream (profiles
+summing to 400%+), so profiles are normalized by their own sum when they
+overshoot.
 
 On the client the landscape is a deck.gl spike map over the shared dark
 basemap: one column per station at its true coordinates, its height linear
