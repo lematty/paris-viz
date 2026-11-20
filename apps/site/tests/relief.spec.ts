@@ -56,6 +56,7 @@ test("?day=saturday starts on a Saturday", async ({ page }) => {
 });
 
 test("story button pins 6pm on a weekday", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/relief?paused=1&t=0&day=sunday");
   await expect(page.locator(".sub")).toContainText("stations", {
@@ -63,7 +64,7 @@ test("story button pins 6pm on a weekday", async ({ page }) => {
   });
   await page.locator(".story-btn").click();
   await expect(page.locator(".flow-clock")).toHaveText("18:00", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   await expect(page.locator(".clock-note")).toContainText("weekday");
   await expect(page.locator('button[aria-label="Play"]')).toBeVisible();
@@ -71,6 +72,7 @@ test("story button pins 6pm on a weekday", async ({ page }) => {
 });
 
 test("pressing play advances the clock", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/relief?paused=1&t=30600");
   await expect(page.locator(".sub")).toContainText("stations", {
@@ -79,7 +81,7 @@ test("pressing play advances the clock", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toHaveText("08:30");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("08:30", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

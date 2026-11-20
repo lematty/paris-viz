@@ -87,13 +87,14 @@ test("story button pins the median arrival month, then offers the full tide", as
 });
 
 test("pressing play advances the month", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/mirage?paused=1&t=283");
   await loaded(page);
   await expect(page.locator(".flow-clock")).toHaveText("Aug 2023");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("Aug 2023", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

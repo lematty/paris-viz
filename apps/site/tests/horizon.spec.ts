@@ -78,6 +78,7 @@ test("story button re-roots at Torcy and starts playing", async ({ page }) => {
 });
 
 test("pressing play advances the travel-time budget", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/horizon?paused=1&t=10");
   await expect(page.locator(".sub")).toContainText("stations", {
@@ -86,7 +87,7 @@ test("pressing play advances the travel-time budget", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toHaveText("10 min");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("10 min", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

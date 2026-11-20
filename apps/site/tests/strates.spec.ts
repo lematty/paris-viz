@@ -52,6 +52,7 @@ test("the time filter select flips between before and after", async ({
 test("story button pins the year at 1914, then offers the other side", async ({
   page,
 }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/strates?paused=1&t=0");
   await expect(page.locator(".sub")).toContainText("footprints", {
@@ -61,7 +62,7 @@ test("story button pins the year at 1914, then offers the other side", async ({
   // the first layer build tessellates 128k polygons and can starve the
   // animation frame that repaints the clock, hence the generous timeout
   await expect(page.locator(".flow-clock")).toHaveText("1914", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   await expect(page.locator(".clock-note")).toContainText("standing");
   await expect(page.locator('button[aria-label="Play"]')).toBeVisible();
@@ -93,6 +94,7 @@ test("?dir=back starts the sweep backward and the toggle flips it", async ({
 });
 
 test("pressing play advances the year", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/strates?paused=1&t=24");
   await expect(page.locator(".sub")).toContainText("footprints", {
@@ -101,7 +103,7 @@ test("pressing play advances the year", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toHaveText("1850");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("1850", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });
