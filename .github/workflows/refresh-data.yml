@@ -12,14 +12,18 @@ on:
     - cron: "0 4 1,15 * *" # 04:00 UTC on the 1st and 15th
   workflow_dispatch: # manual run from the Actions tab
 
+permissions: {}
+
 jobs:
   redeploy:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Vercel deployment
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
-          if [ -z "${{ secrets.VERCEL_DEPLOY_HOOK }}" ]; then
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
             echo "::error::VERCEL_DEPLOY_HOOK secret is not set - create a Deploy Hook in Vercel and add it as a repository secret."
             exit 1
           fi
-          curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK"
