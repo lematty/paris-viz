@@ -12,6 +12,9 @@ on:
       - "**.md"
       - "docs/**"
       - "**/.claude/**"
+  schedule:
+    - cron: "17 3 * * 1" # Mondays 03:17 UTC
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -36,15 +39,55 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # data is generated at build time; cache the 160 MB GTFS download
-      # (feed changes continuously, monthly staleness is fine for CI)
-      - id: month
-        run: echo "m=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      # cache keys, and the generated artifact paths as listed in .gitignore
+      - name: Cache keys
+        id: cache
+        run: |
+          week=$(date -u +%GW%V)
+          {
+            echo "downloads-key=downloads-$week-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            echo "downloads-restore-keys<<EOF"
+            echo "downloads-$week-"
+            echo "downloads-$(date -u -d '7 days ago' +%GW%V)-"
+            echo EOF
+            echo "artifact-paths<<EOF"
+            grep '^apps/site/public/' .gitignore
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      # scheduled and manual runs skip this and download from upstream
+      - name: Restore downloads
+        id: downloads
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
         with:
           path: data/
-          key: idfm-gtfs-${{ steps.month.outputs.m }}
+          key: ${{ steps.cache.outputs.downloads-key }}
+          restore-keys: ${{ steps.cache.outputs.downloads-restore-keys }}
+
+      - name: Restore artifacts
+        id: artifacts
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.cache.outputs.artifact-paths }}
+          key: artifacts-${{ hashFiles('apps/site/scripts/**', 'packages/gtfs/**', 'apps/site/package.json', 'pnpm-lock.yaml', '.node-version') }}-${{ steps.downloads.outputs.cache-matched-key || steps.cache.outputs.downloads-key }}
+
+      - name: Generate data
+        run: node apps/site/scripts/ensure-data.mjs
+
+      - name: Save downloads
+        if: github.ref == 'refs/heads/main' && steps.downloads.outputs.cache-matched-key == ''
+        uses: actions/cache/save@v6
+        with:
+          path: data/
+          key: ${{ steps.cache.outputs.downloads-key }}
+
+      - name: Save artifacts
+        if: github.ref == 'refs/heads/main' && steps.artifacts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.cache.outputs.artifact-paths }}
+          key: ${{ steps.artifacts.outputs.cache-primary-key }}
 
       - run: pnpm build
 
