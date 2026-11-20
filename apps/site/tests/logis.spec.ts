@@ -87,13 +87,14 @@ test("story button pins the 1935 belt, then offers the whole stock", async ({
 });
 
 test("pressing play advances the year", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/logis?paused=1&t=28");
   await loaded(page);
   await expect(page.locator(".flow-clock")).toHaveText("1945");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("1945", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

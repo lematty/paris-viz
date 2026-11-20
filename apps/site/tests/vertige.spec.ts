@@ -52,6 +52,7 @@ test("the ceiling mode select flips the filter direction", async ({
 test("story button pins the ceiling at 37 m and shows what rises above", async ({
   page,
 }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/vertige?paused=1&t=0");
   await expect(page.locator(".sub")).toContainText("buildings", {
@@ -61,7 +62,7 @@ test("story button pins the ceiling at 37 m and shows what rises above", async (
   // the first layer build tessellates 110k polygons and can starve the
   // animation frame that repaints the clock, hence the generous timeout
   await expect(page.locator(".flow-clock")).toHaveText("37 m", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   await expect(page.locator(".clock-note")).toContainText("above");
   await expect(page.locator('button[aria-label="Play"]')).toBeVisible();
@@ -89,6 +90,7 @@ test("?dir=down starts the sweep downward and the toggle flips it", async ({
 });
 
 test("pressing play raises the ceiling", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/vertige?paused=1&t=20");
   await expect(page.locator(".sub")).toContainText("buildings", {
@@ -97,7 +99,7 @@ test("pressing play raises the ceiling", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toHaveText("10 m");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("10 m", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

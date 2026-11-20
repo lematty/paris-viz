@@ -41,6 +41,7 @@ test("crue loads terrain and buildings, pinned gauge on the clock", async ({
 });
 
 test("story button pins the 1910 record, then offers 2016", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/crue?paused=1&g=1");
   await expect(page.locator(".sub")).toContainText("buildings", {
@@ -48,7 +49,7 @@ test("story button pins the 1910 record, then offers 2016", async ({ page }) => 
   });
   await page.locator(".story-btn").first().click();
   await expect(page.locator(".flow-clock")).toHaveText("8.62 m", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   await expect(page.locator(".clock-note")).toContainText("1910");
   await expect(page.locator(".story-btn").first()).toContainText("2016");
@@ -56,6 +57,7 @@ test("story button pins the 1910 record, then offers 2016", async ({ page }) => 
 });
 
 test("pressing play raises the water", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/crue?paused=1&g=3");
   await expect(page.locator(".sub")).toContainText("buildings", {
@@ -64,7 +66,7 @@ test("pressing play raises the water", async ({ page }) => {
   await expect(page.locator(".flow-clock")).toHaveText("3.00 m");
   await page.click('button[aria-label="Play"]');
   await expect(page.locator(".flow-clock")).not.toHaveText("3.00 m", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

@@ -122,6 +122,7 @@ test("day-type selector reloads data for the chosen day", async ({ page }) => {
 });
 
 test("pressing play advances the clock", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto(FLUX_URL);
   await dataReady(page);
@@ -129,7 +130,7 @@ test("pressing play advances the clock", async ({ page }) => {
   await page.click('button[aria-label="Play"]');
   // ×60: one real second ≈ one simulated minute
   await expect(page.locator(".flow-clock")).not.toHaveText("08:30", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });

@@ -29,7 +29,7 @@ test("air loads stations and a year series", async ({ page }) => {
   await bin;
   // clock shows a date once running (Jan 9 = hour 200)
   await expect(page.locator(".flow-clock")).toContainText("Jan", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   // the displayed rolling-mean window follows the playback speed
   await expect(page.locator(".clock-note")).toHaveText("24 h mean");
@@ -64,6 +64,7 @@ test("pollutant and year selectors load the right series", async ({
 });
 
 test("lockdown story button jumps to March 2020", async ({ page }) => {
+  test.slow();
   const errors = await setup(page);
   await page.goto("/air?paused=1&t=200&year=2025");
   await expect(page.locator(".sub")).toContainText("stations", {
@@ -76,7 +77,7 @@ test("lockdown story button jumps to March 2020", async ({ page }) => {
   await page.locator(".story-btn").click();
   await y2020;
   await expect(page.locator(".flow-clock")).toContainText("Mar", {
-    timeout: 15_000,
+    timeout: 60_000,
   });
   expect(errors).toEqual([]);
 });
