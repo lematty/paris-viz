@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   // Vercel injects the production URL; local builds fall back harmlessly.
   metadataBase: process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
-    : new URL("http://localhost:3000"),
+    : new URL("http://localhost:7835"),
   title: TITLE,
   description: DESCRIPTION,
   openGraph: {

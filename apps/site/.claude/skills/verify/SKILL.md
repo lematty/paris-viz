@@ -13,17 +13,17 @@ prod build:
 ```bash
 cd apps/site
 pnpm build            # runs scripts/ensure-data.mjs first; data artifacts live in public/
-pnpm exec next start -p 4123 &
+pnpm start &          # the port pinned in package.json (7835)
 ```
 
 ## Before running `pnpm test`
 
-playwright.config.ts starts `pnpm start` on port 3000 with
+playwright.config.ts starts `pnpm start` on port 7835 with
 `reuseExistingServer`, so a leftover `next-server` from an earlier session
 poisons the whole suite: it keeps its boot-time route manifest while the
 rebuilt `.next` changes under it (new routes 404, viz pages load no JS,
-every spec fails with "element(s) not found" on `.sub`). `lsof -i :3000`
-can miss it; use `ss -tlnp | grep 3000` and kill the pid before testing.
+every spec fails with "element(s) not found" on `.sub`). `lsof -i :7835`
+can miss it; use `ss -tlnp | grep 7835` and kill the pid before testing.
 Piping the test run through `tail` also swallows the real exit code -
 capture to a file instead.
 

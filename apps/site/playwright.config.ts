@@ -13,7 +13,7 @@ export default defineConfig({
   timeout: 90_000,
   retries: process.env.CI ? 1 : 0,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:7835",
     viewport: { width: 1440, height: 900 },
     launchOptions: {
       // CI runners have no GPU; SwiftShader gives deck.gl a software WebGL
@@ -26,7 +26,7 @@ export default defineConfig({
   },
   webServer: {
     command: "pnpm start",
-    url: "http://localhost:3000",
+    url: "http://localhost:7835",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

@@ -117,7 +117,7 @@ bought and converted. [Read more →](docs/logis.md) · [open live](https://pari
 ```bash
 pnpm install
 pnpm build             # generates missing data artifacts, then next build
-pnpm dev               # http://localhost:3000 (run `pnpm build:flow` +
+pnpm dev               # http://localhost:7835 (run `pnpm build:flow` +
                        # `pnpm build:noctilien` once first to create the data)
 pnpm test              # Playwright smoke suites (external services mocked)
 ```

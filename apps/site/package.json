@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 7835",
     "build": "node scripts/ensure-data.mjs && next build",
-    "start": "next start",
+    "start": "next start -p 7835",
     "build:flow": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-flow-data.ts",
     "build:noctilien": "tsx scripts/build-noctilien-data.ts",
     "build:horizon": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/build-horizon-data.ts",
