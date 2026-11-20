@@ -1,7 +1,7 @@
 {
   "name": "paris-viz",
   "private": true,
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "dev": "pnpm --filter site dev",
     "build": "pnpm --filter site build",
