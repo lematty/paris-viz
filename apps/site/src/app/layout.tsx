@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SITE_URL } from "@/lib/siteUrl";
 import "./globals.css";
 
 const TITLE = "Paris Viz - Paris open-data visualizations";
@@ -7,10 +8,7 @@ const DESCRIPTION =
   "Interactive visualizations of open data from Paris and Île-de-France: transit, mobility, the city itself.";
 
 export const metadata: Metadata = {
-  // Vercel injects the production URL; local builds fall back harmlessly.
-  metadataBase: process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
-    : new URL("http://localhost:7835"),
+  metadataBase: new URL(SITE_URL),
   title: TITLE,
   description: DESCRIPTION,
   openGraph: {
