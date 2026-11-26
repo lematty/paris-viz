@@ -1,4 +1,4 @@
-/** Public origin: the Vercel production domain, localhost on local builds. */
-export const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+/** Public origin: the canonical domain on Vercel builds, localhost locally. */
+export const SITE_URL = process.env.VERCEL
+  ? "https://www.parisviz.com"
   : "http://localhost:7835";
