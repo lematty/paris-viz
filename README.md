@@ -133,6 +133,11 @@ Deploy Hook on the 1st and 15th - the feed only covers ~30 days. It needs the
 `VERCEL_DEPLOY_HOOK` repository secret (Vercel → Settings → Git → Deploy
 Hooks). CI caches the GTFS zip per month.
 
+Commits that touch only docs, tests, CI or agent config skip the Vercel build
+(`ignoreCommand` in `apps/site/vercel.json`). A deployment of a commit more
+than five minutes old, which is what the hook and a manual redeploy produce,
+always builds.
+
 CI runs the smoke suite on every push and pull request. Tests pin `/flux` to
 the smallest mode, paused, and assert on DOM state only - CI runners have no
 GPU, so painted WebGL pixels are never asserted.
